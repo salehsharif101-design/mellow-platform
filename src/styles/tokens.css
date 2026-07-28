@@ -1,0 +1,59 @@
+:root {
+  --color-primary: #005ef5;
+  --color-bg: #ffffff;
+  --color-bg-soft: #f4f7ff;
+  --color-text: #0a0a0a;
+  --color-text-muted: #5b6472;
+  --color-border: rgba(0, 94, 245, 0.12);
+  --color-border-input: rgba(0, 94, 245, 0.3);
+  --color-focus-ring: rgba(0, 94, 245, 0.12);
+
+  --font-heading: 'Clash Display', 'Inter', sans-serif;
+  --font-body: 'Inter', sans-serif;
+
+  --radius-button: 7px;
+  --radius-card: 12px;
+  --radius-input: 7px;
+
+  --section-padding-desktop: 80px 48px;
+  --section-padding-mobile: 56px 20px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: var(--font-body);
+}

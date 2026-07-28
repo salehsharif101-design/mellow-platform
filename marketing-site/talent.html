@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Mellow - For Talent</title>
+<meta name="description" content="Record once. Apply everywhere. Free."/>
+<link rel="icon" type="image/png" href="img/logo.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="main.css"/>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --blue:#005ef5;
+  --dark:#0047c4;
+  --bg:#ffffff;
+  --soft:#f4f7ff;
+  --border:rgba(0,94,245,0.1);
+  --gap:96px;
+}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--blue);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 48px;}
+.nav-logo{display:flex;align-items:center;gap:9px;text-decoration:none;line-height:1;}
+.nav-logo img{height:20px;width:auto;display:block;margin-top:-2px;}
+.nav-logo-text{font-family:'Clash Display',sans-serif;font-size:24px;font-weight:700;color:var(--blue);letter-spacing:-0.3px;line-height:1;}
+.nav-links{display:flex;align-items:center;gap:26px;}
+.nav-links a{font-size:14px;font-weight:500;color:var(--blue);text-decoration:none;opacity:0.6;transition:opacity .18s;}
+.nav-links a:hover,.nav-links a.active{opacity:1;}
+.nav-cta{background:var(--blue);color:#fff !important;padding:9px 20px;border-radius:7px;font-weight:700;font-size:14px;opacity:1 !important;white-space:nowrap;}
+.nav-cta:hover{background:var(--dark) !important;}
+
+/* HAMBURGER */
+.hamburger{display:none;background:none;border:none;cursor:pointer;padding:4px;flex-direction:column;gap:5px;}
+.hamburger span{display:block;width:22px;height:2px;background:var(--blue);border-radius:2px;transition:all .25s;}
+.mobile-menu{display:none;position:fixed;top:66px;left:0;right:0;bottom:0;background:#fff;z-index:99;flex-direction:column;align-items:flex-start;padding:32px 28px;gap:0;border-top:1px solid var(--border);overflow-y:auto;}
+.mobile-menu.open{display:flex;}
+.mobile-menu a{font-family:'Clash Display',sans-serif;font-size:26px;font-weight:700;color:var(--blue);text-decoration:none;padding:14px 0;border-bottom:1px solid var(--border);width:100%;opacity:1;}
+.mobile-menu a:last-child{border-bottom:none;}
+.mobile-menu .mob-cta{margin-top:24px;background:var(--blue);color:#fff;padding:14px 28px;border-radius:8px;font-size:16px;text-align:center;border-bottom:none;}
+
+/* LAYOUT */
+.pw{padding-top:66px;}
+.s-white{background:var(--bg);padding:80px 48px;}
+.s-soft{background:var(--soft);padding:80px 48px;}
+.s-blue{background:var(--blue);padding:80px 48px;}
+.s-blue .eyebrow{color:rgba(255,255,255,0.5);}
+.s-blue h2,.s-blue h3{color:#fff;}
+.s-blue p,.s-blue .lead,.s-blue .body-text{color:rgba(255,255,255,0.82);}
+.s-blue .snum{color:rgba(255,255,255,0.13);}
+.s-blue .step h3{color:#fff;}
+.s-blue .step p{color:rgba(255,255,255,0.78);}
+.con{max-width:1100px;margin:0 auto;}
+
+/* HERO */
+.hero{min-height:calc(100vh - 66px);display:flex;align-items:center;padding:0 48px 48px;background:var(--bg);}
+.hero-inner{display:flex;flex-direction:row;gap:40px;align-items:center;width:100%;}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;opacity:0.35;margin-bottom:18px;}
+h1{font-family:'Clash Display',sans-serif;font-size:clamp(52px,5.5vw,80px);font-weight:700;line-height:0.95;letter-spacing:0.5px;margin-bottom:24px;}
+.hero-sub{font-size:17px;line-height:1.74;opacity:0.74;max-width:420px;margin-bottom:32px;}
+.hform{display:flex;max-width:420px;margin-bottom:10px;}
+.hform input{flex:1;padding:13px 16px;font-size:14px;font-family:'Inter',sans-serif;border:1.5px solid var(--blue);border-right:none;border-radius:7px 0 0 7px;background:transparent;color:var(--blue);outline:none;}
+.hform input::placeholder{color:var(--blue);opacity:0.33;}
+.hform button{padding:13px 20px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;background:var(--blue);color:#fff;border:1.5px solid var(--blue);border-radius:0 7px 7px 0;cursor:pointer;white-space:nowrap;}
+.hform button:hover{background:var(--dark);}
+.hnote{font-size:12px;opacity:0.4;}
+.hero-left-content{flex:1;}.hero-img{flex:1;display:flex;justify-content:flex-end;align-items:center;}
+.hero-img img{width:100%;max-width:620px;height:auto;}
+
+/* SECTION ROW — mirrors hero-inner layout exactly */
+.section-row{display:flex;flex-direction:row;gap:40px;align-items:center;width:100%;}
+.section-row.rev{flex-direction:row-reverse;}
+.sr-content{flex:1;display:flex;flex-direction:column;justify-content:center;}
+.sr-img{flex:1;display:flex;justify-content:flex-end;align-items:center;}
+.section-row.rev .sr-img{justify-content:flex-start;}
+.sr-img img{width:100%;max-width:620px;height:auto;object-fit:contain;}
+
+/* TYPE */
+h2{font-family:'Clash Display',sans-serif;font-size:clamp(30px,3.4vw,46px);font-weight:700;line-height:1.06;letter-spacing:0.3px;margin-bottom:16px;}
+h3{font-family:'Clash Display',sans-serif;font-size:20px;font-weight:700;margin-bottom:8px;}
+.body-text{font-size:16px;line-height:1.78;opacity:0.72;}
+.lead{font-size:18px;line-height:1.72;opacity:0.76;margin-bottom:28px;}
+.mb20{margin-bottom:20px;}
+
+/* STEPS */
+.steps-col{display:flex;flex-direction:column;gap:28px;margin-top:8px;}
+.snum{font-family:'Clash Display',sans-serif;font-size:52px;font-weight:700;line-height:1;margin-bottom:6px;color:rgba(0,94,245,0.08);}
+
+/* FAQ */
+.faq{max-width:680px;margin:40px auto 0;}
+.fitem{border-bottom:1px solid var(--border);padding:20px 0;}
+.fitem:first-child{border-top:1px solid var(--border);}
+.fq{font-weight:700;font-size:16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;user-select:none;}
+.ftoggle{font-size:22px;font-weight:300;opacity:0.35;flex-shrink:0;transition:transform .2s;line-height:1;}
+.fitem.open .ftoggle{transform:rotate(45deg);}
+.fa{font-size:15px;line-height:1.7;opacity:0.7;display:none;padding-top:12px;}
+.fitem.open .fa{display:block;}
+
+/* BUTTONS — all same size as nav CTA */
+.btn{display:inline-block;padding:9px 20px;border-radius:7px;font-size:14px;font-weight:700;text-decoration:none;cursor:pointer;border:none;transition:all .18s;font-family:'Inter',sans-serif;line-height:1.4;}
+.btn-solid{background:var(--blue);color:#fff;}
+.btn-solid:hover{background:var(--dark);}
+.btn-ghost{background:transparent;border:2px solid var(--blue);color:var(--blue);}
+.btn-ghost:hover{background:var(--blue);color:#fff;}
+.btn-wh{background:#fff;color:var(--blue);font-weight:700;}
+.btn-wh:hover{opacity:0.88;}
+.btn-wh-ghost{background:transparent;border:2px solid rgba(255,255,255,0.7);color:#fff;}
+.btn-wh-ghost:hover{background:rgba(255,255,255,0.12);}
+
+/* CTA */
+.cta{text-align:center;}
+.cta h2{max-width:520px;margin:0 auto 14px;}
+.cta p{max-width:400px;margin:0 auto 28px;font-size:17px;}
+.cta blockquote{font-family:'Clash Display',sans-serif;font-size:clamp(22px,2.8vw,34px);font-weight:700;max-width:680px;margin:0 auto 20px;color:#fff;line-height:1.2;font-style:normal;}
+.btn-pair{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+
+/* FOOTER */
+footer{background:var(--blue);padding:22px 48px;display:flex;align-items:center;justify-content:space-between;}
+.flogo{display:flex;align-items:center;gap:9px;}
+.flogo img{height:18px;width:auto;display:block;margin-top:-2px;filter:brightness(0) invert(1);}
+.flogo-text{font-family:'Clash Display',sans-serif;font-size:20px;font-weight:700;color:#fff;line-height:1;}
+.fcopy{font-size:12px;color:rgba(255,255,255,0.5);}
+.flinks{display:flex;gap:20px;}
+.flinks a{font-size:12px;color:rgba(255,255,255,0.5);text-decoration:none;transition:color .18s;}
+.flinks a:hover{color:#fff;}
+
+/* MOBILE */
+@media(max-width:768px){
+  nav{padding:0 20px;}
+  .hamburger{display:flex;}
+  .nav-links{display:none;}
+  .hero,.s-white,.s-soft,.s-blue{padding:56px 20px;}
+  .hero-inner{flex-direction:column;gap:32px;}
+  .hero-inner > div{flex:none;width:100%;}
+  .hero-inner .hero-img{order:-1;justify-content:center;}
+  .hero-img img{max-width:300px;}
+  h1{font-size:40px;}
+  .section-row,.section-row.rev{flex-direction:column;gap:28px;}
+  .section-row .sr-img,.section-row.rev .sr-img{order:-1;justify-content:center;flex:none;width:100%;}
+  .section-row .sr-content,.section-row.rev .sr-content{flex:none;width:100%;}
+  .sr-img img{max-width:300px;}
+  .faq{max-width:100%;}
+  footer{flex-direction:column;gap:12px;text-align:center;padding:20px;}
+  .hform{flex-direction:column;max-width:100%;}
+  .hform input{border-right:1.5px solid var(--blue);border-bottom:none;border-radius:7px 7px 0 0;}
+  .hform button{border-radius:0 0 7px 7px;}
+}
+</style>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="index.html">
+    <img src="img/logo.png" alt="Mellow"/>
+    <span class="nav-logo-text">mellow</span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="talent.html">For Talent</a>
+    <a href="employers.html">For Employers</a>
+    <a href="about.html">About</a>
+    <a href="index.html#faq">FAQ</a>
+    <a href="index.html#waitlist" class="nav-cta">Get early access</a>
+  </div>
+  <button class="hamburger" id="hamburger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<div class="mobile-menu" id="mobile-menu">
+  <a href="index.html">Home</a>
+  <a href="talent.html">For Talent</a>
+  <a href="employers.html">For Employers</a>
+  <a href="about.html">About</a>
+  <a href="index.html#faq">FAQ</a>
+  <a href="index.html#waitlist" class="mob-cta">Get early access</a>
+</div>
+<div class="pw">
+
+<section class="hero" style="min-height:60vh">
+  <div class="hero-inner">
+    <div style="flex:1">
+      <p class="eyebrow">For talent</p>
+      <h1>Your living first impression</h1>
+      <p class="hero-sub">Stop sending CVs into the void. Record one video that shows employers exactly who you are, and apply to every role you want with a single tap.</p>
+      <a href="index.html#waitlist" class="btn btn-solid">Get early access, it's free</a>
+    </div>
+    <div class="hero-img"><img src="img/flexible.png" alt=""/></div>
+  </section>
+<section class="s-soft">
+  <div class="section-row">
+      <div class="sr-content">
+        <p class="eyebrow">Record once</p>
+        <h2>One video, done forever</h2>
+        <p class="body-text">60 seconds, three prompts. Who you are, what you're great at, what you're looking for. Your Mellow profile travels to every employer you apply to. One tap, no cover letter, no reformatting, ever again.</p>
+        
+      </div>
+      <div class="sr-img"><img src="img/collaborate.png" alt=""/></div>
+    </div>
+  </section>
+<section class="s-white">
+  <div class="section-row rev">
+      <div class="sr-content">
+        <p class="eyebrow">Apply everywhere</p>
+        <h2>Your profile goes to every opportunity</h2>
+        <p class="body-text">Browse open roles and apply with one tap, or let employers come to you. When a company is interested, they reach out directly through Mellow.</p>
+        
+      </div>
+      <div class="sr-img"><img src="img/collaborate2.png" alt=""/></div>
+    </div>
+  </section>
+<section class="s-soft">
+  <div class="section-row">
+      <div class="sr-content">
+        <p class="eyebrow">Always free</p>
+        <h2>Completely free for candidates, always</h2>
+        <p class="body-text">Mellow is free for job seekers, full stop. We charge employers when they make a hire. Your success is how we make money, so we are completely on your side.</p>
+        
+      </div>
+      <div class="sr-img"><img src="img/seeds.png" alt=""/></div>
+    </div>
+  </section>
+<section class="s-white">
+  <div class="section-row rev">
+      <div class="sr-content">
+        <p class="eyebrow">The difference</p>
+        <h2>Be seen for who you actually are</h2>
+        <p class="body-text">The GCC workforce is the youngest in the world. A generation that grew up on social media, that communicates naturally through video, is still being asked to describe themselves in bullet points. Mellow exists because the best hire is always the best conversation.</p>
+        
+      </div>
+      <div class="sr-img"><img src="img/jar.png" alt=""/></div>
+    </div>
+  </section>
+<section class="s-soft" id="faq">
+  <div class="con">
+    <p class="eyebrow" style="text-align:center">FAQ for talent</p>
+    <h2 style="text-align:center;max-width:420px;margin:0 auto 4px">Your questions answered</h2>
+    <div class="faq"><div class="fitem"><div class="fq">Is Mellow really free for candidates?<span class="ftoggle">+</span></div><div class="fa">Yes, completely free. We charge employers a fee only when they make a confirmed hire. Candidates pay nothing, ever.</div></div><div class="fitem"><div class="fq">What do I say in my 60-second video?<span class="ftoggle">+</span></div><div class="fa">We give you three prompts: who you are and your background, what you're genuinely good at, and what kind of role you're looking for. Keep it natural, the best profiles are conversational, not rehearsed.</div></div><div class="fitem"><div class="fq">Can I update my video later?<span class="ftoggle">+</span></div><div class="fa">Yes. Your profile is yours to update whenever you want.</div></div><div class="fitem"><div class="fq">What if I'm not comfortable on camera?<span class="ftoggle">+</span></div><div class="fa">Most people feel that way before they record. The prompts help a lot. You're not performing, you're just having a conversation. Employers actually prefer the authentic version.</div></div><div class="fitem"><div class="fq">Who can see my profile?<span class="ftoggle">+</span></div><div class="fa">Only verified employers on Mellow can view candidate profiles.</div></div></div>
+  </section>
+<section class="s-blue"><div class="con cta"><p class="eyebrow">Join the waitlist</p><h2>Your next opportunity is one video away</h2><p>Launching in Bahrain first. Sign up and we'll notify you the moment we go live.</p><a href="index.html#waitlist" class="btn btn-wh">Get early access, it's free</a></div></section>
+</div>
+<footer>
+  <div class="flogo">
+    <img src="img/logo.png" alt="Mellow"/>
+    <span class="flogo-text">mellow</span>
+  </div>
+  <span class="fcopy">Proudly built in 🇧🇭 Bahrain · mellow © 2026</span>
+  <div class="flinks">
+    <a href="talent.html">For Talent</a>
+    <a href="employers.html">For Employers</a>
+    <a href="about.html">About</a>
+  </div>
+</footer>
+<script src="script.js"></script>
+</body>
+</html>
