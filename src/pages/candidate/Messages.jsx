@@ -64,7 +64,7 @@ export default function CandidateMessages() {
           No messages yet — when an employer contacts you, it'll show up here.
         </p>
       ) : (
-        <div style={{ display: 'flex', gap: 32, marginTop: 28, alignItems: 'flex-start' }}>
+        <div className="messages-layout" style={{ display: 'flex', gap: 32, marginTop: 28, alignItems: 'flex-start' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220 }}>
             {conversations.map((c) => (
               <button

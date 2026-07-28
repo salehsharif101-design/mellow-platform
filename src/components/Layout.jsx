@@ -10,18 +10,11 @@ export default function Layout() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <header
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '20px 48px',
-        }}
-      >
+      <header className="app-header">
         <Link to="/" style={{ textDecoration: 'none' }}>
           <Logo />
         </Link>
-        <nav style={{ display: 'flex', alignItems: 'center', gap: 28, whiteSpace: 'nowrap' }}>
+        <nav className="app-nav">
           {session ? (
             <>
               <Link to={dashboardPath} style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
@@ -52,6 +45,7 @@ export default function Layout() {
       </main>
 
       <footer
+        className="app-footer"
         style={{
           background: 'var(--color-primary)',
           color: '#ffffff',
@@ -59,10 +53,8 @@ export default function Layout() {
         }}
       >
         <div
+          className="footer-grid"
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 32,
             maxWidth: 1100,
             margin: '0 auto',
           }}

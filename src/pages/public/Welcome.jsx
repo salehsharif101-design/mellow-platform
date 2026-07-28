@@ -12,19 +12,17 @@ export default function Welcome() {
         alignItems: 'center',
         padding: '48px',
       }}
+      className="welcome-page"
     >
       <div
+        className="split-row"
         style={{
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 40,
           width: '100%',
           maxWidth: 1100,
           margin: '0 auto',
         }}
       >
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+        <div className="split-row-text" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
           <img src="/mellow_logofont_trimmed.png" alt="Mellow" style={{ height: 32, marginBottom: 40 }} />
 
           <h1 style={{ fontSize: 'clamp(40px, 5vw, 64px)', lineHeight: 1, letterSpacing: '-0.02em' }}>
@@ -52,12 +50,8 @@ export default function Welcome() {
           </div>
         </div>
 
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-          <img
-            src="/Floating girl.PNG"
-            alt=""
-            style={{ width: '100%', maxWidth: 520, height: 'auto' }}
-          />
+        <div className="split-row-media">
+          <img src="/Floating girl.PNG" alt="" />
         </div>
       </div>
     </div>

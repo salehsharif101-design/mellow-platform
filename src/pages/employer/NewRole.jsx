@@ -156,7 +156,7 @@ export default function NewRole() {
         </div>
 
         <div
-          className="card"
+          className="card decorative-aside"
           style={{
             flex: '0 0 280px',
             display: 'flex',

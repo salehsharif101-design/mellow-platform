@@ -164,7 +164,7 @@ export default function ProfileEdit() {
         </div>
 
         <div
-          className="section-soft card"
+          className="section-soft card decorative-aside"
           style={{
             flex: '0 0 280px',
             display: 'flex',
