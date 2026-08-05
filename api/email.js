@@ -185,7 +185,7 @@ async function sendVideoLibraryNotification(supabase, candidateId) {
         'Each video can be 60 seconds or longer. Label it clearly so employers know what they are looking at. The more you show, the more they know.',
       ctaLabel: 'Add a work video',
       ctaUrl: `${SITE_URL}/profile/edit`,
-      illustration: 'thinking.png',
+      illustration: 'working.png',
     }),
   })
 }
