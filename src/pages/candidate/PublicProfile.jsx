@@ -24,6 +24,7 @@ export default function PublicProfile() {
   const [calendlyInput, setCalendlyInput] = useState('')
   const [savingCalendly, setSavingCalendly] = useState(false)
   const [calendlyError, setCalendlyError] = useState('')
+  const [linkCopied, setLinkCopied] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -54,6 +55,13 @@ export default function PublicProfile() {
   }, [id])
 
   const isOwner = user && profile && user.id === profile.user_id
+
+  async function shareProfile() {
+    const url = `https://beta.joinmellow.xyz/profile/${profile.id}`
+    await navigator.clipboard.writeText(url)
+    setLinkCopied(true)
+    setTimeout(() => setLinkCopied(false), 2000)
+  }
 
   async function saveCalendly(e) {
     e.preventDefault()
@@ -121,7 +129,17 @@ export default function PublicProfile() {
               {!profile.avatar_url && (profile.full_name?.[0]?.toUpperCase() || '?')}
             </div>
             <div>
-              <h1 style={{ fontSize: 30 }}>{profile.full_name}</h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <h1 style={{ fontSize: 30 }}>{profile.full_name}</h1>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  style={{ padding: '6px 14px', fontSize: 13, position: 'relative' }}
+                  onClick={shareProfile}
+                >
+                  {linkCopied ? 'Link copied!' : 'Share profile'}
+                </button>
+              </div>
               <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>
                 {profile.job_title} · {profile.location}
               </p>

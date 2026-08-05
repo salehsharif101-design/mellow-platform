@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { notify } from '../../lib/notify.js'
 
 export default function Signup() {
   const [searchParams] = useSearchParams()
@@ -22,6 +23,7 @@ export default function Signup() {
     setLoading(true)
     try {
       const data = await signUp({ email, password, userType })
+      notify('signup-welcome', { userId: data.user.id })
       if (!data.session) {
         // Email confirmation is required before a session exists — there's
         // nothing to route into yet, so tell the candidate to check their inbox.

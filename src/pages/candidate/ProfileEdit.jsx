@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { notify } from '../../lib/notify.js'
 import OnboardingProgress from './onboarding/OnboardingProgress.jsx'
 import Step1Basics from './onboarding/steps/Step1Basics.jsx'
 import Step2Skills from './onboarding/steps/Step2Skills.jsx'
@@ -76,6 +77,9 @@ export default function ProfileEdit() {
         .single()
       if (error) throw error
       setProfile(data)
+      if (fields.is_live) {
+        notify('live-notification', { candidateId: data.id })
+      }
       if (nextStep > LAST_STEP) {
         navigate('/dashboard')
       } else {

@@ -11,6 +11,7 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const resetSuccess = searchParams.get('reset') === 'success'
 
   const { signIn } = useAuth()
   const navigate = useNavigate()
@@ -39,6 +40,11 @@ export default function Login() {
       <h1 style={{ fontSize: 28 }}>
         Sign in as {type === 'employer' ? 'an employer' : 'talent'}
       </h1>
+      {resetSuccess && (
+        <p style={{ marginTop: 16, fontSize: 14, color: 'var(--color-primary)', fontWeight: 600 }}>
+          Your password has been reset. Log in with your new password.
+        </p>
+      )}
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 24 }}>
         <div className="field">
           <label htmlFor="email">Email</label>
@@ -61,6 +67,9 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+          <Link to="/forgot-password" style={{ alignSelf: 'flex-start', fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}>
+            Forgot password?
+          </Link>
         </div>
         {error && <p className="form-error">{error}</p>}
         <button className="btn btn-primary" type="submit" disabled={loading}>

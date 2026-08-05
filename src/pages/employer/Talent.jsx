@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { notify } from '../../lib/notify.js'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 
 export default function TalentFeed() {
@@ -87,11 +88,14 @@ export default function TalentFeed() {
   async function shortlist(candidateId) {
     if (!employerId) return
     setSavingId(candidateId)
-    const { error: insertError } = await supabase
+    const { data, error: insertError } = await supabase
       .from('shortlists')
       .insert({ employer_id: employerId, candidate_id: candidateId })
+      .select()
+      .single()
     if (!insertError) {
       setShortlistedIds((prev) => new Set(prev).add(candidateId))
+      notify('shortlist-notification', { shortlistId: data.id })
     }
     setSavingId(null)
   }

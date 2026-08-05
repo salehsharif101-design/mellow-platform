@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { notify } from '../../lib/notify.js'
 
 export default function BrowseRoles() {
   const { user } = useAuth()
@@ -58,11 +59,14 @@ export default function BrowseRoles() {
   async function apply(roleId) {
     if (!candidateId) return
     setApplyingId(roleId)
-    const { error: insertError } = await supabase
+    const { data, error: insertError } = await supabase
       .from('applications')
       .insert({ candidate_id: candidateId, role_id: roleId, status: 'applied' })
+      .select()
+      .single()
     if (!insertError) {
       setAppliedRoleIds((prev) => new Set(prev).add(roleId))
+      notify('application-notification', { applicationId: data.id })
     }
     setApplyingId(null)
   }

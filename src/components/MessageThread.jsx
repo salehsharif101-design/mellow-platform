@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
+import { notify } from '../lib/notify.js'
 
 export default function MessageThread({ otherUserId, otherUserLabel }) {
   const { user } = useAuth()
@@ -45,6 +46,7 @@ export default function MessageThread({ otherUserId, otherUserLabel }) {
     } else {
       setMessages((prev) => [...prev, data])
       setBody('')
+      notify('message-notification', { messageId: data.id })
     }
     setSending(false)
   }
