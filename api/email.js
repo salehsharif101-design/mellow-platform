@@ -47,7 +47,7 @@ async function sendSignupWelcome(supabase, userId) {
         'You are one step away from showing employers exactly who you are. Complete your profile, upload your 60-second video, and let the right opportunities find you.',
       ctaLabel: 'Complete my profile',
       ctaUrl: `${SITE_URL}/dashboard`,
-      illustration: 'Email_Verification2.png',
+      illustration: 'Flexible.PNG',
     }),
   })
 }
@@ -85,7 +85,7 @@ async function sendMessageNotification(supabase, messageId) {
       bodyText: 'You have a new message on Mellow — log in to reply.',
       ctaLabel: 'Reply now',
       ctaUrl: `${SITE_URL}${recipient.user_type === 'employer' ? '/employer/messages' : '/messages'}`,
-      illustration: 'Email_Verification.png',
+      illustration: 'connection.png',
     }),
   })
 }
@@ -116,7 +116,7 @@ async function sendApplicationNotification(supabase, applicationId) {
       bodyText: `${candidate.full_name} applied to ${role.title}. View their profile to learn more.`,
       ctaLabel: 'View profile',
       ctaUrl: `${SITE_URL}/profile/${candidate.username || application.candidate_id}`,
-      illustration: 'Email_Verification3.png',
+      illustration: 'thinking.png',
     }),
   })
 }
@@ -138,7 +138,7 @@ async function sendShortlistNotification(supabase, shortlistId) {
       bodyText: 'An employer shortlisted your Mellow profile. Keep it up to date — they may reach out soon.',
       ctaLabel: 'View my profile',
       ctaUrl: `${SITE_URL}/profile/${candidate.username || shortlist.candidate_id}`,
-      illustration: 'Email_Verification2.png',
+      illustration: 'Your_Requested_Is_Posted.png',
     }),
   })
 }
@@ -162,7 +162,7 @@ async function sendLiveNotification(supabase, candidateId) {
       bodyText: 'Your Mellow profile is now live and visible to employers. Share it, or sit back while opportunities find you.',
       ctaLabel: 'View my profile',
       ctaUrl: `${SITE_URL}/profile/${username || candidateId}`,
-      illustration: 'Email_Verification.png',
+      illustration: 'Collaborate2.png',
     }),
   })
 }
