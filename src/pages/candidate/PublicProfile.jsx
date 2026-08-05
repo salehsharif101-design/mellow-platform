@@ -58,7 +58,23 @@ export default function PublicProfile() {
 
   async function shareProfile() {
     const url = `https://beta.joinmellow.xyz/profile/${profile.id}`
-    await navigator.clipboard.writeText(url)
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      // Clipboard API unavailable or blocked (older browser, denied permission,
+      // non-trusted context) — fall back to the legacy selection-based copy.
+      const textarea = document.createElement('textarea')
+      textarea.value = url
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      try {
+        document.execCommand('copy')
+      } finally {
+        document.body.removeChild(textarea)
+      }
+    }
     setLinkCopied(true)
     setTimeout(() => setLinkCopied(false), 2000)
   }
