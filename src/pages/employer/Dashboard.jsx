@@ -38,7 +38,7 @@ export default function EmployerDashboard() {
       if (roleIds.length > 0) {
         const { data: apps } = await supabase
           .from('applications')
-          .select('id, status, role_id, candidate_profiles(id, full_name)')
+          .select('id, status, role_id, candidate_profiles(id, username, full_name)')
           .in('role_id', roleIds)
         setApplications(apps || [])
       }
@@ -116,7 +116,7 @@ export default function EmployerDashboard() {
                     {roleApps.map((a) => (
                       <Link
                         key={a.id}
-                        to={`/profile/${a.candidate_profiles?.id}`}
+                        to={`/profile/${a.candidate_profiles?.username || a.candidate_profiles?.id}`}
                         style={{ fontSize: 14, color: 'var(--color-primary)', textDecoration: 'none' }}
                       >
                         {a.candidate_profiles?.full_name} · {a.status}

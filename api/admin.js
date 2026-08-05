@@ -58,7 +58,7 @@ async function getCandidates(supabase) {
     await supabase
       .from('candidate_profiles')
       .select(
-        'id, user_id, full_name, job_title, location, bio, skills, languages, intro_video_url, is_live, created_at, users(email, created_at)',
+        'id, user_id, username, full_name, job_title, location, bio, skills, languages, intro_video_url, is_live, created_at, users(email, created_at)',
       )
       .order('created_at', { ascending: false }),
   )
@@ -76,6 +76,7 @@ async function getCandidates(supabase) {
     const completeness = Math.round(((filled + hasSkills + hasLanguages) / (COMPLETENESS_FIELDS.length + 2)) * 100)
     return {
       id: c.id,
+      username: c.username,
       fullName: c.full_name,
       email: c.users?.email || null,
       location: c.location,

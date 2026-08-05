@@ -23,7 +23,9 @@ export default function Signup() {
     setLoading(true)
     try {
       const data = await signUp({ email, password, userType })
-      notify('signup-welcome', { userId: data.user.id })
+      if (userType === 'candidate') {
+        notify('signup-welcome', { userId: data.user.id })
+      }
       if (!data.session) {
         // Email confirmation is required before a session exists — there's
         // nothing to route into yet, so tell the candidate to check their inbox.

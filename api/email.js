@@ -36,21 +36,7 @@ function unwrap({ data, error }) {
 }
 
 async function sendSignupWelcome(supabase, userId) {
-  const user = unwrap(await supabase.from('users').select('email, user_type').eq('id', userId).single())
-
-  if (user.user_type === 'employer') {
-    return sendEmail({
-      to: user.email,
-      subject: 'Welcome to Mellow',
-      html: renderEmailHtml({
-        heading: 'Start meeting people, not documents',
-        bodyText: 'Browse real candidates, post your first role, and find the right person without reading a single CV.',
-        ctaLabel: 'Browse the talent feed',
-        ctaUrl: `${SITE_URL}/employer/talent`,
-        illustration: 'Email_Verification3.png',
-      }),
-    })
-  }
+  const user = unwrap(await supabase.from('users').select('email').eq('id', userId).single())
 
   return sendEmail({
     to: user.email,
@@ -62,6 +48,23 @@ async function sendSignupWelcome(supabase, userId) {
       ctaLabel: 'Complete my profile',
       ctaUrl: `${SITE_URL}/dashboard`,
       illustration: 'Email_Verification2.png',
+    }),
+  })
+}
+
+async function sendEmployerWelcome(supabase, userId) {
+  const user = unwrap(await supabase.from('users').select('email').eq('id', userId).single())
+
+  return sendEmail({
+    to: user.email,
+    subject: 'Welcome to Mellow',
+    html: renderEmailHtml({
+      heading: 'Start meeting people, not documents',
+      bodyText:
+        'Browse real candidates, post your first role, and find the right person without reading a single CV. Your talent feed is ready and waiting.',
+      ctaLabel: 'Browse the talent feed',
+      ctaUrl: `${SITE_URL}/employer/talent`,
+      illustration: 'Client_to_creative.png',
     }),
   })
 }
@@ -92,7 +95,7 @@ async function sendApplicationNotification(supabase, applicationId) {
     await supabase.from('applications').select('candidate_id, role_id').eq('id', applicationId).single(),
   )
   const candidate = unwrap(
-    await supabase.from('candidate_profiles').select('full_name').eq('id', application.candidate_id).single(),
+    await supabase.from('candidate_profiles').select('full_name, username').eq('id', application.candidate_id).single(),
   )
   const role = unwrap(
     await supabase
@@ -112,7 +115,7 @@ async function sendApplicationNotification(supabase, applicationId) {
       heading: 'New application received',
       bodyText: `${candidate.full_name} applied to ${role.title}. View their profile to learn more.`,
       ctaLabel: 'View profile',
-      ctaUrl: `${SITE_URL}/profile/${application.candidate_id}`,
+      ctaUrl: `${SITE_URL}/profile/${candidate.username || application.candidate_id}`,
       illustration: 'Email_Verification3.png',
     }),
   })
@@ -123,7 +126,7 @@ async function sendShortlistNotification(supabase, shortlistId) {
     await supabase.from('shortlists').select('candidate_id').eq('id', shortlistId).single(),
   )
   const candidate = unwrap(
-    await supabase.from('candidate_profiles').select('user_id').eq('id', shortlist.candidate_id).single(),
+    await supabase.from('candidate_profiles').select('user_id, username').eq('id', shortlist.candidate_id).single(),
   )
   const candidateUser = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
 
@@ -134,27 +137,55 @@ async function sendShortlistNotification(supabase, shortlistId) {
       heading: "You've been shortlisted",
       bodyText: 'An employer shortlisted your Mellow profile. Keep it up to date — they may reach out soon.',
       ctaLabel: 'View my profile',
-      ctaUrl: `${SITE_URL}/profile/${shortlist.candidate_id}`,
+      ctaUrl: `${SITE_URL}/profile/${candidate.username || shortlist.candidate_id}`,
       illustration: 'Email_Verification2.png',
     }),
   })
 }
 
-async function sendLiveNotification(supabase, candidateId) {
+async function getCandidateContact(supabase, candidateId) {
   const candidate = unwrap(
-    await supabase.from('candidate_profiles').select('user_id').eq('id', candidateId).single(),
+    await supabase.from('candidate_profiles').select('user_id, username').eq('id', candidateId).single(),
   )
   const candidateUser = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
+  return { email: candidateUser.email, username: candidate.username }
+}
+
+async function sendLiveNotification(supabase, candidateId) {
+  const { email, username } = await getCandidateContact(supabase, candidateId)
 
   return sendEmail({
-    to: candidateUser.email,
+    to: email,
     subject: 'Your Mellow profile is live',
     html: renderEmailHtml({
       heading: 'Your profile is live',
       bodyText: 'Your Mellow profile is now live and visible to employers. Share it, or sit back while opportunities find you.',
       ctaLabel: 'View my profile',
-      ctaUrl: `${SITE_URL}/profile/${candidateId}`,
+      ctaUrl: `${SITE_URL}/profile/${username || candidateId}`,
       illustration: 'Email_Verification.png',
+    }),
+  })
+}
+
+async function sendVideoLibraryNotification(supabase, candidateId) {
+  const { email } = await getCandidateContact(supabase, candidateId)
+
+  return sendEmail({
+    to: email,
+    subject: 'Your profile is more than an intro',
+    html: renderEmailHtml({
+      heading: 'Show employers how you actually work',
+      bodyText:
+        'Your Mellow profile starts with your 60-second intro video. But the candidates who stand out go further. The work video library lets you upload additional videos that show employers exactly how you think and what you are capable of, before the first interview.<br><br>' +
+        'Here are a few ideas to get you started:<br><br>' +
+        '🎨 Designer? Walk through a recent project, the brief, your thinking, the final result.<br><br>' +
+        '💻 Developer? Screen record yourself solving a problem or building a feature and talk through your decisions.<br><br>' +
+        '📊 Marketer? Break down a campaign you ran, the strategy, the execution, the results.<br><br>' +
+        '🎙️ Presenter or communicator? Record yourself pitching an idea or explaining a complex topic simply.<br><br>' +
+        'Each video can be 60 seconds or longer. Label it clearly so employers know what they are looking at. The more you show, the more they know.',
+      ctaLabel: 'Add a work video',
+      ctaUrl: `${SITE_URL}/profile/edit`,
+      illustration: 'thinking.png',
     }),
   })
 }
@@ -185,6 +216,9 @@ export default async function handler(req, res) {
       case 'signup-welcome':
         await sendSignupWelcome(supabase, body.userId)
         break
+      case 'employer-welcome':
+        await sendEmployerWelcome(supabase, body.userId)
+        break
       case 'message-notification':
         await sendMessageNotification(supabase, body.messageId)
         break
@@ -196,6 +230,9 @@ export default async function handler(req, res) {
         break
       case 'live-notification':
         await sendLiveNotification(supabase, body.candidateId)
+        break
+      case 'video-library-notification':
+        await sendVideoLibraryNotification(supabase, body.candidateId)
         break
       default:
         res.statusCode = 400

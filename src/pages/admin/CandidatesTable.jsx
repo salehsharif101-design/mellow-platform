@@ -51,7 +51,7 @@ export default function CandidatesTable({ candidates, setCandidates }) {
               <td style={{ padding: '10px 12px' }}>{c.completeness}%</td>
               <td style={{ padding: '10px 12px' }}>{c.applicationCount}</td>
               <td style={{ padding: '10px 12px' }}>
-                <Link to={`/profile/${c.id}`} target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+                <Link to={`/profile/${c.username || c.id}`} target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
                   View →
                 </Link>
               </td>

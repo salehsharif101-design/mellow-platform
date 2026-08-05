@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { notify } from '../../lib/notify.js'
 
 const COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-500', '500+']
 
@@ -12,6 +13,7 @@ export default function EmployerOnboarding() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [wasIncomplete, setWasIncomplete] = useState(false)
 
   const [companyName, setCompanyName] = useState('')
   const [industry, setIndustry] = useState('')
@@ -47,6 +49,7 @@ export default function EmployerOnboarding() {
         setCompanySize(profile.company_size || COMPANY_SIZES[0])
         setWebsiteUrl(profile.website_url || '')
         setCultureDescription(profile.culture_description || '')
+        setWasIncomplete(!profile.company_name)
       }
       setLoading(false)
     }
@@ -70,6 +73,9 @@ export default function EmployerOnboarding() {
         })
         .eq('user_id', user.id)
       if (saveError) throw saveError
+      if (wasIncomplete) {
+        notify('employer-welcome', { userId: user.id })
+      }
       navigate('/employer/roles/new')
     } catch (err) {
       setError(err.message)
@@ -180,7 +186,7 @@ export default function EmployerOnboarding() {
             border: 'none',
           }}
         >
-          <img src="/Client to creative.PNG" alt="" style={{ width: '100%', maxWidth: 220 }} />
+          <img src="/Client_to_creative.png" alt="" style={{ width: '100%', maxWidth: 220 }} />
           <p style={{ marginTop: 16, fontSize: 14, color: 'var(--color-text-muted)' }}>
             Next up: post your first role and start meeting candidates on video.
           </p>

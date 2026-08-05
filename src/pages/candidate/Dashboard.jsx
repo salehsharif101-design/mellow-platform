@@ -74,7 +74,7 @@ export default function CandidateDashboard() {
           <Link to="/profile/edit" className="btn btn-primary">
             Edit profile
           </Link>
-          <Link to={`/profile/${profile.id}`} className="btn btn-ghost">
+          <Link to={`/profile/${profile.username || profile.id}`} className="btn btn-ghost">
             View my public profile
           </Link>
         </div>

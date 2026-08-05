@@ -32,11 +32,11 @@ export default function EmployerMessages() {
 
       const { data: candidates } = await supabase
         .from('candidate_profiles')
-        .select('id, user_id, full_name')
+        .select('id, user_id, username, full_name')
         .in('user_id', otherIds)
 
       const infoByUserId = Object.fromEntries(
-        (candidates || []).map((c) => [c.user_id, { name: c.full_name, candidateId: c.id }]),
+        (candidates || []).map((c) => [c.user_id, { name: c.full_name, candidateId: c.username || c.id }]),
       )
 
       const convos = otherIds.map((otherId) => {

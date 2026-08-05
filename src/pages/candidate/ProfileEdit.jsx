@@ -79,6 +79,7 @@ export default function ProfileEdit() {
       setProfile(data)
       if (fields.is_live) {
         notify('live-notification', { candidateId: data.id })
+        notify('video-library-notification', { candidateId: data.id })
       }
       if (nextStep > LAST_STEP) {
         navigate('/dashboard')

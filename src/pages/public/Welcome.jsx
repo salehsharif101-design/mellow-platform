@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import Logo from '../../components/Logo.jsx'
 
 export default function Welcome() {
   const navigate = useNavigate()
@@ -23,7 +24,9 @@ export default function Welcome() {
         }}
       >
         <div className="split-row-text" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-          <img src="/mellow_logofont_trimmed.png" alt="Mellow" style={{ height: 32, marginBottom: 40 }} />
+          <div style={{ marginBottom: 40 }}>
+            <Logo size={28} />
+          </div>
 
           <h1 style={{ fontSize: 'clamp(40px, 5vw, 64px)', lineHeight: 1, letterSpacing: '-0.02em' }}>
             Welcome to Mellow

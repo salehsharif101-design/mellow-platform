@@ -44,7 +44,7 @@ export default function TalentFeed() {
         await Promise.all([
           supabase
             .from('candidate_profiles')
-            .select('id, full_name, job_title, location, skills, intro_video_url')
+            .select('id, username, full_name, job_title, location, skills, intro_video_url')
             .eq('is_live', true)
             .order('created_at', { ascending: false }),
           supabase.from('shortlists').select('candidate_id').eq('employer_id', employer.id),
@@ -177,7 +177,7 @@ export default function TalentFeed() {
               )}
 
               <div>
-                <Link to={`/profile/${c.id}`} style={{ textDecoration: 'none' }}>
+                <Link to={`/profile/${c.username || c.id}`} style={{ textDecoration: 'none' }}>
                   <h3 style={{ fontSize: 17 }}>{c.full_name}</h3>
                 </Link>
                 <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 2 }}>

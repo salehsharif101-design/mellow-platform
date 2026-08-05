@@ -17,8 +17,8 @@ export function renderEmailHtml({ heading, bodyText, ctaLabel, ctaUrl, illustrat
               </td>
             </tr>
             <tr>
-              <td align="center" style="padding-bottom:20px;">
-                <img src="${SITE_URL}/${illustration}" alt="" width="140" style="display:block;width:140px;max-width:100%;height:auto;" />
+              <td align="center" style="padding-bottom:24px;">
+                <img src="${SITE_URL}/${illustration}" alt="" width="200" style="display:block;width:200px;max-width:100%;height:auto;" />
               </td>
             </tr>
             <tr>

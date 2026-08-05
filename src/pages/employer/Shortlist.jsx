@@ -35,7 +35,7 @@ export default function Shortlist() {
 
       const { data, error: shortlistError } = await supabase
         .from('shortlists')
-        .select('id, candidate_id, candidate_profiles(id, full_name, job_title, location, skills, intro_video_url)')
+        .select('id, candidate_id, candidate_profiles(id, username, full_name, job_title, location, skills, intro_video_url)')
         .eq('employer_id', employer.id)
         .order('created_at', { ascending: false })
 
@@ -109,7 +109,7 @@ export default function Shortlist() {
                 )}
 
                 <div>
-                  <Link to={`/profile/${c.id}`} style={{ textDecoration: 'none' }}>
+                  <Link to={`/profile/${c.username || c.id}`} style={{ textDecoration: 'none' }}>
                     <h3 style={{ fontSize: 17 }}>{c.full_name}</h3>
                   </Link>
                   <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 2 }}>
@@ -128,7 +128,7 @@ export default function Shortlist() {
                 )}
 
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <Link to={`/profile/${c.id}`} className="btn btn-primary" style={{ flex: 1, textAlign: 'center' }}>
+                  <Link to={`/profile/${c.username || c.id}`} className="btn btn-primary" style={{ flex: 1, textAlign: 'center' }}>
                     View profile
                   </Link>
                   <button

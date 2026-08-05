@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase.js'
+import VideoPlayCard from '../../components/VideoPlayCard.jsx'
+import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
 
 const MAX_SKILLS = 10
 const PROFICIENCIES = ['basic', 'conversational', 'fluent', 'native']
@@ -26,6 +28,7 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
       <LanguagesSection profile={profile} onUpdated={onUpdated} />
       <LinkedInSection profile={profile} onUpdated={onUpdated} />
       <VideoSection profile={profile} userId={userId} onUpdated={onUpdated} />
+      <WorkVideosSection profile={profile} userId={userId} />
     </div>
   )
 }
@@ -467,6 +470,69 @@ function VideoSection({ profile, userId, onUpdated }) {
           {uploading ? 'Uploading…' : 'Save video'}
         </button>
       </div>
+    </section>
+  )
+}
+
+function WorkVideosSection({ profile, userId }) {
+  const [videos, setVideos] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showAddVideo, setShowAddVideo] = useState(false)
+
+  useEffect(() => {
+    supabase
+      .from('candidate_videos')
+      .select('*')
+      .eq('candidate_id', profile.id)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setVideos(data || [])
+        setLoading(false)
+      })
+  }, [profile.id])
+
+  return (
+    <section>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <h3 style={{ fontSize: 16 }}>Work videos</h3>
+        <button className="btn btn-ghost" style={{ fontSize: 13, padding: '6px 14px' }} onClick={() => setShowAddVideo(true)}>
+          + Add work video
+        </button>
+      </div>
+
+      {!loading && videos.length === 0 && (
+        <p style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>No work videos yet.</p>
+      )}
+
+      {videos.length > 0 && (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+            gap: 16,
+            maxWidth: 420,
+          }}
+        >
+          {videos.map((v) => (
+            <div key={v.id}>
+              <VideoPlayCard url={v.video_url} style={{ aspectRatio: '4 / 3' }} />
+              <p style={{ marginTop: 8, fontSize: 13, fontWeight: 600 }}>{v.label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showAddVideo && (
+        <AddWorkVideoModal
+          candidateId={profile.id}
+          userId={userId}
+          onClose={() => setShowAddVideo(false)}
+          onAdded={(row) => {
+            setVideos((prev) => [row, ...prev])
+            setShowAddVideo(false)
+          }}
+        />
+      )}
     </section>
   )
 }

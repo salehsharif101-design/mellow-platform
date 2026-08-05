@@ -8,8 +8,10 @@ import CalendlyModal from '../../components/CalendlyModal.jsx'
 import MessageThread from '../../components/MessageThread.jsx'
 import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export default function PublicProfile() {
-  const { id } = useParams()
+  const { username } = useParams()
   const { user, userType } = useAuth()
 
   const [profile, setProfile] = useState(null)
@@ -31,9 +33,19 @@ export default function PublicProfile() {
     setNotFound(false)
 
     async function load() {
-      const { data, error } = await supabase.from('candidate_profiles').select('*').eq('id', id).maybeSingle()
+      let data = null
 
-      if (error || !data) {
+      const byUsername = await supabase.from('candidate_profiles').select('*').eq('username', username).maybeSingle()
+      data = byUsername.data
+
+      // Falls back to the old uuid-based URL so links shared before the
+      // username migration (emails already sent, bookmarks) keep working.
+      if (!data && UUID_RE.test(username)) {
+        const byId = await supabase.from('candidate_profiles').select('*').eq('id', username).maybeSingle()
+        data = byId.data
+      }
+
+      if (!data) {
         setNotFound(true)
         setLoading(false)
         return
@@ -44,7 +56,7 @@ export default function PublicProfile() {
       const { data: videoRows } = await supabase
         .from('candidate_videos')
         .select('*')
-        .eq('candidate_id', id)
+        .eq('candidate_id', data.id)
         .order('created_at', { ascending: false })
       setVideos(videoRows || [])
 
@@ -52,12 +64,12 @@ export default function PublicProfile() {
     }
 
     load()
-  }, [id])
+  }, [username])
 
   const isOwner = user && profile && user.id === profile.user_id
 
   async function shareProfile() {
-    const url = `https://beta.joinmellow.xyz/profile/${profile.id}`
+    const url = `https://beta.joinmellow.xyz/profile/${profile.username || profile.id}`
     try {
       await navigator.clipboard.writeText(url)
     } catch {

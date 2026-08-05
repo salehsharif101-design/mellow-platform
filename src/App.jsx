@@ -42,7 +42,7 @@ export default function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Candidate profile is publicly shareable */}
-        <Route path="/profile/:id" element={<PublicProfile />} />
+        <Route path="/profile/:username" element={<PublicProfile />} />
 
         {/* Candidate dashboard */}
         <Route
