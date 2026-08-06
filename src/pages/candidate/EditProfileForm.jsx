@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase.js'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
+import ConfirmModal from '../../components/ConfirmModal.jsx'
+import { deleteAccount } from '../../lib/deleteAccount.js'
 
 const MAX_SKILLS = 10
 const PROFICIENCIES = ['basic', 'conversational', 'fluent', 'native']
@@ -22,6 +25,7 @@ function SaveButton({ saving, saved }) {
 export default function EditProfileForm({ profile, userId, onUpdated }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
+      <OpenToOpportunitiesSection profile={profile} onUpdated={onUpdated} />
       <AvatarSection profile={profile} userId={userId} onUpdated={onUpdated} />
       <BasicsSection profile={profile} onUpdated={onUpdated} />
       <SkillsSection profile={profile} onUpdated={onUpdated} />
@@ -29,6 +33,7 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
       <LinkedInSection profile={profile} onUpdated={onUpdated} />
       <VideoSection profile={profile} userId={userId} onUpdated={onUpdated} />
       <WorkVideosSection profile={profile} userId={userId} />
+      <DangerZoneSection />
     </div>
   )
 }
@@ -120,6 +125,70 @@ function AvatarSection({ profile, userId, onUpdated }) {
           {error && <p className="form-error" style={{ marginTop: 8 }}>{error}</p>}
         </div>
       </div>
+    </section>
+  )
+}
+
+function OpenToOpportunitiesSection({ profile, onUpdated }) {
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const isOpen = profile.is_open_to_opportunities !== false
+
+  async function toggle() {
+    setSaving(true)
+    setError('')
+    const { data, error: saveError } = await supabase
+      .from('candidate_profiles')
+      .update({ is_open_to_opportunities: !isOpen })
+      .eq('id', profile.id)
+      .select()
+      .single()
+    if (saveError) setError(saveError.message)
+    else onUpdated(data)
+    setSaving(false)
+  }
+
+  return (
+    <section>
+      <div className="card" style={{ padding: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+        <div>
+          <h3 style={{ fontSize: 16 }}>Open to opportunities</h3>
+          <p style={{ marginTop: 4, fontSize: 13, color: 'var(--color-text-muted)' }}>
+            {isOpen ? 'Your profile is visible to employers' : 'Your profile is hidden from employers'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={toggle}
+          disabled={saving}
+          aria-pressed={isOpen}
+          aria-label="Toggle open to opportunities"
+          style={{
+            flexShrink: 0,
+            width: 46,
+            height: 26,
+            borderRadius: 999,
+            border: 'none',
+            padding: 3,
+            cursor: saving ? 'default' : 'pointer',
+            background: isOpen ? 'var(--color-primary)' : 'var(--color-border)',
+            transition: 'background 0.15s ease',
+          }}
+        >
+          <span
+            style={{
+              display: 'block',
+              width: 20,
+              height: 20,
+              borderRadius: '50%',
+              background: '#fff',
+              transform: isOpen ? 'translateX(20px)' : 'translateX(0)',
+              transition: 'transform 0.15s ease',
+            }}
+          />
+        </button>
+      </div>
+      {error && <p className="form-error" style={{ marginTop: 8 }}>{error}</p>}
     </section>
   )
 }
@@ -542,6 +611,35 @@ function WorkVideosSection({ profile, userId }) {
             setVideos((prev) => [row, ...prev])
             setShowAddVideo(false)
           }}
+        />
+      )}
+    </section>
+  )
+}
+
+function DangerZoneSection() {
+  const navigate = useNavigate()
+  const [showConfirm, setShowConfirm] = useState(false)
+
+  async function handleDelete() {
+    await deleteAccount()
+    navigate('/?accountDeleted=1')
+  }
+
+  return (
+    <section>
+      <h3 style={{ fontSize: 16, marginBottom: 12, color: '#d92d20' }}>Danger zone</h3>
+      <button type="button" className="btn btn-ghost" style={{ borderColor: '#d92d20', color: '#d92d20' }} onClick={() => setShowConfirm(true)}>
+        Delete my account
+      </button>
+
+      {showConfirm && (
+        <ConfirmModal
+          title="Delete your account?"
+          message="Are you sure? This will permanently delete your profile, videos, and all account data. This cannot be undone."
+          confirmLabel="Delete my account"
+          onClose={() => setShowConfirm(false)}
+          onConfirm={handleDelete}
         />
       )}
     </section>

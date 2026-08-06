@@ -180,7 +180,7 @@ export default function ProfileEdit() {
             border: 'none',
           }}
         >
-          <img src="/Easy stuff.PNG" alt="" style={{ width: '100%', maxWidth: 220 }} />
+          <img src="/Easy_stuff.png" alt="" style={{ width: '100%', maxWidth: 220 }} />
           <p style={{ marginTop: 16, fontSize: 14, color: 'var(--color-text-muted)' }}>
             Take your time — everything you enter is saved automatically as you go.
           </p>

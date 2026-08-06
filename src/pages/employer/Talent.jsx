@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
+import EmptyState from '../../components/EmptyState.jsx'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 
 export default function TalentFeed() {
@@ -46,6 +47,7 @@ export default function TalentFeed() {
             .from('candidate_profiles')
             .select('id, username, full_name, job_title, location, skills, intro_video_url')
             .eq('is_live', true)
+            .eq('is_open_to_opportunities', true)
             .order('created_at', { ascending: false }),
           supabase.from('shortlists').select('candidate_id').eq('employer_id', employer.id),
         ])
@@ -144,7 +146,12 @@ export default function TalentFeed() {
         )}
       </div>
 
-      {filtered.length === 0 ? (
+      {candidates.length === 0 ? (
+        <EmptyState
+          heading="No candidates yet"
+          body="We are growing fast. Check back soon or share Mellow with people you know who are looking for opportunities."
+        />
+      ) : filtered.length === 0 ? (
         <p style={{ marginTop: 32, color: 'var(--color-text-muted)' }}>No candidates match those filters yet.</p>
       ) : (
         <div

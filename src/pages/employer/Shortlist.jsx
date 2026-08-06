@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
+import EmptyState from '../../components/EmptyState.jsx'
 
 export default function Shortlist() {
   const { user } = useAuth()
@@ -72,9 +73,17 @@ export default function Shortlist() {
       <h1 style={{ fontSize: 28 }}>Shortlisted candidates</h1>
 
       {entries.length === 0 ? (
-        <p style={{ marginTop: 24, color: 'var(--color-text-muted)' }}>
-          You haven't shortlisted anyone yet. <Link to="/employer/talent">Browse talent →</Link>
-        </p>
+        <>
+          <EmptyState
+            heading="No shortlisted candidates yet"
+            body="Browse the talent feed and click Shortlist on any candidate you want to save here."
+          />
+          <p style={{ textAlign: 'center', marginTop: -20 }}>
+            <Link to="/employer/talent" style={{ color: 'var(--color-primary)', fontWeight: 600, fontSize: 14 }}>
+              Browse talent →
+            </Link>
+          </p>
+        </>
       ) : (
         <div
           style={{

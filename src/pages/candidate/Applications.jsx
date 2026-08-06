@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import EmptyState from '../../components/EmptyState.jsx'
 
 const STATUS_STYLES = {
   applied: { background: 'var(--color-bg-soft)', color: 'var(--color-primary)' },
@@ -75,9 +76,17 @@ export default function Applications() {
       <h1 style={{ fontSize: 28 }}>Your applications</h1>
 
       {applications.length === 0 ? (
-        <p style={{ marginTop: 24, color: 'var(--color-text-muted)' }}>
-          You haven't applied to any roles yet. <Link to="/roles">Browse open roles →</Link>
-        </p>
+        <>
+          <EmptyState
+            heading="No applications yet"
+            body="Browse open roles and apply with one tap. Your applications will appear here."
+          />
+          <p style={{ textAlign: 'center', marginTop: -20 }}>
+            <Link to="/roles" style={{ color: 'var(--color-primary)', fontWeight: 600, fontSize: 14 }}>
+              Browse open roles →
+            </Link>
+          </p>
+        </>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 28, maxWidth: 640 }}>
           {applications.map((a) => (

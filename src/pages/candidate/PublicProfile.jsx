@@ -7,6 +7,7 @@ import Modal from '../../components/Modal.jsx'
 import CalendlyModal from '../../components/CalendlyModal.jsx'
 import MessageThread from '../../components/MessageThread.jsx'
 import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
+import { notify } from '../../lib/notify.js'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -89,8 +90,12 @@ export default function PublicProfile() {
   useEffect(() => {
     if (!profile || !user || isOwner) return
     // Fire-and-forget view tracking — never block or break the page on failure.
-    supabase.from('profile_views').insert({ candidate_id: profile.id, viewer_id: user.id }).then(() => {})
-  }, [profile, user, isOwner])
+    supabase.from('profile_views').insert({ candidate_id: profile.id, viewer_id: user.id }).then(() => {
+      if (userType === 'employer') {
+        notify('profile-view-notification', { candidateId: profile.id, viewerId: user.id })
+      }
+    })
+  }, [profile, user, isOwner, userType])
 
   if (loading) return null
 

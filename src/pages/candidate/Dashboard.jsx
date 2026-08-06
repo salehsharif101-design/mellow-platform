@@ -11,6 +11,7 @@ export default function CandidateDashboard() {
   const [applications, setApplications] = useState([])
   const [views, setViews] = useState(null) // null = unavailable, [] = none yet
   const [loading, setLoading] = useState(true)
+  const [togglingVisibility, setTogglingVisibility] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -60,6 +61,19 @@ export default function CandidateDashboard() {
     )
   }
 
+  async function toggleVisibility() {
+    setTogglingVisibility(true)
+    const { data } = await supabase
+      .from('candidate_profiles')
+      .update({ is_open_to_opportunities: !isOpen })
+      .eq('id', profile.id)
+      .select()
+      .single()
+    if (data) setProfile(data)
+    setTogglingVisibility(false)
+  }
+
+  const isOpen = profile.is_open_to_opportunities !== false
   const filledCount = COMPLETENESS_FIELDS.filter((f) => Boolean(profile[f])).length
   const hasSkills = profile.skills?.length > 0
   const hasLanguages = profile.languages?.length > 0
@@ -78,6 +92,53 @@ export default function CandidateDashboard() {
             View my public profile
           </Link>
         </div>
+      </div>
+
+      <div
+        className="card"
+        style={{
+          marginTop: 24,
+          padding: '16px 20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 16,
+          flexWrap: 'wrap',
+        }}
+      >
+        <p style={{ fontSize: 14, fontWeight: 600 }}>
+          {isOpen ? 'Your profile is visible to employers' : 'Your profile is hidden from employers'}
+        </p>
+        <button
+          type="button"
+          onClick={toggleVisibility}
+          disabled={togglingVisibility}
+          aria-pressed={isOpen}
+          aria-label="Toggle open to opportunities"
+          style={{
+            flexShrink: 0,
+            width: 46,
+            height: 26,
+            borderRadius: 999,
+            border: 'none',
+            padding: 3,
+            cursor: togglingVisibility ? 'default' : 'pointer',
+            background: isOpen ? 'var(--color-primary)' : 'var(--color-border)',
+            transition: 'background 0.15s ease',
+          }}
+        >
+          <span
+            style={{
+              display: 'block',
+              width: 20,
+              height: 20,
+              borderRadius: '50%',
+              background: '#fff',
+              transform: isOpen ? 'translateX(20px)' : 'translateX(0)',
+              transition: 'transform 0.15s ease',
+            }}
+          />
+        </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20, marginTop: 28 }}>

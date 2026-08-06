@@ -190,6 +190,39 @@ async function sendVideoLibraryNotification(supabase, candidateId) {
   })
 }
 
+async function sendProfileViewNotification(supabase, candidateId, viewerId) {
+  if (!viewerId) return { skipped: true }
+
+  // Only one email per employer per candidate per 24h — the row the client
+  // just inserted counts as one, so more than one means an earlier view
+  // already triggered a notification within the window.
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const recentViews = unwrap(
+    await supabase
+      .from('profile_views')
+      .select('id')
+      .eq('candidate_id', candidateId)
+      .eq('viewer_id', viewerId)
+      .gte('viewed_at', since),
+  )
+  if (recentViews.length > 1) return { skipped: true }
+
+  const { email, username } = await getCandidateContact(supabase, candidateId)
+
+  return sendEmail({
+    to: email,
+    subject: 'Someone viewed your Mellow profile',
+    html: renderEmailHtml({
+      heading: 'Someone viewed your profile',
+      bodyText:
+        'An employer just viewed your profile on Mellow. Make sure your intro video and work library are up to date to make the best impression.',
+      ctaLabel: 'View my profile',
+      ctaUrl: `${SITE_URL}/profile/${username || candidateId}`,
+      illustration: 'Easy_stuff.png',
+    }),
+  })
+}
+
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json')
 
@@ -233,6 +266,9 @@ export default async function handler(req, res) {
         break
       case 'video-library-notification':
         await sendVideoLibraryNotification(supabase, body.candidateId)
+        break
+      case 'profile-view-notification':
+        await sendProfileViewNotification(supabase, body.candidateId, body.viewerId)
         break
       default:
         res.statusCode = 400

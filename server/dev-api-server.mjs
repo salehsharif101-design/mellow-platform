@@ -5,18 +5,26 @@
 
 import { config } from 'dotenv'
 import http from 'node:http'
-import adminHandler from '../api/admin.js'
-import emailHandler from '../api/email.js'
 
 // Vite treats .env.local specially; plain dotenv doesn't, so load it explicitly.
 config({ path: new URL('../.env.local', import.meta.url).pathname })
 config()
+
+// Dynamic imports, done AFTER config() runs: static top-level imports are
+// hoisted and evaluated before this file's own code (including config()),
+// so any handler module that reads process.env at its own top level (e.g.
+// api/_lib/resend.js's RESEND_FROM) would otherwise see env vars that
+// haven't been injected yet and silently lock in the wrong default.
+const { default: adminHandler } = await import('../api/admin.js')
+const { default: emailHandler } = await import('../api/email.js')
+const { default: deleteAccountHandler } = await import('../api/delete-account.js')
 
 const PORT = process.env.ADMIN_API_PORT || 5174
 
 const ROUTES = {
   '/api/admin': adminHandler,
   '/api/email': emailHandler,
+  '/api/delete-account': deleteAccountHandler,
 }
 
 const server = http.createServer(async (req, res) => {

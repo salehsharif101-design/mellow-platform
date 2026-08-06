@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
+import EmptyState from '../../components/EmptyState.jsx'
 
 export default function BrowseRoles() {
   const { user } = useAuth()
@@ -39,7 +40,9 @@ export default function BrowseRoles() {
         await Promise.all([
           supabase
             .from('roles')
-            .select('id, title, location, role_type, description, what_matters, employer_profiles(company_name)')
+            .select(
+              'id, title, location, role_type, description, what_matters, employer_profiles(company_name, industry, company_size, culture_description)',
+            )
             .eq('is_active', true)
             .order('created_at', { ascending: false }),
           supabase.from('applications').select('role_id').eq('candidate_id', candidate.id),
@@ -86,20 +89,38 @@ export default function BrowseRoles() {
       <h1 style={{ fontSize: 28 }}>Open roles</h1>
 
       {roles.length === 0 ? (
-        <p style={{ marginTop: 24, color: 'var(--color-text-muted)' }}>No open roles right now — check back soon.</p>
+        <EmptyState
+          heading="No open roles yet"
+          body="New roles are added regularly. Make sure your profile is complete so employers can find you in the meantime."
+        />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 28, maxWidth: 720 }}>
           {roles.map((role) => {
             const applied = appliedRoleIds.has(role.id)
+            const employer = role.employer_profiles
+            const culture = employer?.culture_description
+            const cultureShort = culture && culture.length > 60 ? `${culture.slice(0, 60).trim()}…` : culture
             return (
               <div key={role.id} className="card" style={{ padding: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                   <div>
                     <h3 style={{ fontSize: 19 }}>{role.title}</h3>
                     <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
-                      {role.employer_profiles?.company_name} · {role.location} ·{' '}
+                      {employer?.company_name} · {role.location} ·{' '}
                       {role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')}
                     </p>
+                    {(employer?.industry || employer?.company_size) && (
+                      <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
+                        {[employer?.industry, employer?.company_size && `${employer.company_size} employees`]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </p>
+                    )}
+                    {cultureShort && (
+                      <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4, fontStyle: 'italic' }}>
+                        “{cultureShort}”
+                      </p>
+                    )}
                   </div>
                   <button
                     type="button"

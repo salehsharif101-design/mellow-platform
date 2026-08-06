@@ -1,8 +1,10 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Logo from '../../components/Logo.jsx'
 
 export default function Welcome() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const accountDeleted = searchParams.get('accountDeleted') === '1'
 
   return (
     <div
@@ -27,6 +29,22 @@ export default function Welcome() {
           <div style={{ marginBottom: 40 }}>
             <Logo size={28} />
           </div>
+
+          {accountDeleted && (
+            <p
+              style={{
+                marginBottom: 20,
+                padding: '10px 16px',
+                borderRadius: 'var(--radius-input)',
+                background: 'var(--color-bg-soft)',
+                color: 'var(--color-primary)',
+                fontWeight: 600,
+                fontSize: 14,
+              }}
+            >
+              Your account has been deleted.
+            </p>
+          )}
 
           <h1 style={{ fontSize: 'clamp(40px, 5vw, 64px)', lineHeight: 1, letterSpacing: '-0.02em' }}>
             Welcome to Mellow

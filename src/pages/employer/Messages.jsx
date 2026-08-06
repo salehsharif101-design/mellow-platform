@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import MessageThread from '../../components/MessageThread.jsx'
+import EmptyState from '../../components/EmptyState.jsx'
 
 export default function EmployerMessages() {
   const { user } = useAuth()
@@ -63,9 +64,10 @@ export default function EmployerMessages() {
       <h1 style={{ fontSize: 28 }}>Messages</h1>
 
       {conversations.length === 0 ? (
-        <p style={{ marginTop: 24, color: 'var(--color-text-muted)' }}>
-          No messages yet — contact a candidate from their profile to start a conversation.
-        </p>
+        <EmptyState
+          heading="No messages yet"
+          body="Start a conversation by visiting a candidate profile and clicking Contact."
+        />
       ) : (
         <div className="messages-layout" style={{ display: 'flex', gap: 32, marginTop: 28, alignItems: 'flex-start' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220 }}>

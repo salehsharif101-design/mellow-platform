@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
+import ConfirmModal from '../../components/ConfirmModal.jsx'
+import { deleteAccount } from '../../lib/deleteAccount.js'
 
 const COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-500', '500+']
 
@@ -14,6 +16,7 @@ export default function EmployerOnboarding() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [wasIncomplete, setWasIncomplete] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const [companyName, setCompanyName] = useState('')
   const [industry, setIndustry] = useState('')
@@ -82,6 +85,11 @@ export default function EmployerOnboarding() {
     } finally {
       setSaving(false)
     }
+  }
+
+  async function handleDelete() {
+    await deleteAccount()
+    navigate('/?accountDeleted=1')
   }
 
   if (loading) return null
@@ -171,6 +179,20 @@ export default function EmployerOnboarding() {
               {saving ? 'Saving…' : 'Continue'}
             </button>
           </form>
+
+          {!wasIncomplete && (
+            <div style={{ marginTop: 48 }}>
+              <h3 style={{ fontSize: 16, marginBottom: 12, color: '#d92d20' }}>Danger zone</h3>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                style={{ borderColor: '#d92d20', color: '#d92d20' }}
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                Delete my account
+              </button>
+            </div>
+          )}
         </div>
 
         <div
@@ -192,6 +214,16 @@ export default function EmployerOnboarding() {
           </p>
         </div>
       </div>
+
+      {showDeleteConfirm && (
+        <ConfirmModal
+          title="Delete your account?"
+          message="Are you sure? This will permanently delete your profile, videos, and all account data. This cannot be undone."
+          confirmLabel="Delete my account"
+          onClose={() => setShowDeleteConfirm(false)}
+          onConfirm={handleDelete}
+        />
+      )}
     </div>
   )
 }

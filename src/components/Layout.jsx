@@ -96,6 +96,7 @@ export default function Layout() {
             <h4 style={{ fontSize: 14, marginBottom: 12 }}>Company</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14, opacity: 0.85 }}>
               <span>hello@joinmellow.xyz</span>
+              <Link to="/privacy" style={{ color: '#fff', textDecoration: 'none' }}>Privacy Policy</Link>
             </div>
           </div>
         </div>

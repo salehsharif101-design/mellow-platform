@@ -8,6 +8,7 @@ import Signup from './pages/public/Signup.jsx'
 import Login from './pages/public/Login.jsx'
 import ForgotPassword from './pages/public/ForgotPassword.jsx'
 import ResetPassword from './pages/public/ResetPassword.jsx'
+import Privacy from './pages/public/Privacy.jsx'
 import NotFound from './pages/public/NotFound.jsx'
 
 import CandidateDashboard from './pages/candidate/Dashboard.jsx'
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/privacy" element={<Privacy />} />
 
         {/* Candidate profile is publicly shareable */}
         <Route path="/profile/:username" element={<PublicProfile />} />
