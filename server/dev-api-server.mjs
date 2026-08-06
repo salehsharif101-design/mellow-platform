@@ -18,6 +18,7 @@ config()
 const { default: adminHandler } = await import('../api/admin.js')
 const { default: emailHandler } = await import('../api/email.js')
 const { default: deleteAccountHandler } = await import('../api/delete-account.js')
+const { default: waitlistHandler } = await import('../api/waitlist.js')
 
 const PORT = process.env.ADMIN_API_PORT || 5174
 
@@ -25,6 +26,7 @@ const ROUTES = {
   '/api/admin': adminHandler,
   '/api/email': emailHandler,
   '/api/delete-account': deleteAccountHandler,
+  '/api/waitlist': waitlistHandler,
 }
 
 const server = http.createServer(async (req, res) => {

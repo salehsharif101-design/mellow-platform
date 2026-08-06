@@ -54,7 +54,12 @@ if (wf) {
     e.preventDefault();
     var btn = wf.querySelector('button');
     btn.textContent = 'Joining...'; btn.disabled = true;
-    fetch(wf.action, { method:'POST', body:new FormData(wf), headers:{'Accept':'application/json'} })
+    var email = wf.querySelector('input[name="email"]').value;
+    fetch(wf.action, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email })
+    })
       .then(function(r) {
         if (r.ok) { wf.innerHTML = '<p style="font-size:16px;font-weight:600;padding:14px 0">You\'re on the list. We\'ll be in touch soon \uD83C\uDF89</p>'; }
         else { btn.textContent = 'Get early access'; btn.disabled = false; }
