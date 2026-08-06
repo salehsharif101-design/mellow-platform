@@ -3,7 +3,7 @@
 
 const SITE_URL = 'https://beta.joinmellow.xyz'
 
-export function renderEmailHtml({ heading, bodyText, ctaLabel, ctaUrl, illustration }) {
+export function renderEmailHtml({ heading, bodyText, ctaLabel, ctaUrl, illustration, footerDomain = 'beta.joinmellow.xyz' }) {
   return `<!doctype html>
 <html>
   <body style="margin:0;padding:0;background:#ffffff;font-family:'Inter',Helvetica,Arial,sans-serif;">
@@ -42,7 +42,7 @@ export function renderEmailHtml({ heading, bodyText, ctaLabel, ctaUrl, illustrat
             </tr>
             <tr>
               <td style="border-top:1px solid #eeeeee;padding-top:20px;">
-                <p style="margin:0;font-size:12px;color:#999999;">Mellow &middot; beta.joinmellow.xyz</p>
+                <p style="margin:0;font-size:12px;color:#999999;">Mellow &middot; ${footerDomain}</p>
               </td>
             </tr>
           </table>

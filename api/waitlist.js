@@ -4,11 +4,18 @@
 // CORS is scoped to the marketing site's origin since this is called
 // cross-origin from a plain <script> fetch(), not from the app itself.
 
+import { createClient } from '@supabase/supabase-js'
 import { sendEmail } from './_lib/resend.js'
 import { renderEmailHtml } from './_lib/email-template.js'
 
 const ALLOWED_ORIGIN = 'https://joinmellow.xyz'
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function getServiceClient() {
+  return createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
 
 function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
@@ -65,6 +72,15 @@ export default async function handler(req, res) {
     return
   }
 
+  // Best-effort storage — a transient DB hiccup shouldn't stop someone
+  // from getting their thank-you email. Duplicate signups just no-op
+  // (email column is unique) rather than erroring.
+  try {
+    await getServiceClient().from('waitlist_signups').insert({ email })
+  } catch {
+    // ignored — storage is secondary to actually sending the email
+  }
+
   try {
     await sendEmail({
       to: email,
@@ -81,6 +97,7 @@ export default async function handler(req, res) {
         ctaLabel: 'Learn more about Mellow',
         ctaUrl: 'https://joinmellow.xyz',
         illustration: 'Client_to_creative.png',
+        footerDomain: 'joinmellow.xyz',
       }),
     })
     res.statusCode = 200
