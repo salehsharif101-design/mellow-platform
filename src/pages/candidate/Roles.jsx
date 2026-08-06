@@ -92,6 +92,7 @@ export default function BrowseRoles() {
         <EmptyState
           heading="No open roles yet"
           body="New roles are added regularly. Make sure your profile is complete so employers can find you in the meantime."
+          illustration="/Collaborate2.png"
         />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 28, maxWidth: 720 }}>

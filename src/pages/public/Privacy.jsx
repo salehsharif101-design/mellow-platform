@@ -3,7 +3,7 @@ export default function Privacy() {
     <div className="section">
       <div style={{ maxWidth: 680, margin: '0 auto' }}>
         <h1 style={{ fontSize: 32 }}>Privacy Policy</h1>
-        <p style={{ marginTop: 8, fontSize: 14, color: 'var(--color-text-muted)' }}>Last updated: August 2025</p>
+        <p style={{ marginTop: 8, fontSize: 14, color: 'var(--color-text-muted)' }}>Last updated: August 2026</p>
 
         <p style={{ marginTop: 28, fontSize: 16, lineHeight: 1.7 }}>
           Mellow is committed to protecting your privacy. This policy explains what data we collect, how we use it,

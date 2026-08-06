@@ -150,6 +150,7 @@ export default function TalentFeed() {
         <EmptyState
           heading="No candidates yet"
           body="We are growing fast. Check back soon or share Mellow with people you know who are looking for opportunities."
+          illustration="/Collaborate2.png"
         />
       ) : filtered.length === 0 ? (
         <p style={{ marginTop: 32, color: 'var(--color-text-muted)' }}>No candidates match those filters yet.</p>

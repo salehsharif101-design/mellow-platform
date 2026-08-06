@@ -77,6 +77,7 @@ export default function Shortlist() {
           <EmptyState
             heading="No shortlisted candidates yet"
             body="Browse the talent feed and click Shortlist on any candidate you want to save here."
+            illustration="/Collaborate2.png"
           />
           <p style={{ textAlign: 'center', marginTop: -20 }}>
             <Link to="/employer/talent" style={{ color: 'var(--color-primary)', fontWeight: 600, fontSize: 14 }}>
