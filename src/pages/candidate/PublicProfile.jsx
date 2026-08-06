@@ -22,10 +22,6 @@ export default function PublicProfile() {
   const [showCalendly, setShowCalendly] = useState(false)
   const [showContact, setShowContact] = useState(false)
   const [showAddVideo, setShowAddVideo] = useState(false)
-  const [editingCalendly, setEditingCalendly] = useState(false)
-  const [calendlyInput, setCalendlyInput] = useState('')
-  const [savingCalendly, setSavingCalendly] = useState(false)
-  const [calendlyError, setCalendlyError] = useState('')
   const [linkCopied, setLinkCopied] = useState(false)
 
   useEffect(() => {
@@ -51,7 +47,6 @@ export default function PublicProfile() {
         return
       }
       setProfile(data)
-      setCalendlyInput(data.calendly_url || '')
 
       const { data: videoRows } = await supabase
         .from('candidate_videos')
@@ -89,25 +84,6 @@ export default function PublicProfile() {
     }
     setLinkCopied(true)
     setTimeout(() => setLinkCopied(false), 2000)
-  }
-
-  async function saveCalendly(e) {
-    e.preventDefault()
-    setSavingCalendly(true)
-    setCalendlyError('')
-    const { data, error } = await supabase
-      .from('candidate_profiles')
-      .update({ calendly_url: calendlyInput.trim() || null })
-      .eq('id', profile.id)
-      .select()
-      .single()
-    if (error) {
-      setCalendlyError(error.message)
-    } else {
-      setProfile(data)
-      setEditingCalendly(false)
-    }
-    setSavingCalendly(false)
   }
 
   useEffect(() => {
@@ -250,33 +226,6 @@ export default function PublicProfile() {
             >
               View LinkedIn profile →
             </a>
-          </div>
-        )}
-
-        {isOwner && (
-          <div style={{ marginTop: 24 }}>
-            <h4 style={{ fontSize: 14, color: 'var(--color-text-muted)', marginBottom: 10 }}>Calendly link</h4>
-            {editingCalendly ? (
-              <div>
-                <form onSubmit={saveCalendly} style={{ display: 'flex', gap: 10, maxWidth: 420 }}>
-                  <input
-                    className="input"
-                    type="url"
-                    placeholder="https://calendly.com/yourname"
-                    value={calendlyInput}
-                    onChange={(e) => setCalendlyInput(e.target.value)}
-                  />
-                  <button className="btn btn-primary" type="submit" disabled={savingCalendly}>
-                    {savingCalendly ? 'Saving…' : 'Save'}
-                  </button>
-                </form>
-                {calendlyError && <p className="form-error" style={{ marginTop: 8 }}>{calendlyError}</p>}
-              </div>
-            ) : (
-              <button className="btn btn-ghost" style={{ fontSize: 13, padding: '6px 14px' }} onClick={() => setEditingCalendly(true)}>
-                {profile.calendly_url ? 'Edit Calendly link' : '+ Add Calendly link'}
-              </button>
-            )}
           </div>
         )}
 

@@ -350,6 +350,7 @@ function LanguagesSection({ profile, onUpdated }) {
 
 function LinkedInSection({ profile, onUpdated }) {
   const [linkedinUrl, setLinkedinUrl] = useState(profile.linkedin_url || '')
+  const [calendlyUrl, setCalendlyUrl] = useState(profile.calendly_url || '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saved, flash] = useSavedFlash()
@@ -360,7 +361,7 @@ function LinkedInSection({ profile, onUpdated }) {
     setError('')
     const { data, error: saveError } = await supabase
       .from('candidate_profiles')
-      .update({ linkedin_url: linkedinUrl.trim() || null })
+      .update({ linkedin_url: linkedinUrl.trim() || null, calendly_url: calendlyUrl.trim() || null })
       .eq('id', profile.id)
       .select()
       .single()
@@ -374,7 +375,7 @@ function LinkedInSection({ profile, onUpdated }) {
 
   return (
     <section>
-      <h3 style={{ fontSize: 16, marginBottom: 12 }}>LinkedIn</h3>
+      <h3 style={{ fontSize: 16, marginBottom: 12 }}>Links</h3>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
           <label>LinkedIn URL</label>
@@ -384,6 +385,16 @@ function LinkedInSection({ profile, onUpdated }) {
             value={linkedinUrl}
             onChange={(e) => setLinkedinUrl(e.target.value)}
             placeholder="https://linkedin.com/in/yourname"
+          />
+        </div>
+        <div className="field">
+          <label>Calendly link (optional)</label>
+          <input
+            className="input"
+            type="url"
+            value={calendlyUrl}
+            onChange={(e) => setCalendlyUrl(e.target.value)}
+            placeholder="https://calendly.com/yourname"
           />
         </div>
         {error && <p className="form-error">{error}</p>}
