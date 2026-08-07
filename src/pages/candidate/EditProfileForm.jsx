@@ -605,12 +605,16 @@ function WorkVideosSection({ profile, userId }) {
 
   return (
     <section>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
         <h3 style={{ fontSize: 16 }}>Work videos</h3>
         <button className="btn btn-ghost" style={{ fontSize: 13, padding: '6px 14px' }} onClick={() => setShowAddVideo(true)}>
           + Add work video
         </button>
       </div>
+      <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 12 }}>
+        Add videos that show your work. Screen recordings, project walkthroughs, or anything that shows how you
+        think and operate.
+      </p>
 
       {!loading && videos.length === 0 && (
         <p style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>No work videos yet.</p>

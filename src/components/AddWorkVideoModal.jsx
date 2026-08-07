@@ -104,7 +104,8 @@ export default function AddWorkVideoModal({ candidateId, userId, onClose, onAdde
         <div className="field">
           <label htmlFor="work-video-file">Video file (mp4, mov, or webm — up to 50MB)</label>
           <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: -4, marginBottom: 8 }}>
-            Record vertically (portrait) for the best fit — that's how your video will be shown.
+            You can record in any orientation. Screen recordings and presentations work best horizontally. Talking
+            head videos work best vertically.
           </p>
           <input id="work-video-file" type="file" accept="video/mp4,video/quicktime,video/webm" onChange={handleFileChange} />
         </div>

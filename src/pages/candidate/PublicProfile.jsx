@@ -304,22 +304,28 @@ export default function PublicProfile() {
           </div>
         )}
 
+        {(isOwner || videos.length > 0) && (
         <div style={{ marginTop: 36 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h4 style={{ fontSize: 18 }}>How {profile.full_name?.split(' ')[0]} actually works</h4>
-            {isOwner && (
+          {!isOwner && videos.length > 0 && (
+            <>
+              <h4 style={{ fontSize: 18 }}>How {profile.full_name?.split(' ')[0]} actually works</h4>
+              <p style={{ marginTop: 6, fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+                These videos show how this candidate thinks, operates, and approaches real work, not just how they
+                present themselves.
+              </p>
+            </>
+          )}
+
+          {isOwner && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h4 style={{ fontSize: 18 }}>Work videos</h4>
               <button className="btn btn-ghost" style={{ fontSize: 13, padding: '6px 14px' }} onClick={() => setShowAddVideo(true)}>
                 + Add work video
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
-          {videos.length > 0 ? (
-            <p style={{ marginTop: 6, fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
-              These videos show how this candidate thinks, operates, and approaches real work, not just how they
-              present themselves.
-            </p>
-          ) : isOwner ? (
+          {isOwner && videos.length === 0 && (
             <div style={{ marginTop: 6 }}>
               <p style={{ fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
                 Add work videos to show employers how you think and operate. This is your biggest differentiator.
@@ -328,7 +334,7 @@ export default function PublicProfile() {
                 Add a work video
               </button>
             </div>
-          ) : null}
+          )}
 
           {videos.length > 0 && (
             <div
@@ -343,11 +349,15 @@ export default function PublicProfile() {
                 <div key={v.id}>
                   <VideoPlayCard url={v.video_url} format="horizontal" />
                   <p style={{ marginTop: 8, fontSize: 13, fontWeight: 600 }}>{v.label}</p>
+                  {v.description && (
+                    <p style={{ marginTop: 2, fontSize: 12, color: 'var(--color-text-muted)' }}>{v.description}</p>
+                  )}
                 </div>
               ))}
             </div>
           )}
         </div>
+        )}
       </div>
 
       {showCalendly && <CalendlyModal calendlyUrl={profile.calendly_url} onClose={() => setShowCalendly(false)} />}
