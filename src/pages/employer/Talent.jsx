@@ -15,6 +15,7 @@ export default function TalentFeed() {
   const [employerId, setEmployerId] = useState(null)
   const [candidates, setCandidates] = useState([])
   const [shortlistedIds, setShortlistedIds] = useState(new Set())
+  const [workVideoCounts, setWorkVideoCounts] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [savingId, setSavingId] = useState(null)
@@ -63,6 +64,19 @@ export default function TalentFeed() {
       else setCandidates(liveCandidates)
 
       if (!shortlistError) setShortlistedIds(new Set(shortlists.map((s) => s.candidate_id)))
+
+      const candidateIds = (liveCandidates || []).map((c) => c.id)
+      if (candidateIds.length > 0) {
+        const { data: videoRows } = await supabase
+          .from('candidate_videos')
+          .select('candidate_id')
+          .in('candidate_id', candidateIds)
+        const counts = {}
+        ;(videoRows || []).forEach((v) => {
+          counts[v.candidate_id] = (counts[v.candidate_id] || 0) + 1
+        })
+        setWorkVideoCounts(counts)
+      }
 
       setLoading(false)
     }
@@ -263,14 +277,26 @@ export default function TalentFeed() {
                 <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 2 }}>
                   {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title} · {c.location}
                 </p>
-                {c.availability && (
-                  <span
-                    className="tag"
-                    style={{ marginTop: 6, display: 'inline-flex', fontSize: 12, background: 'var(--color-bg-soft)' }}
-                  >
-                    {c.availability}
-                  </span>
-                )}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                  {c.availability && (
+                    <span className="tag" style={{ display: 'inline-flex', fontSize: 12, background: 'var(--color-bg-soft)' }}>
+                      {c.availability}
+                    </span>
+                  )}
+                  {workVideoCounts[c.id] > 0 && (
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: 'var(--color-primary)',
+                      }}
+                    >
+                      {workVideoCounts[c.id]} work video{workVideoCounts[c.id] === 1 ? '' : 's'}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {c.skills.length > 0 && (

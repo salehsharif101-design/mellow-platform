@@ -306,7 +306,7 @@ export default function PublicProfile() {
 
         <div style={{ marginTop: 36 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h4 style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>Work videos</h4>
+            <h4 style={{ fontSize: 18 }}>How {profile.full_name?.split(' ')[0]} actually works</h4>
             {isOwner && (
               <button className="btn btn-ghost" style={{ fontSize: 13, padding: '6px 14px' }} onClick={() => setShowAddVideo(true)}>
                 + Add work video
@@ -314,9 +314,18 @@ export default function PublicProfile() {
             )}
           </div>
 
-          {videos.length === 0 ? (
-            <p style={{ marginTop: 12, fontSize: 14, color: 'var(--color-text-muted)' }}>No work videos yet.</p>
-          ) : (
+          {videos.length > 0 ? (
+            <p style={{ marginTop: 6, fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+              These videos show how this candidate thinks, operates, and approaches real work, not just how they
+              present themselves.
+            </p>
+          ) : isOwner ? (
+            <p style={{ marginTop: 6, fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+              Add work videos to show employers how you think and operate. This is your biggest differentiator.
+            </p>
+          ) : null}
+
+          {videos.length > 0 && (
             <div
               style={{
                 display: 'grid',
@@ -327,7 +336,7 @@ export default function PublicProfile() {
             >
               {videos.map((v) => (
                 <div key={v.id}>
-                  <VideoPlayCard url={v.video_url} />
+                  <VideoPlayCard url={v.video_url} format="horizontal" />
                   <p style={{ marginTop: 8, fontSize: 13, fontWeight: 600 }}>{v.label}</p>
                 </div>
               ))}

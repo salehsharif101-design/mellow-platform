@@ -10,6 +10,7 @@ export default function CandidateDashboard() {
   const [profile, setProfile] = useState(null)
   const [applications, setApplications] = useState([])
   const [views, setViews] = useState(null) // null = unavailable, [] = none yet
+  const [workVideoCount, setWorkVideoCount] = useState(null) // null = unknown yet
   const [loading, setLoading] = useState(true)
   const [togglingVisibility, setTogglingVisibility] = useState(false)
 
@@ -42,6 +43,12 @@ export default function CandidateDashboard() {
         .eq('candidate_id', candidate.id)
         .order('viewed_at', { ascending: false })
       if (!viewsError) setViews(viewRows)
+
+      const { count: videoCount } = await supabase
+        .from('candidate_videos')
+        .select('id', { count: 'exact', head: true })
+        .eq('candidate_id', candidate.id)
+      setWorkVideoCount(videoCount || 0)
 
       setLoading(false)
     }
@@ -140,6 +147,28 @@ export default function CandidateDashboard() {
           />
         </button>
       </div>
+
+      {workVideoCount === 0 && (
+        <div
+          style={{
+            marginTop: 24,
+            padding: '24px 28px',
+            background: '#EEF4FF',
+            borderLeft: '4px solid #005ef5',
+            borderRadius: 10,
+          }}
+        >
+          <h3 style={{ fontSize: 18 }}>Stand out from the crowd</h3>
+          <p style={{ marginTop: 10, fontSize: 14, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
+            Candidates with work videos get significantly more employer attention. Show employers how you think and
+            what you are capable of. A designer can walk through a project. A developer can screen record a problem
+            they solved. A marketer can break down a campaign.
+          </p>
+          <Link to="/profile/edit" className="btn btn-primary" style={{ marginTop: 16, display: 'inline-block' }}>
+            Add your first work video
+          </Link>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20, marginTop: 28 }}>
         <div className="card" style={{ padding: 24 }}>

@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react'
 
-export default function VideoPlayCard({ url, style }) {
+export default function VideoPlayCard({ url, style, format = 'vertical' }) {
   const videoRef = useRef(null)
   const [playing, setPlaying] = useState(false)
+
+  const horizontal = format === 'horizontal'
 
   return (
     <div
@@ -11,9 +13,9 @@ export default function VideoPlayCard({ url, style }) {
         borderRadius: 10,
         overflow: 'hidden',
         background: '#000',
-        aspectRatio: '9 / 16',
+        aspectRatio: horizontal ? '16 / 9' : '9 / 16',
         width: '100%',
-        maxWidth: 400,
+        maxWidth: horizontal ? 640 : 400,
         margin: '0 auto',
         ...style,
       }}

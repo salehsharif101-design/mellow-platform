@@ -1,7 +1,15 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Confetti from '../../components/Confetti.jsx'
+import WorkLibraryTip from './WorkLibraryTip.jsx'
 
 export default function OnboardingCelebration() {
+  const [showTip, setShowTip] = useState(false)
+
+  if (showTip) {
+    return <WorkLibraryTip />
+  }
+
   return (
     <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', padding: '48px 24px' }}>
       <Confetti />
@@ -18,9 +26,14 @@ export default function OnboardingCelebration() {
         </p>
 
         <div style={{ marginTop: 32, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link to="/employer/talent" className="btn btn-primary" style={{ padding: '14px 28px', fontSize: 15 }}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setShowTip(true)}
+            style={{ padding: '14px 28px', fontSize: 15 }}
+          >
             Browse the talent feed
-          </Link>
+          </button>
           <Link to="/employer/roles/new" className="btn btn-ghost" style={{ padding: '14px 28px', fontSize: 15 }}>
             Post a role
           </Link>

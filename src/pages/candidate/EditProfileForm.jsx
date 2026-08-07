@@ -627,7 +627,7 @@ function WorkVideosSection({ profile, userId }) {
         >
           {videos.map((v) => (
             <div key={v.id}>
-              <VideoPlayCard url={v.video_url} />
+              <VideoPlayCard url={v.video_url} format="horizontal" />
               <p style={{ marginTop: 8, fontSize: 13, fontWeight: 600 }}>{v.label}</p>
             </div>
           ))}
