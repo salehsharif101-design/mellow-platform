@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import Confetti from '../../components/Confetti.jsx'
 import WorkLibraryTip from './WorkLibraryTip.jsx'
 
@@ -34,9 +33,14 @@ export default function OnboardingCelebration() {
           >
             Browse the talent feed
           </button>
-          <Link to="/employer/roles/new" className="btn btn-ghost" style={{ padding: '14px 28px', fontSize: 15 }}>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => setShowTip(true)}
+            style={{ padding: '14px 28px', fontSize: 15 }}
+          >
             Post a role
-          </Link>
+          </button>
         </div>
       </div>
     </div>
