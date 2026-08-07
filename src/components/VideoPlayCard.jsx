@@ -5,14 +5,26 @@ export default function VideoPlayCard({ url, style }) {
   const [playing, setPlaying] = useState(false)
 
   return (
-    <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', background: '#000', ...style }}>
+    <div
+      style={{
+        position: 'relative',
+        borderRadius: 10,
+        overflow: 'hidden',
+        background: '#000',
+        aspectRatio: '9 / 16',
+        width: '100%',
+        maxWidth: 400,
+        margin: '0 auto',
+        ...style,
+      }}
+    >
       <video
         ref={videoRef}
         src={url}
         controls={playing}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
-        style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}
+        style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain', background: '#000' }}
       />
       {!playing && (
         <button

@@ -5,8 +5,13 @@ import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
 import { deleteAccount } from '../../lib/deleteAccount.js'
+import OnboardingWelcome from './OnboardingWelcome.jsx'
+import OnboardingCelebration from './OnboardingCelebration.jsx'
 
 const COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-500', '500+']
+const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']
+const MAX_LOGO_BYTES = 5 * 1024 * 1024
+const MAX_HIGHLIGHT_LENGTH = 150
 
 export default function EmployerOnboarding() {
   const { user } = useAuth()
@@ -17,12 +22,19 @@ export default function EmployerOnboarding() {
   const [error, setError] = useState('')
   const [wasIncomplete, setWasIncomplete] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showWelcome, setShowWelcome] = useState(false)
+  const [justCompleted, setJustCompleted] = useState(false)
 
   const [companyName, setCompanyName] = useState('')
   const [industry, setIndustry] = useState('')
   const [companySize, setCompanySize] = useState(COMPANY_SIZES[0])
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [cultureDescription, setCultureDescription] = useState('')
+  const [typicalRoles, setTypicalRoles] = useState('')
+  const [companyHighlight, setCompanyHighlight] = useState('')
+  const [logoFile, setLogoFile] = useState(null)
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState(null)
+  const [logoError, setLogoError] = useState('')
 
   useEffect(() => {
     if (!user) return
@@ -52,7 +64,11 @@ export default function EmployerOnboarding() {
         setCompanySize(profile.company_size || COMPANY_SIZES[0])
         setWebsiteUrl(profile.website_url || '')
         setCultureDescription(profile.culture_description || '')
+        setTypicalRoles(profile.typical_roles || '')
+        setCompanyHighlight(profile.company_highlight || '')
+        setLogoPreviewUrl(profile.logo_url || null)
         setWasIncomplete(!profile.company_name)
+        setShowWelcome(!profile.company_name)
       }
       setLoading(false)
     }
@@ -60,11 +76,39 @@ export default function EmployerOnboarding() {
     loadProfile()
   }, [user])
 
+  function handleLogoChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setLogoError('')
+    if (!LOGO_TYPES.includes(file.type)) {
+      setLogoError('Please upload a PNG, JPG, WEBP, or SVG image.')
+      return
+    }
+    if (file.size > MAX_LOGO_BYTES) {
+      setLogoError('That image is over the 5MB limit.')
+      return
+    }
+    setLogoFile(file)
+    setLogoPreviewUrl(URL.createObjectURL(file))
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     setSaving(true)
     try {
+      let logoUrl = logoPreviewUrl && !logoFile ? logoPreviewUrl : undefined
+      if (logoFile) {
+        const ext = logoFile.name.split('.').pop() || 'png'
+        const path = `${user.id}/logo.${ext}`
+        const { error: uploadError } = await supabase.storage
+          .from('company-logos')
+          .upload(path, logoFile, { upsert: true, contentType: logoFile.type })
+        if (uploadError) throw uploadError
+        const { data } = supabase.storage.from('company-logos').getPublicUrl(path)
+        logoUrl = `${data.publicUrl}?t=${Date.now()}`
+      }
+
       const { error: saveError } = await supabase
         .from('employer_profiles')
         .update({
@@ -73,13 +117,19 @@ export default function EmployerOnboarding() {
           company_size: companySize,
           website_url: websiteUrl.trim() || null,
           culture_description: cultureDescription.trim(),
+          typical_roles: typicalRoles.trim() || null,
+          company_highlight: companyHighlight.trim() || null,
+          ...(logoUrl !== undefined ? { logo_url: logoUrl } : {}),
         })
         .eq('user_id', user.id)
       if (saveError) throw saveError
+
       if (wasIncomplete) {
         notify('employer-welcome', { userId: user.id })
+        setJustCompleted(true)
+      } else {
+        navigate('/employer/roles/new')
       }
-      navigate('/employer/roles/new')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -93,6 +143,14 @@ export default function EmployerOnboarding() {
   }
 
   if (loading) return null
+
+  if (justCompleted) {
+    return <OnboardingCelebration />
+  }
+
+  if (showWelcome) {
+    return <OnboardingWelcome onContinue={() => setShowWelcome(false)} />
+  }
 
   const isValid = companyName.trim() && industry.trim() && cultureDescription.trim()
 
@@ -173,6 +231,42 @@ export default function EmployerOnboarding() {
                 placeholder="What's it like to work here?"
                 required
               />
+            </div>
+            <div className="field">
+              <label htmlFor="typical_roles">What kind of roles do you usually hire for? (optional)</label>
+              <input
+                id="typical_roles"
+                className="input"
+                value={typicalRoles}
+                onChange={(e) => setTypicalRoles(e.target.value)}
+                placeholder="e.g. designers, engineers, sales, operations"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="company_highlight">What makes your company a great place to work? (optional)</label>
+              <input
+                id="company_highlight"
+                className="input"
+                value={companyHighlight}
+                onChange={(e) => setCompanyHighlight(e.target.value.slice(0, MAX_HIGHLIGHT_LENGTH))}
+                placeholder="e.g. flat structure, fast growth, remote friendly"
+                maxLength={MAX_HIGHLIGHT_LENGTH}
+              />
+              <p style={{ marginTop: 4, fontSize: 12, color: 'var(--color-text-muted)' }}>
+                {companyHighlight.length}/{MAX_HIGHLIGHT_LENGTH}
+              </p>
+            </div>
+            <div className="field">
+              <label htmlFor="logo">Company logo (optional)</label>
+              {logoPreviewUrl && (
+                <img
+                  src={logoPreviewUrl}
+                  alt=""
+                  style={{ width: 64, height: 64, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)', marginBottom: 8 }}
+                />
+              )}
+              <input id="logo" type="file" accept={LOGO_TYPES.join(',')} onChange={handleLogoChange} />
+              {logoError && <p className="form-error">{logoError}</p>}
             </div>
             {error && <p className="form-error">{error}</p>}
             <button className="btn btn-primary" type="submit" disabled={!isValid || saving} style={{ alignSelf: 'flex-start' }}>

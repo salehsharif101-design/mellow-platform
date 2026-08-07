@@ -245,7 +245,7 @@ function BasicsSection({ profile, onUpdated }) {
             className="input"
             value={currentCompany}
             onChange={(e) => setCurrentCompany(e.target.value)}
-            placeholder="e.g. Beanboat, Freelance, Between roles"
+            placeholder="e.g. Google, Freelance, Between roles"
           />
         </div>
         <div className="field">
@@ -555,10 +555,26 @@ function VideoSection({ profile, userId, onUpdated }) {
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Intro video</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         {previewUrl && (
-          <video src={previewUrl} controls style={{ width: '100%', maxWidth: 320, borderRadius: 12, background: '#000' }} />
+          <video
+            src={previewUrl}
+            controls
+            style={{
+              width: '100%',
+              maxWidth: 400,
+              aspectRatio: '9 / 16',
+              objectFit: 'contain',
+              borderRadius: 12,
+              background: '#000',
+              margin: '0 auto',
+              display: 'block',
+            }}
+          />
         )}
         <div className="field">
           <label>Replace video (mp4, mov, or webm — up to 50MB)</label>
+          <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: -4, marginBottom: 8 }}>
+            Record vertically (portrait) for the best fit — that's how your video will be shown.
+          </p>
           <input type="file" accept={VIDEO_TYPES.join(',')} onChange={handleFileChange} />
         </div>
         {error && <p className="form-error">{error}</p>}
@@ -611,7 +627,7 @@ function WorkVideosSection({ profile, userId }) {
         >
           {videos.map((v) => (
             <div key={v.id}>
-              <VideoPlayCard url={v.video_url} style={{ aspectRatio: '4 / 3' }} />
+              <VideoPlayCard url={v.video_url} />
               <p style={{ marginTop: 8, fontSize: 13, fontWeight: 600 }}>{v.label}</p>
             </div>
           ))}

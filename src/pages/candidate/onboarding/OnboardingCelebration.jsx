@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Confetti from './Confetti.jsx'
+import Confetti from '../../../components/Confetti.jsx'
 
 export default function OnboardingCelebration({ username }) {
   const navigate = useNavigate()

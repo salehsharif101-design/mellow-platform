@@ -67,7 +67,7 @@ export default function Step1Basics({ initial, onContinue, saving }) {
           className="input"
           value={currentCompany}
           onChange={(e) => setCurrentCompany(e.target.value)}
-          placeholder="e.g. Beanboat, Freelance, Between roles"
+          placeholder="e.g. Google, Freelance, Between roles"
         />
       </div>
       <div className="field">

@@ -41,7 +41,7 @@ export default function BrowseRoles() {
           supabase
             .from('roles')
             .select(
-              'id, title, location, role_type, description, what_matters, employer_profiles(company_name, industry, company_size, culture_description)',
+              'id, title, location, role_type, description, what_matters, employer_profiles(company_name, industry, company_size, culture_description, company_highlight, logo_url)',
             )
             .eq('is_active', true)
             .order('created_at', { ascending: false }),
@@ -104,24 +104,38 @@ export default function BrowseRoles() {
             return (
               <div key={role.id} className="card" style={{ padding: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-                  <div>
-                    <h3 style={{ fontSize: 19 }}>{role.title}</h3>
-                    <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
-                      {employer?.company_name} · {role.location} ·{' '}
-                      {role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')}
-                    </p>
-                    {(employer?.industry || employer?.company_size) && (
-                      <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
-                        {[employer?.industry, employer?.company_size && `${employer.company_size} employees`]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </p>
+                  <div style={{ display: 'flex', gap: 14 }}>
+                    {employer?.logo_url && (
+                      <img
+                        src={employer.logo_url}
+                        alt=""
+                        style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)', flexShrink: 0 }}
+                      />
                     )}
-                    {cultureShort && (
-                      <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4, fontStyle: 'italic' }}>
-                        “{cultureShort}”
+                    <div>
+                      <h3 style={{ fontSize: 19 }}>{role.title}</h3>
+                      <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
+                        {employer?.company_name} · {role.location} ·{' '}
+                        {role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')}
                       </p>
-                    )}
+                      {(employer?.industry || employer?.company_size) && (
+                        <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
+                          {[employer?.industry, employer?.company_size && `${employer.company_size} employees`]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </p>
+                      )}
+                      {employer?.company_highlight && (
+                        <span className="tag" style={{ marginTop: 6, display: 'inline-flex', fontSize: 12 }}>
+                          {employer.company_highlight}
+                        </span>
+                      )}
+                      {cultureShort && (
+                        <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4, fontStyle: 'italic' }}>
+                          “{cultureShort}”
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <button
                     type="button"

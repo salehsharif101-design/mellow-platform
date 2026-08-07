@@ -183,14 +183,15 @@ export default function PublicProfile() {
         </div>
 
         {profile.intro_video_url ? (
-          <VideoPlayCard url={profile.intro_video_url} style={{ marginTop: 28, aspectRatio: '16 / 9', maxWidth: 480 }} />
+          <VideoPlayCard url={profile.intro_video_url} style={{ marginTop: 28 }} />
         ) : (
           <div
             className="card"
             style={{
               marginTop: 28,
-              maxWidth: 480,
-              aspectRatio: '16 / 9',
+              maxWidth: 400,
+              margin: '28px auto 0',
+              aspectRatio: '9 / 16',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -246,7 +247,21 @@ export default function PublicProfile() {
             >
               "
             </span>
-            <p style={{ fontSize: 15, lineHeight: 1.6, fontStyle: 'italic', paddingLeft: 20 }}>{profile.proud_of}</p>
+            <p style={{ fontSize: 15, lineHeight: 1.6, fontStyle: 'italic', padding: '0 20px' }}>{profile.proud_of}</p>
+            <span
+              style={{
+                position: 'absolute',
+                bottom: 6,
+                right: 16,
+                fontSize: 40,
+                fontFamily: 'Georgia, serif',
+                color: 'var(--color-primary)',
+                opacity: 0.35,
+                lineHeight: 1,
+              }}
+            >
+              "
+            </span>
           </div>
         )}
 
@@ -312,7 +327,7 @@ export default function PublicProfile() {
             >
               {videos.map((v) => (
                 <div key={v.id}>
-                  <VideoPlayCard url={v.video_url} style={{ aspectRatio: '4 / 3' }} />
+                  <VideoPlayCard url={v.video_url} />
                   <p style={{ marginTop: 8, fontSize: 13, fontWeight: 600 }}>{v.label}</p>
                 </div>
               ))}

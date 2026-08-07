@@ -20,6 +20,11 @@ export default function Layout() {
               <Link to={dashboardPath} style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
                 Dashboard
               </Link>
+              {userType === 'employer' && (
+                <Link to="/employer/roles" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                  Manage roles
+                </Link>
+              )}
               <Link to={messagesPath} style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
                 Messages
               </Link>

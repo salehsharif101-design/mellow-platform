@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import EditRoleModal from '../../components/EditRoleModal.jsx'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
+import EmptyState from '../../components/EmptyState.jsx'
 
 export default function EmployerRoles() {
   const { user } = useAuth()
@@ -105,7 +106,11 @@ export default function EmployerRoles() {
       </div>
 
       {roles.length === 0 ? (
-        <p style={{ marginTop: 24, color: 'var(--color-text-muted)' }}>You haven't posted any roles yet.</p>
+        <EmptyState
+          heading="No roles posted yet"
+          body="Post your first role and start browsing real candidates on video, not paper."
+          illustration="/Collaborate2.png"
+        />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 28, maxWidth: 760 }}>
           {roles.map((role) => (

@@ -100,11 +100,14 @@ export default function Shortlist() {
             return (
               <div key={entry.id} className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {c.intro_video_url ? (
-                  <VideoPlayCard url={c.intro_video_url} style={{ aspectRatio: '4 / 3' }} />
+                  <VideoPlayCard url={c.intro_video_url} />
                 ) : (
                   <div
                     style={{
-                      aspectRatio: '4 / 3',
+                      aspectRatio: '9 / 16',
+                      width: '100%',
+                      maxWidth: 400,
+                      margin: '0 auto',
                       background: 'var(--color-bg-soft)',
                       borderRadius: 10,
                       display: 'flex',

@@ -138,12 +138,24 @@ export default function Step5Video({ initial, userId, onFinish, onBack, saving }
         <video
           src={previewUrl}
           controls
-          style={{ width: '100%', maxWidth: 360, borderRadius: 12, background: '#000' }}
+          style={{
+            width: '100%',
+            maxWidth: 400,
+            aspectRatio: '9 / 16',
+            objectFit: 'contain',
+            borderRadius: 12,
+            background: '#000',
+            margin: '0 auto',
+            display: 'block',
+          }}
         />
       )}
 
       <div className="field">
         <label htmlFor="video">Upload your 60-second intro (mp4, mov, or webm — up to 50MB)</label>
+        <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: -4, marginBottom: 8 }}>
+          Record vertically (portrait) for the best fit — that's how your video will be shown.
+        </p>
         <input id="video" type="file" accept="video/mp4,video/quicktime,video/webm" onChange={handleFileChange} />
       </div>
 
