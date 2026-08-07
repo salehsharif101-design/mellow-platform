@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
 import Confetti from '../../../components/Confetti.jsx'
+import WorkVideoTip from './WorkVideoTip.jsx'
 
 export default function OnboardingCelebration({ username }) {
-  const navigate = useNavigate()
   const [copied, setCopied] = useState(false)
+  const [showTip, setShowTip] = useState(false)
 
   const profileUrl = `beta.joinmellow.xyz/profile/${username}`
 
@@ -27,6 +27,10 @@ export default function OnboardingCelebration({ username }) {
     }
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  if (showTip) {
+    return <WorkVideoTip />
   }
 
   return (
@@ -69,22 +73,11 @@ export default function OnboardingCelebration({ username }) {
           <button
             type="button"
             className="btn btn-ghost"
-            onClick={() => navigate('/dashboard')}
+            onClick={() => setShowTip(true)}
             style={{ padding: '14px 28px', fontSize: 15 }}
           >
             Go to my dashboard
           </button>
-        </div>
-
-        <div style={{ marginTop: 56, paddingTop: 32, borderTop: '1px solid var(--color-border)' }}>
-          <h3 style={{ fontSize: 17 }}>One more thing</h3>
-          <p style={{ marginTop: 10, fontSize: 14, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
-            Candidates with work videos get significantly more employer attention. Add your first work video and
-            show employers how you actually think and operate.
-          </p>
-          <Link to="/profile/edit" className="btn btn-ghost" style={{ marginTop: 16, padding: '10px 22px', fontSize: 14, display: 'inline-block' }}>
-            Add a work video
-          </Link>
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
+import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 
 export default function Shortlist() {
   const { user } = useAuth()
@@ -36,7 +37,7 @@ export default function Shortlist() {
 
       const { data, error: shortlistError } = await supabase
         .from('shortlists')
-        .select('id, candidate_id, candidate_profiles(id, username, full_name, job_title, location, skills, intro_video_url)')
+        .select('id, candidate_id, candidate_profiles(id, username, full_name, job_title, location, skills, intro_video_url, avatar_url)')
         .eq('employer_id', employer.id)
         .order('created_at', { ascending: false })
 
@@ -99,27 +100,34 @@ export default function Shortlist() {
             if (!c) return null
             return (
               <div key={entry.id} className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {c.intro_video_url ? (
-                  <VideoPlayCard url={c.intro_video_url} />
-                ) : (
-                  <div
-                    style={{
-                      aspectRatio: '9 / 16',
-                      width: '100%',
-                      maxWidth: 400,
-                      margin: '0 auto',
-                      background: 'var(--color-bg-soft)',
-                      borderRadius: 10,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--color-text-muted)',
-                      fontSize: 13,
-                    }}
-                  >
-                    No video yet
-                  </div>
-                )}
+                <div style={{ position: 'relative' }}>
+                  <CandidateAvatar
+                    avatarUrl={c.avatar_url}
+                    fullName={c.full_name}
+                    style={{ position: 'absolute', top: 10, left: 10, zIndex: 1 }}
+                  />
+                  {c.intro_video_url ? (
+                    <VideoPlayCard url={c.intro_video_url} />
+                  ) : (
+                    <div
+                      style={{
+                        aspectRatio: '9 / 16',
+                        width: '100%',
+                        maxWidth: 400,
+                        margin: '0 auto',
+                        background: 'var(--color-bg-soft)',
+                        borderRadius: 10,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--color-text-muted)',
+                        fontSize: 13,
+                      }}
+                    >
+                      No video yet
+                    </div>
+                  )}
+                </div>
 
                 <div>
                   <Link to={`/profile/${c.username || c.id}`} style={{ textDecoration: 'none' }}>
