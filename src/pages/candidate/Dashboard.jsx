@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
 
 const COMPLETENESS_FIELDS = ['full_name', 'job_title', 'location', 'bio', 'intro_video_url']
 
@@ -13,6 +14,7 @@ export default function CandidateDashboard() {
   const [workVideoCount, setWorkVideoCount] = useState(null) // null = unknown yet
   const [loading, setLoading] = useState(true)
   const [togglingVisibility, setTogglingVisibility] = useState(false)
+  const [showAddVideo, setShowAddVideo] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -164,10 +166,19 @@ export default function CandidateDashboard() {
             what you are capable of. A designer can walk through a project. A developer can screen record a problem
             they solved. A marketer can break down a campaign.
           </p>
-          <Link to="/profile/edit" className="btn btn-primary" style={{ marginTop: 16, display: 'inline-block' }}>
+          <button type="button" className="btn btn-primary" onClick={() => setShowAddVideo(true)} style={{ marginTop: 16 }}>
             Add your first work video
-          </Link>
+          </button>
         </div>
+      )}
+
+      {showAddVideo && (
+        <AddWorkVideoModal
+          candidateId={profile.id}
+          userId={user.id}
+          onClose={() => setShowAddVideo(false)}
+          onAdded={() => setWorkVideoCount((prev) => (prev || 0) + 1)}
+        />
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20, marginTop: 28 }}>

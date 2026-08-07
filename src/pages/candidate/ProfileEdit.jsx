@@ -109,7 +109,7 @@ export default function ProfileEdit() {
 
   if (isComplete) {
     if (justCompleted) {
-      return <OnboardingCelebration username={profile.username || profile.id} />
+      return <OnboardingCelebration username={profile.username || profile.id} candidateId={profile.id} userId={profile.user_id} />
     }
     return (
       <div className="section">

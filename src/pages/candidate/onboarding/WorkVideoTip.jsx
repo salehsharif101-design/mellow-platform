@@ -1,7 +1,10 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import AddWorkVideoModal from '../../../components/AddWorkVideoModal.jsx'
 
-export default function WorkVideoTip() {
+export default function WorkVideoTip({ candidateId, userId }) {
   const navigate = useNavigate()
+  const [showAddVideo, setShowAddVideo] = useState(false)
 
   return (
     <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', padding: '48px 24px' }}>
@@ -16,9 +19,14 @@ export default function WorkVideoTip() {
           problem they solved. A marketer can break down a campaign from brief to result. The more you show, the
           more employers know.
         </p>
-        <Link to="/profile/edit" className="btn btn-primary" style={{ marginTop: 36, padding: '14px 32px', fontSize: 15, display: 'inline-block' }}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => setShowAddVideo(true)}
+          style={{ marginTop: 36, padding: '14px 32px', fontSize: 15 }}
+        >
           Add a work video
-        </Link>
+        </button>
         <div style={{ marginTop: 18 }}>
           <button
             type="button"
@@ -29,6 +37,10 @@ export default function WorkVideoTip() {
           </button>
         </div>
       </div>
+
+      {showAddVideo && (
+        <AddWorkVideoModal candidateId={candidateId} userId={userId} onClose={() => setShowAddVideo(false)} onAdded={() => {}} />
+      )}
     </div>
   )
 }

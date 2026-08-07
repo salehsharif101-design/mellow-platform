@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Confetti from '../../../components/Confetti.jsx'
 import WorkVideoTip from './WorkVideoTip.jsx'
 
-export default function OnboardingCelebration({ username }) {
+export default function OnboardingCelebration({ username, candidateId, userId }) {
   const [copied, setCopied] = useState(false)
   const [showTip, setShowTip] = useState(false)
 
@@ -30,7 +30,7 @@ export default function OnboardingCelebration({ username }) {
   }
 
   if (showTip) {
-    return <WorkVideoTip />
+    return <WorkVideoTip candidateId={candidateId} userId={userId} />
   }
 
   return (

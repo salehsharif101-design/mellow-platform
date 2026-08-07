@@ -320,9 +320,14 @@ export default function PublicProfile() {
               present themselves.
             </p>
           ) : isOwner ? (
-            <p style={{ marginTop: 6, fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
-              Add work videos to show employers how you think and operate. This is your biggest differentiator.
-            </p>
+            <div style={{ marginTop: 6 }}>
+              <p style={{ fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+                Add work videos to show employers how you think and operate. This is your biggest differentiator.
+              </p>
+              <button type="button" className="btn btn-primary" onClick={() => setShowAddVideo(true)} style={{ marginTop: 12 }}>
+                Add a work video
+              </button>
+            </div>
           ) : null}
 
           {videos.length > 0 && (
