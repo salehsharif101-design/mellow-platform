@@ -11,7 +11,50 @@ const PROMPTS = [
   'What kind of role or company are you looking for?',
 ]
 
+function TipsScreen({ onContinue }) {
+  return (
+    <div style={{ background: '#fff', padding: '48px 24px', textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
+      <img src="/Floating girl.PNG" alt="" style={{ width: '100%', maxWidth: 260, margin: '0 auto', display: 'block' }} />
+      <h2 style={{ marginTop: 32, fontSize: 26 }}>Make it count</h2>
+      <p style={{ marginTop: 16, fontSize: 16, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
+        Before you upload, here is what makes a great Mellow video. Good lighting, face a window if you can. Clear
+        audio, find a quiet spot. 60 seconds max, keep it focused. And most importantly, just be yourself. Employers
+        remember authentic, not polished.
+      </p>
+      <button className="btn btn-primary" type="button" onClick={onContinue} style={{ marginTop: 32, padding: '13px 28px' }}>
+        Got it, upload my video
+      </button>
+    </div>
+  )
+}
+
+function PromptCard({ number, prompt }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 4px' }}>
+      <span
+        style={{
+          flexShrink: 0,
+          width: 30,
+          height: 30,
+          borderRadius: '50%',
+          background: 'var(--color-primary)',
+          color: '#fff',
+          fontWeight: 700,
+          fontSize: 14,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {number}
+      </span>
+      <p style={{ fontSize: 15, fontWeight: 600 }}>{prompt}</p>
+    </div>
+  )
+}
+
 export default function Step5Video({ initial, userId, onFinish, onBack, saving }) {
+  const [showTips, setShowTips] = useState(true)
   const [file, setFile] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(initial.intro_video_url || null)
   const [error, setError] = useState('')
@@ -23,6 +66,10 @@ export default function Step5Video({ initial, userId, onFinish, onBack, saving }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  if (showTips) {
+    return <TipsScreen onContinue={() => setShowTips(false)} />
+  }
 
   function handleFileChange(e) {
     const selected = e.target.files?.[0]
@@ -76,17 +123,15 @@ export default function Step5Video({ initial, userId, onFinish, onBack, saving }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-      <div className="card" style={{ padding: 20, background: 'var(--color-bg-soft)', border: 'none' }}>
-        <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: 10 }}>
+      <div className="card" style={{ padding: '16px 20px', background: 'var(--color-bg-soft)', border: 'none' }}>
+        <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: 4 }}>
           While you record, cover these three prompts:
         </p>
-        <ol style={{ margin: 0, paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {PROMPTS.map((prompt) => (
-            <li key={prompt} style={{ fontSize: 15, fontWeight: 600 }}>
-              {prompt}
-            </li>
+        <div>
+          {PROMPTS.map((prompt, i) => (
+            <PromptCard key={prompt} number={i + 1} prompt={prompt} />
           ))}
-        </ol>
+        </div>
       </div>
 
       {previewUrl && (

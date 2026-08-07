@@ -196,6 +196,7 @@ function OpenToOpportunitiesSection({ profile, onUpdated }) {
 function BasicsSection({ profile, onUpdated }) {
   const [fullName, setFullName] = useState(profile.full_name || '')
   const [jobTitle, setJobTitle] = useState(profile.job_title || '')
+  const [currentCompany, setCurrentCompany] = useState(profile.current_company || '')
   const [location, setLocation] = useState(profile.location || '')
   const [bio, setBio] = useState(profile.bio || '')
   const [saving, setSaving] = useState(false)
@@ -208,7 +209,13 @@ function BasicsSection({ profile, onUpdated }) {
     setError('')
     const { data, error: saveError } = await supabase
       .from('candidate_profiles')
-      .update({ full_name: fullName.trim(), job_title: jobTitle.trim(), location: location.trim(), bio: bio.trim() })
+      .update({
+        full_name: fullName.trim(),
+        job_title: jobTitle.trim(),
+        current_company: currentCompany.trim() || null,
+        location: location.trim(),
+        bio: bio.trim(),
+      })
       .eq('id', profile.id)
       .select()
       .single()
@@ -231,6 +238,15 @@ function BasicsSection({ profile, onUpdated }) {
         <div className="field">
           <label>Current role or title</label>
           <input className="input" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} required />
+        </div>
+        <div className="field">
+          <label>Current company (optional)</label>
+          <input
+            className="input"
+            value={currentCompany}
+            onChange={(e) => setCurrentCompany(e.target.value)}
+            placeholder="e.g. Beanboat, Freelance, Between roles"
+          />
         </div>
         <div className="field">
           <label>Location (city)</label>

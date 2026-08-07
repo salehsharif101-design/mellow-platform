@@ -1,4 +1,4 @@
-const STEP_LABELS = ['Basics', 'Skills', 'Languages', 'LinkedIn', 'Video']
+const STEP_LABELS = ['Basics', 'Skills', 'Languages', 'Links', 'Video']
 
 export default function OnboardingProgress({ step }) {
   return (

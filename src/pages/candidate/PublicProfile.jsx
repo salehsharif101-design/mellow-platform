@@ -150,8 +150,17 @@ export default function PublicProfile() {
                 </button>
               </div>
               <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>
-                {profile.job_title} · {profile.location}
+                {profile.current_company ? `${profile.job_title} at ${profile.current_company}` : profile.job_title} · {profile.location}
               </p>
+              {profile.work_style?.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                  {profile.work_style.map((w) => (
+                    <span key={w} className="tag" style={{ fontSize: 12 }}>
+                      {w}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -194,6 +203,52 @@ export default function PublicProfile() {
         )}
 
         {profile.bio && <p style={{ marginTop: 24, fontSize: 16, lineHeight: 1.6 }}>{profile.bio}</p>}
+
+        {profile.three_words && (
+          <div style={{ marginTop: 20 }}>
+            <h4 style={{ fontSize: 14, color: 'var(--color-text-muted)', marginBottom: 10 }}>Known for</h4>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {profile.three_words
+                .split(',')
+                .map((w) => w.trim())
+                .filter(Boolean)
+                .map((word) => (
+                  <span key={word} className="tag">
+                    {word}
+                  </span>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {profile.proud_of && (
+          <div
+            className="card"
+            style={{
+              marginTop: 20,
+              padding: '20px 24px',
+              background: 'var(--color-bg-soft)',
+              border: 'none',
+              position: 'relative',
+            }}
+          >
+            <span
+              style={{
+                position: 'absolute',
+                top: 6,
+                left: 16,
+                fontSize: 40,
+                fontFamily: 'Georgia, serif',
+                color: 'var(--color-primary)',
+                opacity: 0.35,
+                lineHeight: 1,
+              }}
+            >
+              "
+            </span>
+            <p style={{ fontSize: 15, lineHeight: 1.6, fontStyle: 'italic', paddingLeft: 20 }}>{profile.proud_of}</p>
+          </div>
+        )}
 
         {profile.skills?.length > 0 && (
           <div style={{ marginTop: 24 }}>

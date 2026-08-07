@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
 import OnboardingProgress from './onboarding/OnboardingProgress.jsx'
+import OnboardingWelcome from './onboarding/OnboardingWelcome.jsx'
+import OnboardingCelebration from './onboarding/OnboardingCelebration.jsx'
 import Step1Basics from './onboarding/steps/Step1Basics.jsx'
 import Step2Skills from './onboarding/steps/Step2Skills.jsx'
 import Step3Languages from './onboarding/steps/Step3Languages.jsx'
-import Step4LinkedIn from './onboarding/steps/Step4LinkedIn.jsx'
+import Step4Links from './onboarding/steps/Step4Links.jsx'
 import Step5Video from './onboarding/steps/Step5Video.jsx'
 import EditProfileForm from './EditProfileForm.jsx'
 
@@ -15,13 +16,14 @@ const LAST_STEP = 5
 
 export default function ProfileEdit() {
   const { user } = useAuth()
-  const navigate = useNavigate()
 
   const [profile, setProfile] = useState(null)
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [loadError, setLoadError] = useState('')
+  const [showWelcome, setShowWelcome] = useState(true)
+  const [justCompleted, setJustCompleted] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -82,7 +84,7 @@ export default function ProfileEdit() {
         notify('video-library-notification', { candidateId: data.id })
       }
       if (nextStep > LAST_STEP) {
-        navigate('/dashboard')
+        setJustCompleted(true)
       } else {
         setStep(nextStep)
       }
@@ -106,6 +108,9 @@ export default function ProfileEdit() {
   const isComplete = (profile?.onboarding_step || 1) > LAST_STEP
 
   if (isComplete) {
+    if (justCompleted) {
+      return <OnboardingCelebration username={profile.username || profile.id} />
+    }
     return (
       <div className="section">
         <div style={{ maxWidth: 480, margin: '0 auto' }}>
@@ -114,6 +119,10 @@ export default function ProfileEdit() {
         </div>
       </div>
     )
+  }
+
+  if (step === 1 && showWelcome) {
+    return <OnboardingWelcome onContinue={() => setShowWelcome(false)} />
   }
 
   return (
@@ -150,7 +159,7 @@ export default function ProfileEdit() {
             />
           )}
           {step === 4 && (
-            <Step4LinkedIn
+            <Step4Links
               initial={profile}
               saving={saving}
               onBack={() => setStep(3)}

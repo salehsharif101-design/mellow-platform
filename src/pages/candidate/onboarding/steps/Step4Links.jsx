@@ -1,15 +1,16 @@
 import { useState } from 'react'
 
-export default function Step4LinkedIn({ initial, onContinue, onBack, saving }) {
+export default function Step4Links({ initial, onContinue, onBack, saving }) {
   const [linkedinUrl, setLinkedinUrl] = useState(initial.linkedin_url || '')
+  const [calendlyUrl, setCalendlyUrl] = useState(initial.calendly_url || '')
 
   function handleSubmit(e) {
     e.preventDefault()
-    onContinue({ linkedin_url: linkedinUrl.trim() || null })
+    onContinue({ linkedin_url: linkedinUrl.trim() || null, calendly_url: calendlyUrl.trim() || null })
   }
 
   function handleSkip() {
-    onContinue({ linkedin_url: null })
+    onContinue({ linkedin_url: null, calendly_url: null })
   }
 
   return (
@@ -23,6 +24,18 @@ export default function Step4LinkedIn({ initial, onContinue, onBack, saving }) {
           value={linkedinUrl}
           onChange={(e) => setLinkedinUrl(e.target.value)}
           placeholder="https://linkedin.com/in/yourname"
+        />
+      </div>
+
+      <div className="field">
+        <label htmlFor="calendly">Calendly link (optional)</label>
+        <input
+          id="calendly"
+          className="input"
+          type="url"
+          value={calendlyUrl}
+          onChange={(e) => setCalendlyUrl(e.target.value)}
+          placeholder="https://calendly.com/yourname"
         />
       </div>
 
