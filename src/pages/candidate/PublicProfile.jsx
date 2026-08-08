@@ -316,22 +316,23 @@ export default function PublicProfile() {
             </>
           )}
 
-          {isOwner && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {isOwner && videos.length === 0 && (
+            <div>
               <h4 style={{ fontSize: 18 }}>Work videos</h4>
-              <button className="btn btn-ghost" style={{ fontSize: 13, padding: '6px 14px' }} onClick={() => setShowAddVideo(true)}>
-                + Add work video
+              <p style={{ marginTop: 6, fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+                Add videos to show employers how you think and operate. This is your biggest differentiator.
+              </p>
+              <button type="button" className="btn btn-primary" onClick={() => setShowAddVideo(true)} style={{ marginTop: 12 }}>
+                Add a work video
               </button>
             </div>
           )}
 
-          {isOwner && videos.length === 0 && (
-            <div style={{ marginTop: 6 }}>
-              <p style={{ fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
-                Add work videos to show employers how you think and operate. This is your biggest differentiator.
-              </p>
-              <button type="button" className="btn btn-primary" onClick={() => setShowAddVideo(true)} style={{ marginTop: 12 }}>
-                Add a work video
+          {isOwner && videos.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h4 style={{ fontSize: 18 }}>Work videos</h4>
+              <button className="btn btn-ghost" style={{ fontSize: 13, padding: '6px 14px' }} onClick={() => setShowAddVideo(true)}>
+                + Add work video
               </button>
             </div>
           )}
