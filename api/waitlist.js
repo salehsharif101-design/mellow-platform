@@ -91,7 +91,7 @@ export default async function handler(req, res) {
           'Thank you for signing up. You are one of the first people to hear about Mellow, and that means something to us.<br><br>' +
           'Here is what we are building: a hiring platform where candidates show up as people, not documents. One 60-second video profile, recorded once, that travels to every opportunity. No CV, no cover letter, ever again. Employers get a feed of real people instead of a pile of identical paperwork. The first conversation happens faster than any tool on the market makes possible.<br><br>' +
           'We are in beta right now and will be opening up access very soon. When we do, you will be among the first to know.<br><br>' +
-          'In the meantime, if you know someone who is hiring or looking for their next role in Bahrain, UAE, or Saudi Arabia, tell them about Mellow. Every person you bring in makes the platform better for everyone.<br><br>' +
+          'In the meantime, if you know someone who is hiring or looking for their next role, tell them about Mellow. Every person you bring in makes the platform better for everyone.<br><br>' +
           'We will be in touch soon.<br><br>' +
           'The Mellow team',
         ctaLabel: 'Learn more about Mellow',
