@@ -12,13 +12,15 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const resetSuccess = searchParams.get('reset') === 'success'
-  const [showConfirmed, setShowConfirmed] = useState(searchParams.get('confirmed') === '1')
+  const confirmedParam = searchParams.get('confirmed') === '1'
+  const [showConfirmed, setShowConfirmed] = useState(false)
 
   useEffect(() => {
-    if (!showConfirmed) return
+    if (!confirmedParam) return
+    setShowConfirmed(true)
     const timer = setTimeout(() => setShowConfirmed(false), 5000)
     return () => clearTimeout(timer)
-  }, [showConfirmed])
+  }, [confirmedParam])
 
   const { signIn } = useAuth()
   const navigate = useNavigate()
