@@ -1,27 +1,16 @@
 export default function Logo({ size = 22, white = false }) {
   return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 9,
-        fontFamily: 'var(--font-heading)',
-        fontWeight: 700,
-        fontSize: size,
-        color: white ? '#ffffff' : 'var(--color-text)',
-      }}
-    >
+    <span style={{ display: 'inline-flex', alignItems: 'flex-end', lineHeight: 1 }}>
       <img
-        src="/mellow_blue_logo_transparent.png"
-        alt=""
+        src="/mellow_logofont_email.png"
+        alt="Mellow"
         style={{
-          height: size * 0.85,
+          height: size,
           width: 'auto',
           display: 'block',
           filter: white ? 'brightness(0) invert(1)' : 'none',
         }}
       />
-      mellow
     </span>
   )
 }
