@@ -38,7 +38,10 @@ export function AuthProvider({ children }) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { user_type: userType } },
+      options: {
+        data: { user_type: userType },
+        emailRedirectTo: 'https://beta.joinmellow.xyz/login?confirmed=1',
+      },
     })
     if (error) throw error
     return data

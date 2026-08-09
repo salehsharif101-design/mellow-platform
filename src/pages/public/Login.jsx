@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
@@ -12,6 +12,13 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const resetSuccess = searchParams.get('reset') === 'success'
+  const [showConfirmed, setShowConfirmed] = useState(searchParams.get('confirmed') === '1')
+
+  useEffect(() => {
+    if (!showConfirmed) return
+    const timer = setTimeout(() => setShowConfirmed(false), 5000)
+    return () => clearTimeout(timer)
+  }, [showConfirmed])
 
   const { signIn } = useAuth()
   const navigate = useNavigate()
@@ -43,6 +50,22 @@ export default function Login() {
       {resetSuccess && (
         <p style={{ marginTop: 16, fontSize: 14, color: 'var(--color-primary)', fontWeight: 600 }}>
           Your password has been reset. Log in with your new password.
+        </p>
+      )}
+      {showConfirmed && (
+        <p
+          style={{
+            marginTop: 16,
+            padding: '10px 14px',
+            borderRadius: 8,
+            background: 'var(--color-bg-soft)',
+            fontSize: 14,
+            color: 'var(--color-primary)',
+            fontWeight: 600,
+            transition: 'opacity 0.3s ease',
+          }}
+        >
+          Your email is confirmed. Sign in to get started.
         </p>
       )}
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 24 }}>
