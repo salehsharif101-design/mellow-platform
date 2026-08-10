@@ -13,7 +13,7 @@ export function renderEmailHtml({ heading, bodyText, ctaLabel, ctaUrl, illustrat
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
             <tr>
               <td style="padding-bottom:32px;">
-                <img src="${SITE_URL}/mellow_logofont_email.png" alt="Mellow" height="28" style="display:block;height:28px;width:auto;" />
+                <img src="${SITE_URL}/mellow_logofont_email.png" alt="Mellow" height="28" style="display:block;height:28px;width:auto;filter:brightness(0) saturate(100%) invert(27%) sepia(93%) saturate(1700%) hue-rotate(210deg) brightness(101%) contrast(101%);" />
               </td>
             </tr>
             <tr>
