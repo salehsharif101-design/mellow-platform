@@ -3,7 +3,15 @@
 
 const SITE_URL = 'https://beta.joinmellow.xyz'
 
-export function renderEmailHtml({ heading, bodyText, ctaLabel, ctaUrl, illustration, footerDomain = 'beta.joinmellow.xyz' }) {
+export function renderEmailHtml({
+  heading,
+  bodyText,
+  ctaLabel,
+  ctaUrl,
+  illustration,
+  illustrationWidth = 340,
+  footerDomain = 'beta.joinmellow.xyz',
+}) {
   return `<!doctype html>
 <html>
   <body style="margin:0;padding:0;background:#ffffff;font-family:'Inter',Helvetica,Arial,sans-serif;">
@@ -13,12 +21,12 @@ export function renderEmailHtml({ heading, bodyText, ctaLabel, ctaUrl, illustrat
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
             <tr>
               <td style="padding-bottom:32px;">
-                <img src="${SITE_URL}/mellow_logofont_email.png" alt="Mellow" height="28" style="display:block;height:28px;width:auto;filter:brightness(0) saturate(100%) invert(27%) sepia(93%) saturate(1700%) hue-rotate(210deg) brightness(101%) contrast(101%);" />
+                <img src="${SITE_URL}/mellow_logofont_email_blue.png" alt="Mellow" height="28" style="display:block;height:28px;width:auto;" />
               </td>
             </tr>
             <tr>
               <td align="center" style="padding-bottom:24px;">
-                <img src="${SITE_URL}/${illustration}" alt="" width="340" style="display:block;width:340px;max-width:100%;height:auto;" />
+                <img src="${SITE_URL}/${illustration}" alt="" width="${illustrationWidth}" style="display:block;width:${illustrationWidth}px;max-width:100%;height:auto;" />
               </td>
             </tr>
             <tr>

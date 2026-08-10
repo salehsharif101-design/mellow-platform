@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { notify } from '../../lib/notify.js'
 
 const ROLE_TYPES = ['full-time', 'part-time', 'contract', 'freelance']
 const CURRENCIES = ['BHD', 'AED', 'SAR', 'USD']
@@ -67,6 +68,7 @@ export default function NewRole() {
         salary_currency: salaryMin || salaryMax ? salaryCurrency : null,
       })
       if (insertError) throw insertError
+      notify('first-role-video-nudge', { employerId })
       navigate('/employer/roles')
     } catch (err) {
       setError(err.message)

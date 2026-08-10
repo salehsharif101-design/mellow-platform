@@ -69,6 +69,33 @@ async function sendEmployerWelcome(supabase, userId) {
   })
 }
 
+async function sendFirstRoleVideoNudge(supabase, employerId) {
+  // Re-checked here (not trusted from the client) so this only fires once,
+  // exactly on the role that brings the employer's total from 0 to 1 —
+  // matches the dedup pattern sendProfileViewNotification uses below.
+  const roles = unwrap(await supabase.from('roles').select('id').eq('employer_id', employerId))
+  if (roles.length !== 1) return { skipped: true }
+
+  const employer = unwrap(
+    await supabase.from('employer_profiles').select('user_id').eq('id', employerId).single(),
+  )
+  const employerUser = unwrap(await supabase.from('users').select('email').eq('id', employer.user_id).single())
+
+  return sendEmail({
+    to: employerUser.email,
+    subject: 'Your role is live — now make it stand out',
+    html: renderEmailHtml({
+      heading: 'Your role is live',
+      bodyText:
+        'Employers who add a company video get more applications. Candidates want to know who they will be working with before they apply — a 60-second video gives them exactly that. It takes two minutes to record and makes your role stand out from every other posting.',
+      ctaLabel: 'Add your company video',
+      ctaUrl: `${SITE_URL}/employer/profile/edit`,
+      illustration: 'Client_to_creative.png',
+      illustrationWidth: 200,
+    }),
+  })
+}
+
 async function sendMessageNotification(supabase, messageId) {
   const message = unwrap(
     await supabase.from('messages').select('recipient_id').eq('id', messageId).single(),
@@ -251,6 +278,9 @@ export default async function handler(req, res) {
         break
       case 'employer-welcome':
         await sendEmployerWelcome(supabase, body.userId)
+        break
+      case 'first-role-video-nudge':
+        await sendFirstRoleVideoNudge(supabase, body.employerId)
         break
       case 'message-notification':
         await sendMessageNotification(supabase, body.messageId)
