@@ -20,6 +20,7 @@ import Applications from './pages/candidate/Applications.jsx'
 import CandidateMessages from './pages/candidate/Messages.jsx'
 
 import EmployerOnboarding from './pages/employer/Onboarding.jsx'
+import EmployerEditProfile from './pages/employer/EditProfile.jsx'
 import EmployerDashboard from './pages/employer/Dashboard.jsx'
 import EmployerRoles from './pages/employer/Roles.jsx'
 import NewRole from './pages/employer/NewRole.jsx'
@@ -106,6 +107,14 @@ export default function App() {
           element={
             <ProtectedRoute requireUserType="employer">
               <EmployerDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employer/profile/edit"
+          element={
+            <ProtectedRoute requireUserType="employer">
+              <EmployerEditProfile />
             </ProtectedRoute>
           }
         />
