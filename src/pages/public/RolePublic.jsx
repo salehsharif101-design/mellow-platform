@@ -3,21 +3,13 @@ import { useParams, useNavigate, Navigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
-import { formatDeadline, formatSalary } from '../../lib/roleFormat.js'
+import { formatDeadline, formatSalary, formatResponseRate } from '../../lib/roleFormat.js'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const ROLE_SELECT =
   'id, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, employer_profiles(company_name, company_slug, logo_url, linkedin_url, about, intro_video_url, user_id)'
-
-function formatResponseTime(hours) {
-  if (hours == null) return null
-  const rounded = Math.max(1, Math.round(hours))
-  if (rounded < 24) return `Usually responds within ${rounded} hour${rounded === 1 ? '' : 's'}`
-  const days = Math.round(rounded / 24)
-  return `Usually responds within ${days} day${days === 1 ? '' : 's'}`
-}
 
 export default function RolePublic() {
   const { slug } = useParams()
@@ -32,7 +24,7 @@ export default function RolePublic() {
   const [applied, setApplied] = useState(false)
   const [applying, setApplying] = useState(false)
   const [error, setError] = useState('')
-  const [responseHours, setResponseHours] = useState(null)
+  const [responseLabel, setResponseLabel] = useState(null)
 
   useEffect(() => {
     async function load() {
@@ -93,9 +85,12 @@ export default function RolePublic() {
   useEffect(() => {
     const targetUserId = role?.employer_profiles?.user_id
     if (!targetUserId) return
-    supabase.rpc('employer_avg_response_hours', { target_user_id: targetUserId }).then(({ data }) => {
-      if (typeof data === 'number') setResponseHours(data)
-    })
+    supabase
+      .rpc('employer_avg_response_hours', { target_user_id: targetUserId })
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setResponseLabel(formatResponseRate(data.avg_hours, data.response_count))
+      })
   }, [role])
 
   async function handleApply() {
@@ -145,7 +140,6 @@ export default function RolePublic() {
   const roleTypeLabel = role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')
   const deadlineLabel = formatDeadline(role.deadline)
   const salaryLabel = formatSalary(role)
-  const responseLabel = formatResponseTime(responseHours)
 
   const ctaLabel = applying
     ? 'Applying…'

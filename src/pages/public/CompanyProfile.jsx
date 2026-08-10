@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase.js'
-import { formatDeadline, formatSalary } from '../../lib/roleFormat.js'
+import { formatDeadline, formatSalary, formatResponseRate } from '../../lib/roleFormat.js'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 
 export default function CompanyProfile() {
@@ -11,12 +11,15 @@ export default function CompanyProfile() {
   const [roles, setRoles] = useState([])
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [responseLabel, setResponseLabel] = useState(null)
 
   useEffect(() => {
     async function load() {
       const { data, error } = await supabase
         .from('employer_profiles')
-        .select('id, company_name, logo_url, industry, company_size, about, linkedin_url, intro_video_url')
+        .select(
+          'id, user_id, company_name, logo_url, industry, company_size, about, company_highlight, typical_roles, linkedin_url, intro_video_url',
+        )
         .eq('company_slug', slug)
         .maybeSingle()
 
@@ -36,6 +39,11 @@ export default function CompanyProfile() {
 
       setRoles(openRoles || [])
       setLoading(false)
+
+      const { data: rate } = await supabase
+        .rpc('employer_avg_response_hours', { target_user_id: data.user_id })
+        .maybeSingle()
+      if (rate) setResponseLabel(formatResponseRate(rate.avg_hours, rate.response_count))
     }
     load()
   }, [slug])
@@ -87,11 +95,38 @@ export default function CompanyProfile() {
                 )}
               </h1>
               {sizeLine && <p style={{ marginTop: 4, fontSize: 14, color: 'var(--color-text-muted)' }}>{sizeLine}</p>}
+              {responseLabel && (
+                <p style={{ marginTop: 4, fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}>{responseLabel}</p>
+              )}
             </div>
           </div>
 
           {company.about && (
             <p style={{ marginTop: 20, fontSize: 15, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>{company.about}</p>
+          )}
+
+          {company.company_highlight && (
+            <div style={{ marginTop: 24 }}>
+              <h3 style={{ fontSize: 16, marginBottom: 8 }}>What it's like to work here</h3>
+              <p style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>{company.company_highlight}</p>
+            </div>
+          )}
+
+          {company.typical_roles && (
+            <div style={{ marginTop: 24 }}>
+              <h3 style={{ fontSize: 16, marginBottom: 8 }}>Typically hiring for</h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {company.typical_roles
+                  .split(',')
+                  .map((r) => r.trim())
+                  .filter(Boolean)
+                  .map((r) => (
+                    <span key={r} className="tag" style={{ fontSize: 12 }}>
+                      {r}
+                    </span>
+                  ))}
+              </div>
+            </div>
           )}
 
           {company.intro_video_url && (

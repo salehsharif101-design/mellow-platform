@@ -14,3 +14,14 @@ export function formatSalary(role) {
   if (role.salary_min) return `${cur} ${role.salary_min.toLocaleString()}+`
   return `Up to ${cur} ${role.salary_max.toLocaleString()}`
 }
+
+// Hidden entirely below MIN_RESPONSES so a brand-new employer (or one with
+// one or two lucky/unlucky replies) never sees a misleadingly confident rate.
+const MIN_RESPONSES = 3
+
+export function formatResponseRate(avgHours, responseCount) {
+  if (avgHours == null || responseCount == null || responseCount < MIN_RESPONSES) return null
+  if (avgHours < 6) return 'Usually responds within a few hours'
+  if (avgHours < 24) return 'Usually responds within a day'
+  return 'Usually responds within a few days'
+}
