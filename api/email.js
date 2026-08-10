@@ -83,11 +83,11 @@ async function sendFirstRoleVideoNudge(supabase, employerId) {
 
   return sendEmail({
     to: employerUser.email,
-    subject: 'Your role is live — now make it stand out',
+    subject: 'Your role is live, now make it stand out',
     html: renderEmailHtml({
       heading: 'Your role is live',
       bodyText:
-        'Employers who add a company video get more applications. Candidates want to know who they will be working with before they apply — a 60-second video gives them exactly that. It takes two minutes to record and makes your role stand out from every other posting.',
+        'Employers who add a company video get more applications. Candidates want to know who they will be working with before they apply, a 60-second video gives them exactly that. It takes two minutes to record and makes your role stand out from every other posting.',
       ctaLabel: 'Add your company video',
       ctaUrl: `${SITE_URL}/employer/profile/edit`,
       illustration: 'Client_to_creative.png',
