@@ -333,7 +333,7 @@ function TypicalRolesSection({ profile, onUpdated }) {
 }
 
 function LinksSection({ profile, onUpdated }) {
-  const [calendlyUrl, setCalendlyUrl] = useState(profile.calendly_url || '')
+  const [linkedinUrl, setLinkedinUrl] = useState(profile.linkedin_url || '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saved, flash] = useSavedFlash()
@@ -344,7 +344,7 @@ function LinksSection({ profile, onUpdated }) {
     setError('')
     const { data, error: saveError } = await supabase
       .from('employer_profiles')
-      .update({ calendly_url: calendlyUrl.trim() || null })
+      .update({ linkedin_url: linkedinUrl.trim() || null })
       .eq('user_id', profile.user_id)
       .select()
       .single()
@@ -361,13 +361,13 @@ function LinksSection({ profile, onUpdated }) {
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Links</h3>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
-          <label>Calendly link (optional)</label>
+          <label>LinkedIn company page (optional)</label>
           <input
             className="input"
             type="url"
-            value={calendlyUrl}
-            onChange={(e) => setCalendlyUrl(e.target.value)}
-            placeholder="https://calendly.com/yourcompany"
+            value={linkedinUrl}
+            onChange={(e) => setLinkedinUrl(e.target.value)}
+            placeholder="https://linkedin.com/company/yourcompany"
           />
         </div>
         {error && <p className="form-error">{error}</p>}
