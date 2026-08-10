@@ -10,6 +10,7 @@ import ForgotPassword from './pages/public/ForgotPassword.jsx'
 import ResetPassword from './pages/public/ResetPassword.jsx'
 import Privacy from './pages/public/Privacy.jsx'
 import RolePublic from './pages/public/RolePublic.jsx'
+import CompanyProfile from './pages/public/CompanyProfile.jsx'
 import NotFound from './pages/public/NotFound.jsx'
 
 import CandidateDashboard from './pages/candidate/Dashboard.jsx'
@@ -50,6 +51,9 @@ export default function App() {
 
         {/* Role pages are publicly shareable */}
         <Route path="/jobs/:slug" element={<RolePublic />} />
+
+        {/* Company profile pages are publicly shareable */}
+        <Route path="/company/:slug" element={<CompanyProfile />} />
 
         {/* Candidate dashboard */}
         <Route

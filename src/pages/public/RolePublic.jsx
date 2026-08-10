@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate, Navigate } from 'react-router-dom'
+import { useParams, useNavigate, Navigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
@@ -9,7 +9,7 @@ import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const ROLE_SELECT =
-  'id, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, employer_profiles(company_name, logo_url, linkedin_url, about, intro_video_url, user_id)'
+  'id, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, employer_profiles(company_name, company_slug, logo_url, linkedin_url, about, intro_video_url, user_id)'
 
 function formatResponseTime(hours) {
   if (hours == null) return null
@@ -158,16 +158,32 @@ export default function RolePublic() {
       <div className="card" style={{ padding: 32, maxWidth: 640, margin: '0 auto' }}>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           {employer?.logo_url && (
-            <img
-              src={employer.logo_url}
-              alt=""
-              style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 10, background: 'var(--color-bg-soft)', flexShrink: 0 }}
-            />
+            employer.company_slug ? (
+              <Link to={`/company/${employer.company_slug}`}>
+                <img
+                  src={employer.logo_url}
+                  alt=""
+                  style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 10, background: 'var(--color-bg-soft)', flexShrink: 0 }}
+                />
+              </Link>
+            ) : (
+              <img
+                src={employer.logo_url}
+                alt=""
+                style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 10, background: 'var(--color-bg-soft)', flexShrink: 0 }}
+              />
+            )
           )}
           <div>
             {employer?.company_name && (
               <p style={{ fontSize: 14, color: 'var(--color-text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                {employer.company_name}
+                {employer.company_slug ? (
+                  <Link to={`/company/${employer.company_slug}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                    {employer.company_name}
+                  </Link>
+                ) : (
+                  employer.company_name
+                )}
                 {employer.linkedin_url && (
                   <a
                     href={employer.linkedin_url}

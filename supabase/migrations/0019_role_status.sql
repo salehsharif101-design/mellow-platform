@@ -10,7 +10,7 @@ create type role_status as enum ('open', 'paused', 'closed');
 alter table public.roles
   add column status role_status not null default 'open';
 
-update public.roles set status = case when is_active then 'open' else 'closed' end;
+update public.roles set status = (case when is_active then 'open' else 'closed' end)::role_status;
 
 create or replace function public.sync_role_is_active()
 returns trigger

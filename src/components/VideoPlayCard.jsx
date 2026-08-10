@@ -24,6 +24,8 @@ export default function VideoPlayCard({ url, style, format = 'vertical' }) {
         ref={videoRef}
         src={url}
         controls={playing}
+        playsInline
+        webkit-playsinline="true"
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
         style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain', background: '#000' }}
