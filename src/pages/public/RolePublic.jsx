@@ -1,41 +1,69 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
+import { formatDeadline, formatSalary } from '../../lib/roleFormat.js'
+import VideoPlayCard from '../../components/VideoPlayCard.jsx'
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+const ROLE_SELECT =
+  'id, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, employer_profiles(company_name, logo_url, linkedin_url, about, intro_video_url, user_id)'
+
+function formatResponseTime(hours) {
+  if (hours == null) return null
+  const rounded = Math.max(1, Math.round(hours))
+  if (rounded < 24) return `Usually responds within ${rounded} hour${rounded === 1 ? '' : 's'}`
+  const days = Math.round(rounded / 24)
+  return `Usually responds within ${days} day${days === 1 ? '' : 's'}`
+}
 
 export default function RolePublic() {
-  const { roleId } = useParams()
+  const { slug } = useParams()
   const navigate = useNavigate()
   const { user, userType, loading: authLoading } = useAuth()
 
   const [role, setRole] = useState(null)
+  const [redirectSlug, setRedirectSlug] = useState(null)
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(true)
   const [candidateId, setCandidateId] = useState(null)
   const [applied, setApplied] = useState(false)
   const [applying, setApplying] = useState(false)
   const [error, setError] = useState('')
+  const [responseHours, setResponseHours] = useState(null)
 
   useEffect(() => {
     async function load() {
       const { data, error: roleError } = await supabase
         .from('roles')
-        .select('id, title, location, role_type, description, what_matters, employer_profiles(company_name, logo_url, linkedin_url)')
-        .eq('id', roleId)
+        .select(ROLE_SELECT)
+        .eq('slug', slug)
         .eq('is_active', true)
         .maybeSingle()
 
-      if (roleError || !data) {
-        setNotFound(true)
+      if (data) {
+        setRole(data)
         setLoading(false)
         return
       }
-      setRole(data)
+
+      // Old UUID links should still resolve, redirected to the canonical slug URL.
+      if (!roleError && UUID_RE.test(slug)) {
+        const { data: bySlugLookup } = await supabase.from('roles').select('slug').eq('id', slug).maybeSingle()
+        if (bySlugLookup?.slug) {
+          setRedirectSlug(bySlugLookup.slug)
+          setLoading(false)
+          return
+        }
+      }
+
+      setNotFound(true)
       setLoading(false)
     }
     load()
-  }, [roleId])
+  }, [slug])
 
   useEffect(() => {
     if (!user || userType !== 'candidate' || !role) return
@@ -61,6 +89,14 @@ export default function RolePublic() {
     }
     loadCandidate()
   }, [user, userType, role])
+
+  useEffect(() => {
+    const targetUserId = role?.employer_profiles?.user_id
+    if (!targetUserId) return
+    supabase.rpc('employer_avg_response_hours', { target_user_id: targetUserId }).then(({ data }) => {
+      if (typeof data === 'number') setResponseHours(data)
+    })
+  }, [role])
 
   async function handleApply() {
     if (!candidateId || !role) return
@@ -90,6 +126,10 @@ export default function RolePublic() {
 
   if (loading) return null
 
+  if (redirectSlug) {
+    return <Navigate to={`/jobs/${redirectSlug}`} replace />
+  }
+
   if (notFound) {
     return (
       <div className="section" style={{ textAlign: 'center' }}>
@@ -103,6 +143,9 @@ export default function RolePublic() {
 
   const employer = role.employer_profiles
   const roleTypeLabel = role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')
+  const deadlineLabel = formatDeadline(role.deadline)
+  const salaryLabel = formatSalary(role)
+  const responseLabel = formatResponseTime(responseHours)
 
   const ctaLabel = applying
     ? 'Applying…'
@@ -144,10 +187,27 @@ export default function RolePublic() {
           </div>
         </div>
 
+        {employer?.about && (
+          <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.6, color: 'var(--color-text-muted)' }}>{employer.about}</p>
+        )}
+
+        {responseLabel && (
+          <p style={{ marginTop: 10, fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}>{responseLabel}</p>
+        )}
+
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 16 }}>
           {role.location && <span className="tag">{role.location}</span>}
           <span className="tag">{roleTypeLabel}</span>
+          {salaryLabel && <span className="tag">{salaryLabel}</span>}
+          {deadlineLabel && <span className="tag">Apply by {deadlineLabel}</span>}
         </div>
+
+        {employer?.intro_video_url && (
+          <div style={{ marginTop: 28 }}>
+            <h3 style={{ fontSize: 16, marginBottom: 12 }}>Meet the team</h3>
+            <VideoPlayCard url={employer.intro_video_url} format="horizontal" />
+          </div>
+        )}
 
         {role.description && (
           <p style={{ marginTop: 24, fontSize: 15, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>{role.description}</p>

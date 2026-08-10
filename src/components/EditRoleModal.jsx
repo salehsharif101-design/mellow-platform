@@ -3,6 +3,7 @@ import Modal from './Modal.jsx'
 import { supabase } from '../lib/supabase.js'
 
 const ROLE_TYPES = ['full-time', 'part-time', 'contract', 'freelance']
+const CURRENCIES = ['BHD', 'AED', 'SAR', 'USD']
 
 export default function EditRoleModal({ role, onClose, onSaved }) {
   const [title, setTitle] = useState(role.title)
@@ -10,6 +11,10 @@ export default function EditRoleModal({ role, onClose, onSaved }) {
   const [roleType, setRoleType] = useState(role.role_type)
   const [description, setDescription] = useState(role.description || '')
   const [whatMatters, setWhatMatters] = useState(role.what_matters || '')
+  const [deadline, setDeadline] = useState(role.deadline || '')
+  const [salaryMin, setSalaryMin] = useState(role.salary_min ?? '')
+  const [salaryMax, setSalaryMax] = useState(role.salary_max ?? '')
+  const [salaryCurrency, setSalaryCurrency] = useState(role.salary_currency || CURRENCIES[0])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -25,6 +30,10 @@ export default function EditRoleModal({ role, onClose, onSaved }) {
         role_type: roleType,
         description: description.trim(),
         what_matters: whatMatters.trim(),
+        deadline: deadline || null,
+        salary_min: salaryMin !== '' ? Number(salaryMin) : null,
+        salary_max: salaryMax !== '' ? Number(salaryMax) : null,
+        salary_currency: salaryMin !== '' || salaryMax !== '' ? salaryCurrency : null,
       })
       .eq('id', role.id)
       .select()
@@ -65,6 +74,43 @@ export default function EditRoleModal({ role, onClose, onSaved }) {
         <div className="field">
           <label>What matters most in a candidate?</label>
           <textarea className="input" rows={3} value={whatMatters} onChange={(e) => setWhatMatters(e.target.value)} />
+        </div>
+        <div className="field">
+          <label>Application deadline (optional)</label>
+          <input type="date" className="input" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+        </div>
+        <div className="field">
+          <label>Salary range (optional)</label>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <select
+              className="input"
+              value={salaryCurrency}
+              onChange={(e) => setSalaryCurrency(e.target.value)}
+              style={{ flex: '0 0 90px' }}
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              min="0"
+              className="input"
+              placeholder="Min"
+              value={salaryMin}
+              onChange={(e) => setSalaryMin(e.target.value)}
+            />
+            <input
+              type="number"
+              min="0"
+              className="input"
+              placeholder="Max"
+              value={salaryMax}
+              onChange={(e) => setSalaryMax(e.target.value)}
+            />
+          </div>
         </div>
         {error && <p className="form-error">{error}</p>}
         <button className="btn btn-primary" type="submit" disabled={saving} style={{ alignSelf: 'flex-start' }}>

@@ -49,7 +49,7 @@ export default function App() {
         <Route path="/profile/:username" element={<PublicProfile />} />
 
         {/* Role pages are publicly shareable */}
-        <Route path="/jobs/:roleId" element={<RolePublic />} />
+        <Route path="/jobs/:slug" element={<RolePublic />} />
 
         {/* Candidate dashboard */}
         <Route

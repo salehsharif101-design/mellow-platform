@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 
 const ROLE_TYPES = ['full-time', 'part-time', 'contract', 'freelance']
+const CURRENCIES = ['BHD', 'AED', 'SAR', 'USD']
 
 export default function NewRole() {
   const { user } = useAuth()
@@ -19,6 +20,10 @@ export default function NewRole() {
   const [roleType, setRoleType] = useState(ROLE_TYPES[0])
   const [description, setDescription] = useState('')
   const [whatMatters, setWhatMatters] = useState('')
+  const [deadline, setDeadline] = useState('')
+  const [salaryMin, setSalaryMin] = useState('')
+  const [salaryMax, setSalaryMax] = useState('')
+  const [salaryCurrency, setSalaryCurrency] = useState(CURRENCIES[0])
 
   useEffect(() => {
     if (!user) return
@@ -56,6 +61,10 @@ export default function NewRole() {
         role_type: roleType,
         description: description.trim(),
         what_matters: whatMatters.trim(),
+        deadline: deadline || null,
+        salary_min: salaryMin ? Number(salaryMin) : null,
+        salary_max: salaryMax ? Number(salaryMax) : null,
+        salary_currency: salaryMin || salaryMax ? salaryCurrency : null,
       })
       if (insertError) throw insertError
       navigate('/employer/roles')
@@ -147,6 +156,49 @@ export default function NewRole() {
                 onChange={(e) => setWhatMatters(e.target.value)}
                 placeholder="Skills, traits, or experience you care about most."
               />
+            </div>
+            <div className="field">
+              <label htmlFor="deadline">Application deadline (optional)</label>
+              <input
+                id="deadline"
+                type="date"
+                className="input"
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label>Salary range (optional)</label>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <select
+                  className="input"
+                  value={salaryCurrency}
+                  onChange={(e) => setSalaryCurrency(e.target.value)}
+                  style={{ flex: '0 0 90px' }}
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  min="0"
+                  className="input"
+                  placeholder="Min"
+                  value={salaryMin}
+                  onChange={(e) => setSalaryMin(e.target.value)}
+                />
+                <input
+                  type="number"
+                  min="0"
+                  className="input"
+                  placeholder="Max"
+                  value={salaryMax}
+                  onChange={(e) => setSalaryMax(e.target.value)}
+                />
+              </div>
             </div>
             {error && <p className="form-error">{error}</p>}
             <button className="btn btn-primary" type="submit" disabled={!isValid || saving} style={{ alignSelf: 'flex-start' }}>

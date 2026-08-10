@@ -6,13 +6,22 @@ import EditRoleModal from '../../components/EditRoleModal.jsx'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
 
+const STATUSES = ['open', 'paused', 'closed']
+const STATUS_LABELS = { open: 'Open', paused: 'Paused', closed: 'Closed' }
+const STATUS_COLORS = {
+  open: { background: 'var(--color-bg-soft)', color: 'var(--color-primary)' },
+  paused: { background: '#fff4e5', color: '#b45309' },
+  closed: { background: '#f2f2f2', color: 'var(--color-text-muted)' },
+}
+
 export default function EmployerRoles() {
   const { user } = useAuth()
   const [roles, setRoles] = useState([])
   const [applicationCounts, setApplicationCounts] = useState({})
+  const [hasIntroVideo, setHasIntroVideo] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [togglingId, setTogglingId] = useState(null)
+  const [updatingStatusId, setUpdatingStatusId] = useState(null)
   const [editingRole, setEditingRole] = useState(null)
   const [deletingRole, setDeletingRole] = useState(null)
   const [copiedRoleId, setCopiedRoleId] = useState(null)
@@ -40,6 +49,17 @@ export default function EmployerRoles() {
       return
     }
 
+    // Best-effort: the video nudge banner is non-critical, so a failure here
+    // (e.g. the column not existing yet on an older schema) shouldn't block
+    // the rest of the page from loading.
+    supabase
+      .from('employer_profiles')
+      .select('intro_video_url')
+      .eq('id', employer.id)
+      .maybeSingle()
+      .then(({ data }) => setHasIntroVideo(!!data?.intro_video_url))
+      .catch(() => {})
+
     const { data: myRoles, error: rolesError } = await supabase
       .from('roles')
       .select('*')
@@ -66,22 +86,23 @@ export default function EmployerRoles() {
     setLoading(false)
   }
 
-  async function toggleActive(role) {
-    setTogglingId(role.id)
-    const { data, error: toggleError } = await supabase
+  async function changeStatus(role, status) {
+    if (status === role.status) return
+    setUpdatingStatusId(role.id)
+    const { data, error: updateError } = await supabase
       .from('roles')
-      .update({ is_active: !role.is_active })
+      .update({ status })
       .eq('id', role.id)
       .select()
       .single()
-    if (!toggleError) {
+    if (!updateError) {
       setRoles((prev) => prev.map((r) => (r.id === role.id ? data : r)))
     }
-    setTogglingId(null)
+    setUpdatingStatusId(null)
   }
 
   async function shareRole(role) {
-    const url = `https://beta.joinmellow.xyz/jobs/${role.id}`
+    const url = `https://beta.joinmellow.xyz/jobs/${role.slug}`
     try {
       await navigator.clipboard.writeText(url)
     } catch {
@@ -129,6 +150,28 @@ export default function EmployerRoles() {
         </Link>
       </div>
 
+      {roles.length > 0 && !hasIntroVideo && (
+        <div
+          className="card"
+          style={{
+            marginTop: 24,
+            padding: 20,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 16,
+            flexWrap: 'wrap',
+            background: 'var(--color-bg-soft)',
+            border: 'none',
+          }}
+        >
+          <p style={{ fontSize: 14, fontWeight: 600 }}>Add a company video to get more applications</p>
+          <Link to="/employer/profile/edit" className="btn btn-primary" style={{ whiteSpace: 'nowrap' }}>
+            Add video
+          </Link>
+        </div>
+      )}
+
       {roles.length === 0 ? (
         <EmptyState
           heading="No roles posted yet"
@@ -143,14 +186,8 @@ export default function EmployerRoles() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <h3 style={{ fontSize: 18 }}>{role.title}</h3>
-                    <span
-                      className="tag"
-                      style={{
-                        background: role.is_active ? 'var(--color-bg-soft)' : '#f2f2f2',
-                        color: role.is_active ? 'var(--color-primary)' : 'var(--color-text-muted)',
-                      }}
-                    >
-                      {role.is_active ? 'Active' : 'Closed'}
+                    <span className="tag" style={STATUS_COLORS[role.status]}>
+                      {STATUS_LABELS[role.status]}
                     </span>
                   </div>
                   <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 6 }}>
@@ -167,14 +204,19 @@ export default function EmployerRoles() {
                   <button type="button" className="btn btn-ghost" onClick={() => shareRole(role)}>
                     {copiedRoleId === role.id ? 'Link copied!' : 'Share role'}
                   </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    disabled={togglingId === role.id}
-                    onClick={() => toggleActive(role)}
+                  <select
+                    className="input"
+                    value={role.status}
+                    disabled={updatingStatusId === role.id}
+                    onChange={(e) => changeStatus(role, e.target.value)}
+                    style={{ width: 'auto', padding: '8px 12px' }}
                   >
-                    {role.is_active ? 'Close role' : 'Reopen role'}
-                  </button>
+                    {STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {STATUS_LABELS[s]}
+                      </option>
+                    ))}
+                  </select>
                   <button type="button" className="btn btn-ghost" onClick={() => setEditingRole(role)}>
                     Edit
                   </button>

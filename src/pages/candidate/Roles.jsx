@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
+import { formatDeadline, formatSalary } from '../../lib/roleFormat.js'
 import EmptyState from '../../components/EmptyState.jsx'
 
 export default function BrowseRoles() {
@@ -41,7 +42,7 @@ export default function BrowseRoles() {
           supabase
             .from('roles')
             .select(
-              'id, title, location, role_type, description, what_matters, employer_profiles(company_name, industry, company_size, culture_description, company_highlight, logo_url)',
+              'id, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, employer_profiles(company_name, industry, company_size, culture_description, company_highlight, logo_url, intro_video_url)',
             )
             .eq('is_active', true)
             .order('created_at', { ascending: false }),
@@ -101,6 +102,8 @@ export default function BrowseRoles() {
             const employer = role.employer_profiles
             const culture = employer?.culture_description
             const cultureShort = culture && culture.length > 60 ? `${culture.slice(0, 60).trim()}…` : culture
+            const deadlineLabel = formatDeadline(role.deadline)
+            const salaryLabel = formatSalary(role)
             return (
               <div key={role.id} className="card" style={{ padding: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
@@ -125,11 +128,28 @@ export default function BrowseRoles() {
                             .join(' · ')}
                         </p>
                       )}
-                      {employer?.company_highlight && (
-                        <span className="tag" style={{ marginTop: 6, display: 'inline-flex', fontSize: 12 }}>
-                          {employer.company_highlight}
-                        </span>
-                      )}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                        {employer?.company_highlight && (
+                          <span className="tag" style={{ fontSize: 12 }}>
+                            {employer.company_highlight}
+                          </span>
+                        )}
+                        {salaryLabel && (
+                          <span className="tag" style={{ fontSize: 12 }}>
+                            {salaryLabel}
+                          </span>
+                        )}
+                        {deadlineLabel && (
+                          <span className="tag" style={{ fontSize: 12 }}>
+                            Apply by {deadlineLabel}
+                          </span>
+                        )}
+                        {employer?.intro_video_url && (
+                          <span className="tag" style={{ fontSize: 12 }}>
+                            See the team
+                          </span>
+                        )}
+                      </div>
                       {cultureShort && (
                         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4, fontStyle: 'italic' }}>
                           “{cultureShort}”
