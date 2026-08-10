@@ -91,7 +91,6 @@ async function sendFirstRoleVideoNudge(supabase, employerId) {
       ctaLabel: 'Add your company video',
       ctaUrl: `${SITE_URL}/employer/profile/edit`,
       illustration: 'Client_to_creative.png',
-      illustrationWidth: 200,
     }),
   })
 }
