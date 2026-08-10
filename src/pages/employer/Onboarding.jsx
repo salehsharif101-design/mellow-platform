@@ -40,9 +40,22 @@ export default function EmployerOnboarding() {
     if (!user) return
 
     async function loadProfile() {
+      // Use a freshly-verified user id (not the possibly-stale one from
+      // AuthContext's cached session) so the upsert's user_id always matches
+      // what auth.uid() will resolve to server-side for this exact request.
+      const { data: { user: freshUser }, error: userError } = await supabase.auth.getUser()
+      if (userError || !freshUser) {
+        setError(userError?.message || 'Your session has expired — please log in again.')
+        setLoading(false)
+        return
+      }
+
+      const upsertPayload = { user_id: freshUser.id }
+      console.log('[Onboarding] employer_profiles upsert payload:', upsertPayload)
+
       const { data, error: fetchError } = await supabase
         .from('employer_profiles')
-        .upsert({ user_id: user.id }, { onConflict: 'user_id', ignoreDuplicates: true })
+        .upsert(upsertPayload, { onConflict: 'user_id', ignoreDuplicates: true })
         .select()
         .maybeSingle()
 
@@ -55,7 +68,7 @@ export default function EmployerOnboarding() {
       const profile =
         data ??
         (
-          await supabase.from('employer_profiles').select('*').eq('user_id', user.id).single()
+          await supabase.from('employer_profiles').select('*').eq('user_id', freshUser.id).single()
         ).data
 
       if (profile) {
@@ -97,10 +110,17 @@ export default function EmployerOnboarding() {
     setError('')
     setSaving(true)
     try {
+      // Same reasoning as loadProfile(): re-verify the current user right
+      // before writing, rather than trusting AuthContext's cached `user`,
+      // which could be stale by the time a candidate finishes this form.
+      const { data: { user: freshUser }, error: userError } = await supabase.auth.getUser()
+      if (userError || !freshUser) throw new Error(userError?.message || 'Your session has expired — please log in again.')
+
       let logoUrl = logoPreviewUrl && !logoFile ? logoPreviewUrl : undefined
       if (logoFile) {
         const ext = logoFile.name.split('.').pop() || 'png'
-        const path = `${user.id}/logo.${ext}`
+        const path = `${freshUser.id}/logo.${ext}`
+        console.log('[Onboarding] company-logos upload path:', path)
         const { error: uploadError } = await supabase.storage
           .from('company-logos')
           .upload(path, logoFile, { upsert: true, contentType: logoFile.type })
@@ -109,19 +129,22 @@ export default function EmployerOnboarding() {
         logoUrl = `${data.publicUrl}?t=${Date.now()}`
       }
 
+      const updatePayload = {
+        company_name: companyName.trim(),
+        industry: industry.trim(),
+        company_size: companySize,
+        website_url: websiteUrl.trim() || null,
+        culture_description: cultureDescription.trim(),
+        typical_roles: typicalRoles.trim() || null,
+        company_highlight: companyHighlight.trim() || null,
+        ...(logoUrl !== undefined ? { logo_url: logoUrl } : {}),
+      }
+      console.log('[Onboarding] employer_profiles update payload:', updatePayload, 'for user_id:', freshUser.id)
+
       const { error: saveError } = await supabase
         .from('employer_profiles')
-        .update({
-          company_name: companyName.trim(),
-          industry: industry.trim(),
-          company_size: companySize,
-          website_url: websiteUrl.trim() || null,
-          culture_description: cultureDescription.trim(),
-          typical_roles: typicalRoles.trim() || null,
-          company_highlight: companyHighlight.trim() || null,
-          ...(logoUrl !== undefined ? { logo_url: logoUrl } : {}),
-        })
-        .eq('user_id', user.id)
+        .update(updatePayload)
+        .eq('user_id', freshUser.id)
       if (saveError) throw saveError
 
       if (wasIncomplete) {
