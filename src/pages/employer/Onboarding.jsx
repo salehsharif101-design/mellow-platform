@@ -129,7 +129,8 @@ export default function EmployerOnboarding() {
         logoUrl = `${data.publicUrl}?t=${Date.now()}`
       }
 
-      const updatePayload = {
+      const upsertPayload = {
+        user_id: freshUser.id,
         company_name: companyName.trim(),
         industry: industry.trim(),
         company_size: companySize,
@@ -139,12 +140,15 @@ export default function EmployerOnboarding() {
         company_highlight: companyHighlight.trim() || null,
         ...(logoUrl !== undefined ? { logo_url: logoUrl } : {}),
       }
-      console.log('[Onboarding] employer_profiles update payload:', updatePayload, 'for user_id:', freshUser.id)
+      console.log('[Onboarding] employer_profiles upsert payload:', upsertPayload)
 
+      // Upsert rather than a plain update: loadProfile() should already have
+      // created the row on mount, but this is a defensive fallback in case
+      // that step ever failed to persist — a plain update would silently
+      // affect zero rows in that case instead of surfacing an error.
       const { error: saveError } = await supabase
         .from('employer_profiles')
-        .update(updatePayload)
-        .eq('user_id', freshUser.id)
+        .upsert(upsertPayload, { onConflict: 'user_id' })
       if (saveError) throw saveError
 
       if (wasIncomplete) {
