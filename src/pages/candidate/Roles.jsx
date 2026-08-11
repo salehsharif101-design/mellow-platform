@@ -5,6 +5,8 @@ import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
 import { formatDeadline, formatSalary } from '../../lib/roleFormat.js'
 import EmptyState from '../../components/EmptyState.jsx'
+import Modal from '../../components/Modal.jsx'
+import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 
 export default function BrowseRoles() {
   const { user } = useAuth()
@@ -15,6 +17,7 @@ export default function BrowseRoles() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [applyingId, setApplyingId] = useState(null)
+  const [videoModalEmployer, setVideoModalEmployer] = useState(null)
 
   useEffect(() => {
     if (!user) return
@@ -163,9 +166,14 @@ export default function BrowseRoles() {
                           </span>
                         )}
                         {employer?.intro_video_url && (
-                          <span className="tag" style={{ fontSize: 12 }}>
+                          <button
+                            type="button"
+                            className="tag"
+                            style={{ fontSize: 12, border: 'none', cursor: 'pointer' }}
+                            onClick={() => setVideoModalEmployer(employer)}
+                          >
                             See the team
-                          </span>
+                          </button>
                         )}
                       </div>
                       {cultureShort && (
@@ -196,6 +204,27 @@ export default function BrowseRoles() {
             )
           })}
         </div>
+      )}
+
+      {videoModalEmployer && (
+        <Modal
+          title={
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+              {videoModalEmployer.logo_url && (
+                <img
+                  src={videoModalEmployer.logo_url}
+                  alt=""
+                  style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 6, background: 'var(--color-bg-soft)' }}
+                />
+              )}
+              {videoModalEmployer.company_name}
+            </span>
+          }
+          onClose={() => setVideoModalEmployer(null)}
+          width={520}
+        >
+          <VideoPlayCard url={videoModalEmployer.intro_video_url} format="horizontal" />
+        </Modal>
       )}
     </div>
   )
