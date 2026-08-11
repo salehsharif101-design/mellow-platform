@@ -17,7 +17,7 @@ export default function EmployerDashboard() {
     async function load() {
       const { data: emp } = await supabase
         .from('employer_profiles')
-        .select('id, company_name')
+        .select('id, company_name, company_slug')
         .eq('user_id', user.id)
         .maybeSingle()
 
@@ -78,9 +78,16 @@ export default function EmployerDashboard() {
     <div className="section">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <h1 style={{ fontSize: 28 }}>{employer.company_name} dashboard</h1>
-        <Link to="/employer/profile/edit" className="btn btn-ghost">
-          Edit profile
-        </Link>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <Link to="/employer/profile/edit" className="btn btn-primary">
+            Edit profile
+          </Link>
+          {employer.company_slug && (
+            <Link to={`/company/${employer.company_slug}`} className="btn btn-ghost">
+              View Profile
+            </Link>
+          )}
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20, marginTop: 28 }}>

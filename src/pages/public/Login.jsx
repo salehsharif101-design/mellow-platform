@@ -36,6 +36,20 @@ export default function Login() {
         .select('user_type')
         .eq('id', user.id)
         .single()
+
+      if (row?.user_type && row.user_type !== type) {
+        // Wrong login page for this account — don't leave them signed in
+        // here, send them to the login page that actually matches.
+        await supabase.auth.signOut()
+        setError(
+          row.user_type === 'employer'
+            ? 'This account is registered as an employer. Please sign in at the employer login page.'
+            : 'This account is registered as a candidate. Please sign in at the candidate login page.',
+        )
+        setTimeout(() => navigate(`/login?type=${row.user_type}`), 2500)
+        return
+      }
+
       navigate(row?.user_type === 'employer' ? '/employer/dashboard' : '/dashboard')
     } catch (err) {
       setError(err.message)

@@ -20,8 +20,14 @@ export default function Layout() {
               <Link to={dashboardPath} style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
                 Dashboard
               </Link>
-              {userType === 'employer' && (
+              {userType === 'employer' ? (
                 <>
+                  <Link to="/employer/talent" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                    Talent Feed
+                  </Link>
+                  <Link to="/employer/roles/new" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                    Post a Role
+                  </Link>
                   <Link to="/employer/roles" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
                     Manage roles
                   </Link>
@@ -29,6 +35,10 @@ export default function Layout() {
                     Edit profile
                   </Link>
                 </>
+              ) : (
+                <Link to="/roles" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                  Browse Roles
+                </Link>
               )}
               <Link to={messagesPath} style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
                 Messages
