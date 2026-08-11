@@ -5,11 +5,12 @@ import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
 import { formatDeadline, formatSalary, formatResponseRate } from '../../lib/roleFormat.js'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
+import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const ROLE_SELECT =
-  'id, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, employer_profiles(company_name, company_slug, logo_url, linkedin_url, about, intro_video_url, user_id)'
+  'id, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, employer_profiles(company_name, company_slug, logo_url, linkedin_url, website_url, about, intro_video_url, user_id)'
 
 export default function RolePublic() {
   const { slug } = useParams()
@@ -178,19 +179,12 @@ export default function RolePublic() {
                 ) : (
                   employer.company_name
                 )}
-                {employer.linkedin_url && (
-                  <a
-                    href={employer.linkedin_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`${employer.company_name} on LinkedIn`}
-                    style={{ display: 'inline-flex', lineHeight: 0 }}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="#0A66C2">
-                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452z" />
-                    </svg>
-                  </a>
-                )}
+                <CompanyLinkIcons
+                  linkedinUrl={employer.linkedin_url}
+                  websiteUrl={employer.website_url}
+                  companyName={employer.company_name}
+                  size={15}
+                />
               </p>
             )}
             <h1 style={{ fontSize: 26, marginTop: 2 }}>{role.title}</h1>

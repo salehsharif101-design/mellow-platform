@@ -389,17 +389,25 @@ function TypicalRolesSection({ profile, onUpdated }) {
 
 function LinksSection({ profile, onUpdated }) {
   const [linkedinUrl, setLinkedinUrl] = useState(profile.linkedin_url || '')
+  const [websiteUrl, setWebsiteUrl] = useState(profile.website_url || '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saved, flash] = useSavedFlash()
 
   async function handleSubmit(e) {
     e.preventDefault()
-    setSaving(true)
     setError('')
+
+    const trimmedWebsite = websiteUrl.trim()
+    if (trimmedWebsite && !/^https?:\/\//i.test(trimmedWebsite)) {
+      setError('Company website must start with https:// or http://')
+      return
+    }
+
+    setSaving(true)
     const { data, error: saveError } = await supabase
       .from('employer_profiles')
-      .update({ linkedin_url: linkedinUrl.trim() || null })
+      .update({ linkedin_url: linkedinUrl.trim() || null, website_url: trimmedWebsite || null })
       .eq('user_id', profile.user_id)
       .select()
       .single()
@@ -423,6 +431,16 @@ function LinksSection({ profile, onUpdated }) {
             value={linkedinUrl}
             onChange={(e) => setLinkedinUrl(e.target.value)}
             placeholder="https://linkedin.com/company/yourcompany"
+          />
+        </div>
+        <div className="field">
+          <label>Company website (optional)</label>
+          <input
+            className="input"
+            type="url"
+            value={websiteUrl}
+            onChange={(e) => setWebsiteUrl(e.target.value)}
+            placeholder="https://yourcompany.com"
           />
         </div>
         {error && <p className="form-error">{error}</p>}
