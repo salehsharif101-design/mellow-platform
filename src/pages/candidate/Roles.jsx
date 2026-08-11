@@ -169,9 +169,10 @@ export default function BrowseRoles() {
                           <button
                             type="button"
                             className="tag"
-                            style={{ fontSize: 12, border: 'none', cursor: 'pointer' }}
+                            style={{ fontSize: 12, border: 'none', cursor: 'pointer', background: '#005ef5', color: '#ffffff' }}
                             onClick={() => setVideoModalEmployer(employer)}
                           >
+                            <span style={{ fontSize: 9 }} aria-hidden="true">▶</span>
                             See the team
                           </button>
                         )}
