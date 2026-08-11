@@ -590,6 +590,7 @@ function WorkVideosSection({ profile, userId }) {
   const [videos, setVideos] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAddVideo, setShowAddVideo] = useState(false)
+  const [deletingVideo, setDeletingVideo] = useState(null)
 
   useEffect(() => {
     supabase
@@ -602,6 +603,23 @@ function WorkVideosSection({ profile, userId }) {
         setLoading(false)
       })
   }, [profile.id])
+
+  async function handleDelete(video) {
+    const { error } = await supabase.from('candidate_videos').delete().eq('id', video.id)
+    if (error) throw error
+    setVideos((prev) => prev.filter((v) => v.id !== video.id))
+    setDeletingVideo(null)
+
+    // Best-effort storage cleanup — never blocks the UI or surfaces an
+    // error, since the video is already gone from the candidate's profile
+    // either way.
+    const marker = '/candidate-videos/'
+    const idx = video.video_url.indexOf(marker)
+    if (idx !== -1) {
+      const path = video.video_url.slice(idx + marker.length).split('?')[0]
+      supabase.storage.from('candidate-videos').remove([path]).catch(() => {})
+    }
+  }
 
   return (
     <section>
@@ -633,6 +651,14 @@ function WorkVideosSection({ profile, userId }) {
             <div key={v.id}>
               <VideoPlayCard url={v.video_url} format="horizontal" />
               <p style={{ marginTop: 8, fontSize: 13, fontWeight: 600 }}>{v.label}</p>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                style={{ marginTop: 6, fontSize: 12, padding: '4px 10px', color: '#d92d20', borderColor: '#d92d20' }}
+                onClick={() => setDeletingVideo(v)}
+              >
+                Delete
+              </button>
             </div>
           ))}
         </div>
@@ -647,6 +673,15 @@ function WorkVideosSection({ profile, userId }) {
             setVideos((prev) => [row, ...prev])
             setShowAddVideo(false)
           }}
+        />
+      )}
+
+      {deletingVideo && (
+        <ConfirmModal
+          title="Delete this video?"
+          message={`"${deletingVideo.label}" will be permanently removed from your profile. This can't be undone.`}
+          onClose={() => setDeletingVideo(null)}
+          onConfirm={() => handleDelete(deletingVideo)}
         />
       )}
     </section>
