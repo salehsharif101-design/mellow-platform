@@ -182,7 +182,7 @@ export default function RolePublic() {
                 <CompanyLinkIcons
                   linkedinUrl={employer.linkedin_url}
                   websiteUrl={employer.website_url}
-                  companyName={employer.company_name}
+                  label={employer.company_name}
                   size={15}
                 />
               </p>

@@ -436,17 +436,29 @@ function LanguagesSection({ profile, onUpdated }) {
 function LinkedInSection({ profile, onUpdated }) {
   const [linkedinUrl, setLinkedinUrl] = useState(profile.linkedin_url || '')
   const [calendlyUrl, setCalendlyUrl] = useState(profile.calendly_url || '')
+  const [websiteUrl, setWebsiteUrl] = useState(profile.website_url || '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saved, flash] = useSavedFlash()
 
   async function handleSubmit(e) {
     e.preventDefault()
-    setSaving(true)
     setError('')
+
+    const trimmedWebsite = websiteUrl.trim()
+    if (trimmedWebsite && !/^https?:\/\//i.test(trimmedWebsite)) {
+      setError('Portfolio or website must start with https:// or http://')
+      return
+    }
+
+    setSaving(true)
     const { data, error: saveError } = await supabase
       .from('candidate_profiles')
-      .update({ linkedin_url: linkedinUrl.trim() || null, calendly_url: calendlyUrl.trim() || null })
+      .update({
+        linkedin_url: linkedinUrl.trim() || null,
+        calendly_url: calendlyUrl.trim() || null,
+        website_url: trimmedWebsite || null,
+      })
       .eq('id', profile.id)
       .select()
       .single()
@@ -480,6 +492,16 @@ function LinkedInSection({ profile, onUpdated }) {
             value={calendlyUrl}
             onChange={(e) => setCalendlyUrl(e.target.value)}
             placeholder="https://calendly.com/yourname"
+          />
+        </div>
+        <div className="field">
+          <label>Portfolio or website (optional)</label>
+          <input
+            className="input"
+            type="url"
+            value={websiteUrl}
+            onChange={(e) => setWebsiteUrl(e.target.value)}
+            placeholder="https://yourportfolio.com"
           />
         </div>
         {error && <p className="form-error">{error}</p>}

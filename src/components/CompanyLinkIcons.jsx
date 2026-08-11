@@ -1,6 +1,6 @@
-// Shared LinkedIn + website icon pair for RolePublic.jsx and
-// CompanyProfile.jsx, so the icon markup only lives in one place.
-export default function CompanyLinkIcons({ linkedinUrl, websiteUrl, companyName, size = 17 }) {
+// Shared LinkedIn + website icon pair for company and candidate profile
+// pages, so the icon markup only lives in one place.
+export default function CompanyLinkIcons({ linkedinUrl, websiteUrl, label, size = 17 }) {
   return (
     <>
       {linkedinUrl && (
@@ -8,7 +8,7 @@ export default function CompanyLinkIcons({ linkedinUrl, websiteUrl, companyName,
           href={linkedinUrl}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label={`${companyName} on LinkedIn`}
+          aria-label={`${label} on LinkedIn`}
           style={{ display: 'inline-flex', lineHeight: 0 }}
         >
           <svg width={size} height={size} viewBox="0 0 24 24" fill="#0A66C2">
@@ -21,7 +21,7 @@ export default function CompanyLinkIcons({ linkedinUrl, websiteUrl, companyName,
           href={websiteUrl}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label={`${companyName} website`}
+          aria-label={`${label} website`}
           style={{ display: 'inline-flex', lineHeight: 0 }}
         >
           <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

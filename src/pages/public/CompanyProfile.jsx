@@ -84,7 +84,7 @@ export default function CompanyProfile() {
                 <CompanyLinkIcons
                   linkedinUrl={company.linkedin_url}
                   websiteUrl={company.website_url}
-                  companyName={company.company_name}
+                  label={company.company_name}
                   size={17}
                 />
               </h1>

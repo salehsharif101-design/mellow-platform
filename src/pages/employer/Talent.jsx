@@ -250,11 +250,12 @@ export default function TalentFeed() {
           {filtered.map((c) => (
             <div key={c.id} className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ position: 'relative' }}>
-                <CandidateAvatar
-                  avatarUrl={c.avatar_url}
-                  fullName={c.full_name}
-                  style={{ position: 'absolute', top: 10, left: 10, zIndex: 1 }}
-                />
+                <Link
+                  to={`/profile/${c.username || c.id}`}
+                  style={{ position: 'absolute', top: 10, left: 10, zIndex: 1, lineHeight: 0 }}
+                >
+                  <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} />
+                </Link>
                 {c.intro_video_url ? (
                   <VideoPlayCard url={c.intro_video_url} />
                 ) : (
