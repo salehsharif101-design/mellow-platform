@@ -31,9 +31,6 @@ export default function Layout() {
                   <Link to="/employer/roles" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
                     Manage roles
                   </Link>
-                  <Link to="/employer/profile/edit" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
-                    Edit profile
-                  </Link>
                 </>
               ) : (
                 <Link to="/roles" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>

@@ -44,7 +44,7 @@ export default function Login() {
         setError(
           row.user_type === 'employer'
             ? 'This account is registered as an employer. Please sign in at the employer login page.'
-            : 'This account is registered as a candidate. Please sign in at the candidate login page.',
+            : 'This account is registered as a talent. Please sign in at the talent login page.',
         )
         setTimeout(() => navigate(`/login?type=${row.user_type}`), 2500)
         return
