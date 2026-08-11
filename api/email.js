@@ -77,11 +77,16 @@ async function sendFirstRoleVideoNudge(supabase, employerId) {
   if (roles.length !== 1) return { skipped: true }
 
   const employer = unwrap(
-    await supabase.from('employer_profiles').select('user_id').eq('id', employerId).single(),
+    await supabase.from('employer_profiles').select('user_id, video_nudge_sent').eq('id', employerId).single(),
   )
+  // Belt and suspenders on top of the role-count check: guarantees a single
+  // send per employer even across delete-and-repost cycles, which could
+  // otherwise bring the count back to 1 a second time.
+  if (employer.video_nudge_sent) return { skipped: true }
+
   const employerUser = unwrap(await supabase.from('users').select('email').eq('id', employer.user_id).single())
 
-  return sendEmail({
+  const result = await sendEmail({
     to: employerUser.email,
     subject: 'Your role is live, now make it stand out',
     html: renderEmailHtml({
@@ -93,6 +98,10 @@ async function sendFirstRoleVideoNudge(supabase, employerId) {
       illustration: 'Client_to_creative.png',
     }),
   })
+
+  unwrap(await supabase.from('employer_profiles').update({ video_nudge_sent: true }).eq('id', employerId))
+
+  return result
 }
 
 async function sendMessageNotification(supabase, messageId) {
