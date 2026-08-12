@@ -10,6 +10,7 @@ export default function EmployerDashboard() {
   const [applications, setApplications] = useState([])
   const [shortlistCount, setShortlistCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [linkCopied, setLinkCopied] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -55,6 +56,29 @@ export default function EmployerDashboard() {
     load()
   }, [user])
 
+  async function shareProfile() {
+    const url = `https://beta.joinmellow.xyz/company/${employer.company_slug}`
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      // Clipboard API unavailable or blocked (older browser, denied permission,
+      // non-trusted context) — fall back to the legacy selection-based copy.
+      const textarea = document.createElement('textarea')
+      textarea.value = url
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      try {
+        document.execCommand('copy')
+      } finally {
+        document.body.removeChild(textarea)
+      }
+    }
+    setLinkCopied(true)
+    setTimeout(() => setLinkCopied(false), 2000)
+  }
+
   if (loading) return null
 
   if (!employer) {
@@ -83,9 +107,14 @@ export default function EmployerDashboard() {
             Edit profile
           </Link>
           {employer.company_slug && (
-            <Link to={`/company/${employer.company_slug}`} className="btn btn-ghost">
-              View Profile
-            </Link>
+            <>
+              <Link to={`/company/${employer.company_slug}`} className="btn btn-ghost">
+                View Profile
+              </Link>
+              <button type="button" className="btn btn-ghost" onClick={shareProfile}>
+                {linkCopied ? 'Link copied!' : 'Share profile'}
+              </button>
+            </>
           )}
         </div>
       </div>

@@ -19,7 +19,7 @@ export default function CompanyProfile() {
       const { data, error } = await supabase
         .from('employer_profiles')
         .select(
-          'id, user_id, company_name, logo_url, industry, company_size, about, company_highlight, typical_roles, linkedin_url, website_url, intro_video_url, is_visible',
+          'id, user_id, company_name, logo_url, industry, company_size, about, culture_description, company_highlight, typical_roles, linkedin_url, website_url, intro_video_url, is_visible',
         )
         .eq('company_slug', slug)
         .maybeSingle()
@@ -97,6 +97,13 @@ export default function CompanyProfile() {
 
           {company.about && (
             <p style={{ marginTop: 20, fontSize: 15, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>{company.about}</p>
+          )}
+
+          {company.culture_description && (
+            <div style={{ marginTop: 24 }}>
+              <h3 style={{ fontSize: 16, marginBottom: 8 }}>Culture</h3>
+              <p style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>{company.culture_description}</p>
+            </div>
           )}
 
           {company.company_highlight && (
