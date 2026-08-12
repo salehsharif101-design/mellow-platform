@@ -11,50 +11,52 @@ export default function Layout() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <header className="app-header">
-        <Link to="/" style={{ textDecoration: 'none' }}>
-          <Logo />
-        </Link>
-        <nav className="app-nav">
-          {session ? (
-            <>
-              <Link to={dashboardPath} style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
-                Dashboard
-              </Link>
-              {userType === 'employer' ? (
-                <>
-                  <Link to="/employer/talent" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
-                    Talent Feed
-                  </Link>
-                  <Link to="/employer/roles/new" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
-                    Post a Role
-                  </Link>
-                  <Link to="/employer/roles" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
-                    Manage roles
-                  </Link>
-                </>
-              ) : (
-                <Link to="/roles" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
-                  Browse Roles
+        <div className="app-header-inner">
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <Logo />
+          </Link>
+          <nav className="app-nav">
+            {session ? (
+              <>
+                <Link to={dashboardPath} style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                  Dashboard
                 </Link>
-              )}
-              <Link to={messagesPath} style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
-                Messages
-              </Link>
-              <button className="btn btn-ghost" onClick={signOut}>
-                Log out
-              </button>
-            </>
-          ) : (
-            <>
-              <Link to="/login" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
-                Log in
-              </Link>
-              <Link to="/signup" className="btn btn-primary">
-                Sign up
-              </Link>
-            </>
-          )}
-        </nav>
+                {userType === 'employer' ? (
+                  <>
+                    <Link to="/employer/talent" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                      Talent Feed
+                    </Link>
+                    <Link to="/employer/roles/new" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                      Post a Role
+                    </Link>
+                    <Link to="/employer/roles" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                      Manage roles
+                    </Link>
+                  </>
+                ) : (
+                  <Link to="/roles" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                    Browse Roles
+                  </Link>
+                )}
+                <Link to={messagesPath} style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                  Messages
+                </Link>
+                <button className="btn btn-ghost" onClick={signOut}>
+                  Log out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                  Log in
+                </Link>
+                <Link to="/signup" className="btn btn-primary">
+                  Sign up
+                </Link>
+              </>
+            )}
+          </nav>
+        </div>
       </header>
 
       <main style={{ flex: 1 }}>
@@ -66,13 +68,13 @@ export default function Layout() {
         style={{
           background: 'var(--color-primary)',
           color: '#ffffff',
-          padding: '56px 48px',
+          padding: '56px 64px',
         }}
       >
         <div
           className="footer-grid"
           style={{
-            maxWidth: 1100,
+            maxWidth: 1200,
             margin: '0 auto',
           }}
         >

@@ -91,6 +91,8 @@ textarea.input:focus {
 
 /* Sections */
 .section {
+  max-width: 1200px;
+  margin: 0 auto;
   padding: var(--section-padding-desktop);
 }
 
@@ -144,12 +146,17 @@ textarea.input:focus {
 }
 
 .app-header {
+  padding: 20px 64px;
+}
+
+.app-header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 16px;
-  padding: 20px 48px;
 }
 
 .app-nav {
