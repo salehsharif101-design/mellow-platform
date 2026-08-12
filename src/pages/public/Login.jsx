@@ -14,6 +14,10 @@ export default function Login() {
   const resetSuccess = searchParams.get('reset') === 'success'
   const confirmedParam = searchParams.get('confirmed') === '1'
   const [showConfirmed, setShowConfirmed] = useState(false)
+  const [checkingConfirmation, setCheckingConfirmation] = useState(confirmedParam)
+
+  const { signIn } = useAuth()
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (!confirmedParam) return
@@ -22,8 +26,35 @@ export default function Login() {
     return () => clearTimeout(timer)
   }, [confirmedParam])
 
-  const { signIn } = useAuth()
-  const navigate = useNavigate()
+  useEffect(() => {
+    if (!confirmedParam) return
+    // The confirmation link signs the user in automatically — if that
+    // session is already here, skip the manual login and drop them
+    // straight into onboarding. Anything short of a confirmed session +
+    // known account type falls back to the login form below.
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data } = await supabase.auth.getSession()
+        const confirmedSession = data.session
+        if (!confirmedSession) return
+        const { data: row } = await supabase
+          .from('users')
+          .select('user_type')
+          .eq('id', confirmedSession.user.id)
+          .single()
+        if (cancelled || !row?.user_type) return
+        navigate(row.user_type === 'employer' ? '/employer/onboarding' : '/profile/edit', { replace: true })
+      } finally {
+        if (!cancelled) setCheckingConfirmation(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [confirmedParam, navigate])
+
+  if (checkingConfirmation) return null
 
   async function handleSubmit(e) {
     e.preventDefault()
