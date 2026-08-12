@@ -167,7 +167,7 @@ export default function Admin() {
 
         {activeTab === 'Overview' && (stats ? <OverviewStats stats={stats} /> : <p>Loading…</p>)}
         {activeTab === 'Candidates' && (candidates ? <CandidatesTable candidates={candidates} setCandidates={setCandidates} /> : <p>Loading…</p>)}
-        {activeTab === 'Employers' && (employers ? <EmployersTable employers={employers} /> : <p>Loading…</p>)}
+        {activeTab === 'Employers' && (employers ? <EmployersTable employers={employers} setEmployers={setEmployers} /> : <p>Loading…</p>)}
         {activeTab === 'Roles' && (roles ? <RolesTable roles={roles} /> : <p>Loading…</p>)}
         {activeTab === 'Activity' && (activity ? <ActivityFeed events={activity} /> : <p>Loading…</p>)}
       </div>

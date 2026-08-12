@@ -51,7 +51,6 @@ export default function EmployerOnboarding() {
       }
 
       const upsertPayload = { user_id: freshUser.id }
-      console.log('[Onboarding] employer_profiles upsert payload:', upsertPayload)
 
       const { data, error: fetchError } = await supabase
         .from('employer_profiles')
@@ -120,7 +119,6 @@ export default function EmployerOnboarding() {
       if (logoFile) {
         const ext = logoFile.name.split('.').pop() || 'png'
         const path = `${freshUser.id}/logo.${ext}`
-        console.log('[Onboarding] company-logos upload path:', path)
         const { error: uploadError } = await supabase.storage
           .from('company-logos')
           .upload(path, logoFile, { upsert: true, contentType: logoFile.type })
@@ -140,7 +138,6 @@ export default function EmployerOnboarding() {
         company_highlight: companyHighlight.trim() || null,
         ...(logoUrl !== undefined ? { logo_url: logoUrl } : {}),
       }
-      console.log('[Onboarding] employer_profiles upsert payload:', upsertPayload)
 
       // Upsert rather than a plain update: loadProfile() should already have
       // created the row on mount, but this is a defensive fallback in case

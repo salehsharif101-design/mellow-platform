@@ -76,6 +76,7 @@ async function getCandidates(supabase) {
     const completeness = Math.round(((filled + hasSkills + hasLanguages) / (COMPLETENESS_FIELDS.length + 2)) * 100)
     return {
       id: c.id,
+      userId: c.user_id,
       username: c.username,
       fullName: c.full_name,
       email: c.users?.email || null,
@@ -92,7 +93,7 @@ async function getEmployers(supabase) {
   const employers = unwrap(
     await supabase
       .from('employer_profiles')
-      .select('id, user_id, company_name, created_at, users(email, created_at)')
+      .select('id, user_id, company_name, company_slug, created_at, users(email, created_at)')
       .order('created_at', { ascending: false }),
   )
 
@@ -110,7 +111,9 @@ async function getEmployers(supabase) {
 
   return employers.map((e) => ({
     id: e.id,
+    userId: e.user_id,
     companyName: e.company_name,
+    companySlug: e.company_slug,
     email: e.users?.email || null,
     dateJoined: e.users?.created_at || e.created_at,
     rolesPosted: roleCounts[e.id] || 0,
@@ -206,6 +209,55 @@ async function toggleLive(supabase, candidateId, isLive) {
   return { success: true, isLive: data.is_live }
 }
 
+// Permanently deletes one user account and every row tied to it, by the
+// exact user id the admin clicked in the table — mirrors the self-service
+// account deletion flow in api/delete-account.js.
+async function deleteUser(supabase, userId) {
+  if (!userId) throw new Error('userId is required')
+
+  const { data: candidateProfiles } = await supabase.from('candidate_profiles').select('id').eq('user_id', userId)
+  const candidateIds = (candidateProfiles || []).map((c) => c.id)
+
+  const { data: employerProfiles } = await supabase.from('employer_profiles').select('id').eq('user_id', userId)
+  const employerIds = (employerProfiles || []).map((e) => e.id)
+
+  let roleIds = []
+  if (employerIds.length > 0) {
+    const { data: roles } = await supabase.from('roles').select('id').in('employer_id', employerIds)
+    roleIds = (roles || []).map((r) => r.id)
+  }
+
+  await supabase.from('messages').delete().or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
+
+  await supabase.from('profile_views').delete().eq('viewer_id', userId)
+  if (candidateIds.length > 0) {
+    await supabase.from('profile_views').delete().in('candidate_id', candidateIds)
+  }
+
+  if (candidateIds.length > 0) {
+    await supabase.from('candidate_videos').delete().in('candidate_id', candidateIds)
+    await supabase.from('applications').delete().in('candidate_id', candidateIds)
+    await supabase.from('shortlists').delete().in('candidate_id', candidateIds)
+  }
+
+  if (roleIds.length > 0) {
+    await supabase.from('applications').delete().in('role_id', roleIds)
+  }
+  if (employerIds.length > 0) {
+    await supabase.from('shortlists').delete().in('employer_id', employerIds)
+    await supabase.from('roles').delete().in('employer_id', employerIds)
+  }
+
+  await supabase.from('candidate_profiles').delete().eq('user_id', userId)
+  await supabase.from('employer_profiles').delete().eq('user_id', userId)
+  await supabase.from('users').delete().eq('id', userId)
+
+  const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(userId)
+  if (deleteAuthError) throw new Error(deleteAuthError.message)
+
+  return { success: true }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json')
 
@@ -260,6 +312,9 @@ export default async function handler(req, res) {
         break
       case 'toggle-live':
         result = await toggleLive(supabase, body.candidateId, body.isLive)
+        break
+      case 'delete-user':
+        result = await deleteUser(supabase, body.userId)
         break
       default:
         res.statusCode = 400

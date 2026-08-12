@@ -3,14 +3,26 @@ import { useState } from 'react'
 export default function Step4Links({ initial, onContinue, onBack, saving }) {
   const [linkedinUrl, setLinkedinUrl] = useState(initial.linkedin_url || '')
   const [calendlyUrl, setCalendlyUrl] = useState(initial.calendly_url || '')
+  const [websiteUrl, setWebsiteUrl] = useState(initial.website_url || '')
+  const [error, setError] = useState('')
 
   function handleSubmit(e) {
     e.preventDefault()
-    onContinue({ linkedin_url: linkedinUrl.trim() || null, calendly_url: calendlyUrl.trim() || null })
+    setError('')
+    const trimmedWebsite = websiteUrl.trim()
+    if (trimmedWebsite && !/^https?:\/\//i.test(trimmedWebsite)) {
+      setError('Portfolio or website must start with https:// or http://')
+      return
+    }
+    onContinue({
+      linkedin_url: linkedinUrl.trim() || null,
+      calendly_url: calendlyUrl.trim() || null,
+      website_url: trimmedWebsite || null,
+    })
   }
 
   function handleSkip() {
-    onContinue({ linkedin_url: null, calendly_url: null })
+    onContinue({ linkedin_url: null, calendly_url: null, website_url: null })
   }
 
   return (
@@ -38,6 +50,20 @@ export default function Step4Links({ initial, onContinue, onBack, saving }) {
           placeholder="https://calendly.com/yourname"
         />
       </div>
+
+      <div className="field">
+        <label htmlFor="website">Portfolio or website (optional)</label>
+        <input
+          id="website"
+          className="input"
+          type="url"
+          value={websiteUrl}
+          onChange={(e) => setWebsiteUrl(e.target.value)}
+          placeholder="https://yourportfolio.com"
+        />
+      </div>
+
+      {error && <p className="form-error">{error}</p>}
 
       <div style={{ display: 'flex', gap: 12 }}>
         <button type="button" className="btn btn-ghost" onClick={onBack}>

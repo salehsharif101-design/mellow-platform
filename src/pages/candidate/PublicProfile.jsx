@@ -89,12 +89,13 @@ export default function PublicProfile() {
   }
 
   useEffect(() => {
-    if (!profile || !user || isOwner) return
+    // Only employer views count toward the "profile views" stat shown on the
+    // candidate dashboard — a candidate browsing another candidate's profile
+    // shouldn't inflate that number.
+    if (!profile || !user || isOwner || userType !== 'employer') return
     // Fire-and-forget view tracking — never block or break the page on failure.
     supabase.from('profile_views').insert({ candidate_id: profile.id, viewer_id: user.id }).then(() => {
-      if (userType === 'employer') {
-        notify('profile-view-notification', { candidateId: profile.id, viewerId: user.id })
-      }
+      notify('profile-view-notification', { candidateId: profile.id, viewerId: user.id })
     })
   }, [profile, user, isOwner, userType])
 

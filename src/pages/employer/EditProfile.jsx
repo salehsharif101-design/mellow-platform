@@ -103,7 +103,29 @@ export default function EmployerEditProfile() {
 
 function LogoSection({ profile, onUpdated }) {
   const [uploading, setUploading] = useState(false)
+  const [removing, setRemoving] = useState(false)
   const [error, setError] = useState('')
+
+  async function handleRemove() {
+    setRemoving(true)
+    setError('')
+    try {
+      const { data: { user: freshUser }, error: userError } = await supabase.auth.getUser()
+      if (userError || !freshUser) throw new Error(userError?.message || 'Your session has expired — please log in again.')
+      const { data: row, error: saveError } = await supabase
+        .from('employer_profiles')
+        .update({ logo_url: null })
+        .eq('user_id', freshUser.id)
+        .select()
+        .single()
+      if (saveError) throw saveError
+      onUpdated(row)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setRemoving(false)
+    }
+  }
 
   async function handleFileChange(e) {
     const file = e.target.files?.[0]
@@ -170,16 +192,29 @@ function LogoSection({ profile, onUpdated }) {
           {!profile.logo_url && (profile.company_name?.[0]?.toUpperCase() || '?')}
         </div>
         <div>
-          <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
-            {uploading ? 'Uploading…' : 'Change logo'}
-            <input
-              type="file"
-              accept={LOGO_TYPES.join(',')}
-              onChange={handleFileChange}
-              disabled={uploading}
-              style={{ display: 'none' }}
-            />
-          </label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
+              {uploading ? 'Uploading…' : 'Change logo'}
+              <input
+                type="file"
+                accept={LOGO_TYPES.join(',')}
+                onChange={handleFileChange}
+                disabled={uploading}
+                style={{ display: 'none' }}
+              />
+            </label>
+            {profile.logo_url && (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                style={{ color: '#d92d20', borderColor: '#d92d20' }}
+                onClick={handleRemove}
+                disabled={removing}
+              >
+                {removing ? 'Removing…' : 'Remove'}
+              </button>
+            )}
+          </div>
           {error && <p className="form-error" style={{ marginTop: 8 }}>{error}</p>}
         </div>
       </div>
@@ -454,7 +489,31 @@ function IntroVideoSection({ profile, onUpdated }) {
   const [file, setFile] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(profile.intro_video_url || null)
   const [uploading, setUploading] = useState(false)
+  const [removing, setRemoving] = useState(false)
   const [error, setError] = useState('')
+
+  async function handleRemove() {
+    setRemoving(true)
+    setError('')
+    try {
+      const { data: { user: freshUser }, error: userError } = await supabase.auth.getUser()
+      if (userError || !freshUser) throw new Error(userError?.message || 'Your session has expired — please log in again.')
+      const { data: row, error: saveError } = await supabase
+        .from('employer_profiles')
+        .update({ intro_video_url: null })
+        .eq('user_id', freshUser.id)
+        .select()
+        .single()
+      if (saveError) throw saveError
+      onUpdated(row)
+      setPreviewUrl(null)
+      setFile(null)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setRemoving(false)
+    }
+  }
 
   function handleFileChange(e) {
     const selected = e.target.files?.[0]
@@ -542,9 +601,22 @@ function IntroVideoSection({ profile, onUpdated }) {
           <input type="file" accept={VIDEO_TYPES.join(',')} onChange={handleFileChange} />
         </div>
         {error && <p className="form-error">{error}</p>}
-        <button className="btn btn-primary" type="button" onClick={handleUpload} disabled={!file || uploading} style={{ alignSelf: 'flex-start' }}>
-          {uploading ? 'Uploading…' : 'Save video'}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-primary" type="button" onClick={handleUpload} disabled={!file || uploading} style={{ alignSelf: 'flex-start' }}>
+            {uploading ? 'Uploading…' : 'Save video'}
+          </button>
+          {profile.intro_video_url && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ color: '#d92d20', borderColor: '#d92d20' }}
+              onClick={handleRemove}
+              disabled={removing || uploading}
+            >
+              {removing ? 'Removing…' : 'Remove video'}
+            </button>
+          )}
+        </div>
       </div>
     </section>
   )

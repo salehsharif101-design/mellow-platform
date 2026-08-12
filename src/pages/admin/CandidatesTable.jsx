@@ -1,7 +1,11 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { callAdminApi } from './adminApi.js'
+import ConfirmModal from '../../components/ConfirmModal.jsx'
 
 export default function CandidatesTable({ candidates, setCandidates }) {
+  const [deletingCandidate, setDeletingCandidate] = useState(null)
+
   async function toggleLive(candidate) {
     const nextValue = !candidate.isLive
     setCandidates((prev) => prev.map((c) => (c.id === candidate.id ? { ...c, isLive: nextValue } : c)))
@@ -14,13 +18,19 @@ export default function CandidatesTable({ candidates, setCandidates }) {
     }
   }
 
+  async function handleDelete(candidate) {
+    await callAdminApi('delete-user', { userId: candidate.userId })
+    setCandidates((prev) => prev.filter((c) => c.id !== candidate.id))
+    setDeletingCandidate(null)
+  }
+
   return (
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
         <thead>
           <tr style={{ textAlign: 'left', borderBottom: '1.5px solid var(--color-border)' }}>
-            {['Name', 'Email', 'Location', 'Joined', 'Live', 'Completeness', 'Applications', ''].map((h) => (
-              <th key={h} style={{ padding: '10px 12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+            {['Name', 'Email', 'Location', 'Joined', 'Live', 'Completeness', 'Applications', '', ''].map((h, i) => (
+              <th key={i} style={{ padding: '10px 12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
                 {h}
               </th>
             ))}
@@ -55,12 +65,30 @@ export default function CandidatesTable({ candidates, setCandidates }) {
                   View →
                 </Link>
               </td>
+              <td style={{ padding: '10px 12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setDeletingCandidate(c)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d92d20', fontWeight: 600 }}
+                >
+                  Delete
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
       {candidates.length === 0 && (
         <p style={{ padding: 16, color: 'var(--color-text-muted)', fontSize: 14 }}>No candidates yet.</p>
+      )}
+
+      {deletingCandidate && (
+        <ConfirmModal
+          title="Delete this candidate?"
+          message={`"${deletingCandidate.fullName || deletingCandidate.email}" will be permanently deleted, along with their profile, videos, applications, and messages. This can't be undone.`}
+          onClose={() => setDeletingCandidate(null)}
+          onConfirm={() => handleDelete(deletingCandidate)}
+        />
       )}
     </div>
   )
