@@ -36,7 +36,8 @@ html{scroll-behavior:smooth;}
 body{background:var(--bg);color:#1a1a1a;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
 
 /* NAV */
-nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 48px;}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);height:66px;padding:0 64px;}
+.nav-inner{max-width:1200px;margin:0 auto;height:100%;display:flex;align-items:center;justify-content:space-between;}
 .nav-logo{display:flex;align-items:flex-end;gap:0;text-decoration:none;line-height:1;}
 .nav-logo img{height:22px;width:auto;display:block;}
 .nav-links{display:flex;align-items:center;gap:26px;}
@@ -56,20 +57,20 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 
 /* LAYOUT */
 .pw{padding-top:66px;}
-.s-white{background:var(--bg);padding:80px 48px;}
-.s-soft{background:var(--soft);padding:80px 48px;}
-.s-blue{background:var(--blue);padding:80px 48px;}
+.s-white{background:var(--bg);padding:80px 64px;}
+.s-soft{background:var(--soft);padding:80px 64px;}
+.s-blue{background:var(--blue);padding:80px 64px;}
 .s-blue .eyebrow{color:rgba(255,255,255,0.5);}
 .s-blue h2,.s-blue h3{color:#fff;}
 .s-blue p,.s-blue .lead,.s-blue .body-text{color:rgba(255,255,255,0.82);}
 .s-blue .snum{color:rgba(255,255,255,0.13);}
 .s-blue .step h3{color:#fff;}
 .s-blue .step p{color:rgba(255,255,255,0.78);}
-.con{max-width:1100px;margin:0 auto;}
+.con{max-width:1200px;margin:0 auto;}
 
 /* HERO */
-.hero{min-height:calc(100vh - 66px);display:flex;align-items:center;padding:0 48px 48px;background:var(--bg);}
-.hero-inner{display:flex;flex-direction:row;gap:40px;align-items:center;width:100%;}
+.hero{min-height:calc(100vh - 66px);display:flex;align-items:center;padding:0 64px 64px;background:var(--bg);}
+.hero-inner{display:flex;flex-direction:row;gap:40px;align-items:center;width:100%;max-width:1200px;margin:0 auto;}
 .eyebrow{font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--blue);opacity:0.6;margin-bottom:18px;}
 h1{font-family:'Clash Display',sans-serif;font-size:clamp(52px,5.5vw,80px);font-weight:700;line-height:0.95;letter-spacing:0.5px;margin-bottom:24px;color:var(--blue);}
 .hero-sub{font-size:17px;line-height:1.74;color:#444444;max-width:420px;margin-bottom:32px;}
@@ -83,7 +84,7 @@ h1{font-family:'Clash Display',sans-serif;font-size:clamp(52px,5.5vw,80px);font-
 .hero-img img{width:100%;max-width:620px;height:auto;}
 
 /* SECTION ROW — mirrors hero-inner layout exactly */
-.section-row{display:flex;flex-direction:row;gap:40px;align-items:center;width:100%;}
+.section-row{display:flex;flex-direction:row;gap:40px;align-items:center;width:100%;max-width:1200px;margin:0 auto;}
 .section-row.rev{flex-direction:row-reverse;}
 .sr-content{flex:1;display:flex;flex-direction:column;justify-content:center;}
 .sr-img{flex:1;display:flex;justify-content:flex-end;align-items:center;}
@@ -130,7 +131,8 @@ h3{font-family:'Clash Display',sans-serif;font-size:20px;font-weight:700;margin-
 .btn-pair{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
 
 /* FOOTER */
-footer{background:var(--blue);padding:22px 48px;display:flex;align-items:center;justify-content:space-between;}
+footer{background:var(--blue);padding:22px 64px;}
+.footer-inner{max-width:1200px;margin:0 auto;width:100%;display:flex;align-items:center;justify-content:space-between;}
 .flogo{display:flex;align-items:flex-end;gap:0;}
 .flogo img{height:22px;width:auto;display:block;filter:brightness(0) invert(1);}
 .fcopy{font-size:12px;color:rgba(255,255,255,0.5);}
@@ -154,7 +156,8 @@ footer{background:var(--blue);padding:22px 48px;display:flex;align-items:center;
   .section-row .sr-content,.section-row.rev .sr-content{flex:none;width:100%;}
   .sr-img img{max-width:300px;}
   .faq{max-width:100%;}
-  footer{flex-direction:column;gap:12px;text-align:center;padding:20px;}
+  footer{padding:20px;}
+  .footer-inner{flex-direction:column;gap:12px;text-align:center;}
   .hform{flex-direction:column;max-width:100%;}
   .hform input{border-right:1.5px solid var(--blue);border-bottom:none;border-radius:7px 7px 0 0;}
   .hform button{border-radius:0 0 7px 7px;}
@@ -181,20 +184,22 @@ footer{background:var(--blue);padding:22px 48px;display:flex;align-items:center;
 <body>
 
 <nav>
-  <a class="nav-logo" href="index.html">
-    <img src="img/mellow_logofont_email.png" alt="Mellow"/>
-  </a>
-  <div class="nav-links">
-    <a href="index.html">Home</a>
-    <a href="talent.html">For Talent</a>
-    <a href="employers.html">For Employers</a>
-    <a href="about.html">About</a>
-    <a href="index.html#faq">FAQ</a>
-    <a href="index.html#waitlist" class="nav-cta">Get early access</a>
+  <div class="nav-inner">
+    <a class="nav-logo" href="index.html">
+      <img src="img/mellow_logofont_email.png" alt="Mellow"/>
+    </a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="talent.html">For Talent</a>
+      <a href="employers.html">For Employers</a>
+      <a href="about.html">About</a>
+      <a href="index.html#faq">FAQ</a>
+      <a href="index.html#waitlist" class="nav-cta">Get early access</a>
+    </div>
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
   </div>
-  <button class="hamburger" id="hamburger" aria-label="Menu">
-    <span></span><span></span><span></span>
-  </button>
 </nav>
 <div class="mobile-menu" id="mobile-menu">
   <a href="index.html">Home</a>
@@ -326,14 +331,16 @@ footer{background:var(--blue);padding:22px 48px;display:flex;align-items:center;
 </div>
 
 <footer>
-  <div class="flogo">
-    <img src="img/mellow_logofont_email.png" alt="Mellow"/>
-  </div>
-  <span class="fcopy">Proudly built in 🇧🇭 Bahrain · mellow © 2026</span>
-  <div class="flinks">
-    <a href="talent.html">For Talent</a>
-    <a href="employers.html">For Employers</a>
-    <a href="about.html">About</a>
+  <div class="footer-inner">
+    <div class="flogo">
+      <img src="img/mellow_logofont_email.png" alt="Mellow"/>
+    </div>
+    <span class="fcopy">Proudly built in 🇧🇭 Bahrain · mellow © 2026</span>
+    <div class="flinks">
+      <a href="talent.html">For Talent</a>
+      <a href="employers.html">For Employers</a>
+      <a href="about.html">About</a>
+    </div>
   </div>
 </footer>
 
