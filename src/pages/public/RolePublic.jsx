@@ -10,7 +10,7 @@ import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const ROLE_SELECT =
-  'id, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, employer_profiles(company_name, company_slug, logo_url, linkedin_url, website_url, about, intro_video_url, user_id)'
+  'id, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, employer_profiles(company_name, company_slug, logo_url, linkedin_url, website_url, about, intro_video_url, user_id, is_visible)'
 
 export default function RolePublic() {
   const { slug } = useParams()
@@ -36,7 +36,7 @@ export default function RolePublic() {
         .eq('is_active', true)
         .maybeSingle()
 
-      if (data) {
+      if (data && data.employer_profiles?.is_visible !== false) {
         setRole(data)
         setLoading(false)
         return

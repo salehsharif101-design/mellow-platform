@@ -3,6 +3,7 @@
 // the password before touching the database.
 
 import { createClient } from '@supabase/supabase-js'
+import { deleteUserStorageFiles } from './_lib/storageCleanup.js'
 
 const COMPLETENESS_FIELDS = ['full_name', 'job_title', 'location', 'bio', 'intro_video_url']
 
@@ -93,7 +94,7 @@ async function getEmployers(supabase) {
   const employers = unwrap(
     await supabase
       .from('employer_profiles')
-      .select('id, user_id, company_name, company_slug, created_at, users(email, created_at)')
+      .select('id, user_id, company_name, company_slug, is_visible, created_at, users(email, created_at)')
       .order('created_at', { ascending: false }),
   )
 
@@ -114,6 +115,7 @@ async function getEmployers(supabase) {
     userId: e.user_id,
     companyName: e.company_name,
     companySlug: e.company_slug,
+    isVisible: e.is_visible,
     email: e.users?.email || null,
     dateJoined: e.users?.created_at || e.created_at,
     rolesPosted: roleCounts[e.id] || 0,
@@ -121,11 +123,21 @@ async function getEmployers(supabase) {
   }))
 }
 
+async function toggleEmployerVisibility(supabase, employerId, isVisible) {
+  if (!employerId || typeof isVisible !== 'boolean') {
+    throw new Error('employerId and isVisible (boolean) are required')
+  }
+  const data = unwrap(
+    await supabase.from('employer_profiles').update({ is_visible: isVisible }).eq('id', employerId).select().single(),
+  )
+  return { success: true, isVisible: data.is_visible }
+}
+
 async function getRoles(supabase) {
   const roles = unwrap(
     await supabase
       .from('roles')
-      .select('id, title, is_active, created_at, employer_profiles(company_name)')
+      .select('id, title, slug, status, is_active, created_at, employer_profiles(company_name, company_slug)')
       .order('created_at', { ascending: false }),
   )
 
@@ -138,11 +150,125 @@ async function getRoles(supabase) {
   return roles.map((r) => ({
     id: r.id,
     title: r.title,
+    slug: r.slug,
     company: r.employer_profiles?.company_name || null,
+    companySlug: r.employer_profiles?.company_slug || null,
     datePosted: r.created_at,
+    status: r.status,
     isActive: r.is_active,
     applicationCount: counts[r.id] || 0,
   }))
+}
+
+async function closeRole(supabase, roleId) {
+  if (!roleId) throw new Error('roleId is required')
+  const data = unwrap(
+    await supabase.from('roles').update({ status: 'closed' }).eq('id', roleId).select().single(),
+  )
+  return { success: true, status: data.status, isActive: data.is_active }
+}
+
+async function deleteRole(supabase, roleId) {
+  if (!roleId) throw new Error('roleId is required')
+  await supabase.from('applications').delete().eq('role_id', roleId)
+  await supabase.from('roles').delete().eq('id', roleId)
+  return { success: true }
+}
+
+// Full application list for moderation — every application on the
+// platform, not just the 20 most recent shown in the Activity feed.
+async function getApplications(supabase) {
+  const apps = unwrap(
+    await supabase
+      .from('applications')
+      .select(
+        'id, status, applied_at, candidate_profiles(id, username, full_name), roles(id, title, slug, employer_profiles(company_name, company_slug))',
+      )
+      .order('applied_at', { ascending: false }),
+  )
+
+  return apps.map((a) => ({
+    id: a.id,
+    status: a.status,
+    appliedAt: a.applied_at,
+    candidateName: a.candidate_profiles?.full_name || null,
+    candidateUsername: a.candidate_profiles?.username || a.candidate_profiles?.id || null,
+    roleTitle: a.roles?.title || null,
+    roleSlug: a.roles?.slug || null,
+    companyName: a.roles?.employer_profiles?.company_name || null,
+    companySlug: a.roles?.employer_profiles?.company_slug || null,
+  }))
+}
+
+// One row per distinct candidate/employer pair that has exchanged messages,
+// for the Messages moderation tab. The full thread for a pair is fetched
+// separately via getConversationThread once an admin clicks into one.
+async function getConversations(supabase) {
+  const messages = unwrap(
+    await supabase
+      .from('messages')
+      .select('sender_id, recipient_id, body, sent_at')
+      .order('sent_at', { ascending: false }),
+  )
+  if (messages.length === 0) return []
+
+  const userIds = new Set()
+  messages.forEach((m) => {
+    userIds.add(m.sender_id)
+    userIds.add(m.recipient_id)
+  })
+  const idList = Array.from(userIds)
+
+  const [usersRes, candidatesRes, employersRes] = await Promise.all([
+    supabase.from('users').select('id, email').in('id', idList),
+    supabase.from('candidate_profiles').select('user_id, full_name').in('user_id', idList),
+    supabase.from('employer_profiles').select('user_id, company_name').in('user_id', idList),
+  ])
+  const emailById = Object.fromEntries((usersRes.data || []).map((u) => [u.id, u.email]))
+  const nameById = {}
+  ;(candidatesRes.data || []).forEach((c) => {
+    nameById[c.user_id] = c.full_name
+  })
+  ;(employersRes.data || []).forEach((e) => {
+    nameById[e.user_id] = e.company_name
+  })
+
+  // messages is already sorted newest-first, so the first message seen for
+  // a given pair is that conversation's most recent one.
+  const conversations = new Map()
+  for (const m of messages) {
+    const [userAId, userBId] = [m.sender_id, m.recipient_id].sort()
+    const key = `${userAId}|${userBId}`
+    const existing = conversations.get(key)
+    if (existing) {
+      existing.messageCount += 1
+    } else {
+      conversations.set(key, {
+        userAId,
+        userBId,
+        userALabel: nameById[userAId] || emailById[userAId] || 'Unknown',
+        userBLabel: nameById[userBId] || emailById[userBId] || 'Unknown',
+        messageCount: 1,
+        lastMessage: m.body,
+        lastSentAt: m.sent_at,
+      })
+    }
+  }
+
+  return Array.from(conversations.values()).sort((a, b) => new Date(b.lastSentAt) - new Date(a.lastSentAt))
+}
+
+async function getConversationThread(supabase, userAId, userBId) {
+  if (!userAId || !userBId) throw new Error('userAId and userBId are required')
+  return unwrap(
+    await supabase
+      .from('messages')
+      .select('id, sender_id, recipient_id, body, sent_at')
+      .or(
+        `and(sender_id.eq.${userAId},recipient_id.eq.${userBId}),and(sender_id.eq.${userBId},recipient_id.eq.${userAId})`,
+      )
+      .order('sent_at', { ascending: true }),
+  )
 }
 
 async function getActivity(supabase) {
@@ -252,6 +378,8 @@ async function deleteUser(supabase, userId) {
   await supabase.from('employer_profiles').delete().eq('user_id', userId)
   await supabase.from('users').delete().eq('id', userId)
 
+  await deleteUserStorageFiles(supabase, userId)
+
   const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(userId)
   if (deleteAuthError) throw new Error(deleteAuthError.message)
 
@@ -307,11 +435,29 @@ export default async function handler(req, res) {
       case 'roles':
         result = await getRoles(supabase)
         break
+      case 'close-role':
+        result = await closeRole(supabase, body.roleId)
+        break
+      case 'delete-role':
+        result = await deleteRole(supabase, body.roleId)
+        break
+      case 'applications':
+        result = await getApplications(supabase)
+        break
+      case 'conversations':
+        result = await getConversations(supabase)
+        break
+      case 'conversation-thread':
+        result = await getConversationThread(supabase, body.userAId, body.userBId)
+        break
       case 'activity':
         result = await getActivity(supabase)
         break
       case 'toggle-live':
         result = await toggleLive(supabase, body.candidateId, body.isLive)
+        break
+      case 'toggle-employer-visibility':
+        result = await toggleEmployerVisibility(supabase, body.employerId, body.isVisible)
         break
       case 'delete-user':
         result = await deleteUser(supabase, body.userId)

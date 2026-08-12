@@ -46,9 +46,10 @@ export default function BrowseRoles() {
           supabase
             .from('roles')
             .select(
-              'id, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, employer_profiles(company_name, company_slug, industry, company_size, culture_description, company_highlight, logo_url, intro_video_url)',
+              'id, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, employer_profiles!inner(company_name, company_slug, industry, company_size, culture_description, company_highlight, logo_url, intro_video_url, is_visible)',
             )
             .eq('is_active', true)
+            .eq('employer_profiles.is_visible', true)
             .order('created_at', { ascending: false }),
           supabase.from('applications').select('role_id').eq('candidate_id', candidate.id),
         ])

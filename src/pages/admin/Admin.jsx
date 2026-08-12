@@ -4,9 +4,11 @@ import OverviewStats from './OverviewStats.jsx'
 import CandidatesTable from './CandidatesTable.jsx'
 import EmployersTable from './EmployersTable.jsx'
 import RolesTable from './RolesTable.jsx'
+import ApplicationsTable from './ApplicationsTable.jsx'
+import ConversationsTable from './ConversationsTable.jsx'
 import ActivityFeed from './ActivityFeed.jsx'
 
-const TABS = ['Overview', 'Candidates', 'Employers', 'Roles', 'Activity']
+const TABS = ['Overview', 'Candidates', 'Employers', 'Roles', 'Applications', 'Messages', 'Activity']
 
 export default function Admin() {
   const [authenticated, setAuthenticated] = useState(false)
@@ -21,6 +23,8 @@ export default function Admin() {
   const [candidates, setCandidates] = useState(null)
   const [employers, setEmployers] = useState(null)
   const [roles, setRoles] = useState(null)
+  const [applications, setApplications] = useState(null)
+  const [conversations, setConversations] = useState(null)
   const [activity, setActivity] = useState(null)
   const [loadError, setLoadError] = useState('')
 
@@ -55,6 +59,8 @@ export default function Admin() {
       if (tab === 'Candidates' && !candidates) setCandidates(await callAdminApi('candidates'))
       if (tab === 'Employers' && !employers) setEmployers(await callAdminApi('employers'))
       if (tab === 'Roles' && !roles) setRoles(await callAdminApi('roles'))
+      if (tab === 'Applications' && !applications) setApplications(await callAdminApi('applications'))
+      if (tab === 'Messages' && !conversations) setConversations(await callAdminApi('conversations'))
       if (tab === 'Activity' && !activity) setActivity(await callAdminApi('activity'))
     } catch (err) {
       setLoadError(err.message)
@@ -85,6 +91,8 @@ export default function Admin() {
     setCandidates(null)
     setEmployers(null)
     setRoles(null)
+    setApplications(null)
+    setConversations(null)
     setActivity(null)
     setPasswordInput('')
   }
@@ -168,7 +176,9 @@ export default function Admin() {
         {activeTab === 'Overview' && (stats ? <OverviewStats stats={stats} /> : <p>Loading…</p>)}
         {activeTab === 'Candidates' && (candidates ? <CandidatesTable candidates={candidates} setCandidates={setCandidates} /> : <p>Loading…</p>)}
         {activeTab === 'Employers' && (employers ? <EmployersTable employers={employers} setEmployers={setEmployers} /> : <p>Loading…</p>)}
-        {activeTab === 'Roles' && (roles ? <RolesTable roles={roles} /> : <p>Loading…</p>)}
+        {activeTab === 'Roles' && (roles ? <RolesTable roles={roles} setRoles={setRoles} /> : <p>Loading…</p>)}
+        {activeTab === 'Applications' && (applications ? <ApplicationsTable applications={applications} /> : <p>Loading…</p>)}
+        {activeTab === 'Messages' && (conversations ? <ConversationsTable conversations={conversations} /> : <p>Loading…</p>)}
         {activeTab === 'Activity' && (activity ? <ActivityFeed events={activity} /> : <p>Loading…</p>)}
       </div>
     </div>

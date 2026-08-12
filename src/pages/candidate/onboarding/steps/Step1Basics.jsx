@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 const AVAILABILITY_OPTIONS = ['Immediately', 'Within a month', '1 to 3 months', 'Just exploring']
 const WORK_STYLE_OPTIONS = ['Remote', 'Hybrid', 'On-site']
+const EDUCATION_LEVELS = ['High School', 'Diploma', "Bachelor's", "Master's", 'PhD', 'Self-taught', 'Other']
 
 export default function Step1Basics({ initial, onContinue, saving }) {
   const [fullName, setFullName] = useState(initial.full_name || '')
@@ -13,6 +14,10 @@ export default function Step1Basics({ initial, onContinue, saving }) {
   const [proudOf, setProudOf] = useState(initial.proud_of || '')
   const [availability, setAvailability] = useState(initial.availability || '')
   const [workStyle, setWorkStyle] = useState(initial.work_style || [])
+  const [educationLevel, setEducationLevel] = useState(initial.education_level || '')
+  const [fieldOfStudy, setFieldOfStudy] = useState(initial.field_of_study || '')
+  const [institutionName, setInstitutionName] = useState(initial.institution_name || '')
+  const [graduationYear, setGraduationYear] = useState(initial.graduation_year || '')
 
   const isValid = fullName.trim() && jobTitle.trim() && location.trim() && bio.trim() && availability
 
@@ -33,6 +38,10 @@ export default function Step1Basics({ initial, onContinue, saving }) {
       proud_of: proudOf.trim() || null,
       availability,
       work_style: workStyle,
+      education_level: educationLevel || null,
+      field_of_study: fieldOfStudy.trim() || null,
+      institution_name: institutionName.trim() || null,
+      graduation_year: graduationYear ? Number(graduationYear) : null,
     })
   }
 
@@ -167,6 +176,56 @@ export default function Step1Basics({ initial, onContinue, saving }) {
             )
           })}
         </div>
+      </div>
+
+      <div className="field">
+        <label htmlFor="education_level">Highest level of education (optional)</label>
+        <select
+          id="education_level"
+          className="input"
+          value={educationLevel}
+          onChange={(e) => setEducationLevel(e.target.value)}
+        >
+          <option value="">Select…</option>
+          {EDUCATION_LEVELS.map((level) => (
+            <option key={level} value={level}>
+              {level}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="field">
+        <label htmlFor="field_of_study">Field of study (optional)</label>
+        <input
+          id="field_of_study"
+          className="input"
+          value={fieldOfStudy}
+          onChange={(e) => setFieldOfStudy(e.target.value)}
+          placeholder="e.g. Computer Science"
+        />
+      </div>
+      <div className="field">
+        <label htmlFor="institution_name">University or institution (optional)</label>
+        <input
+          id="institution_name"
+          className="input"
+          value={institutionName}
+          onChange={(e) => setInstitutionName(e.target.value)}
+          placeholder="e.g. University of Bahrain"
+        />
+      </div>
+      <div className="field">
+        <label htmlFor="graduation_year">Graduation year (optional)</label>
+        <input
+          id="graduation_year"
+          className="input"
+          type="number"
+          min="1950"
+          max="2100"
+          value={graduationYear}
+          onChange={(e) => setGraduationYear(e.target.value)}
+          placeholder="e.g. 2022"
+        />
       </div>
 
       <button className="btn btn-primary" type="submit" disabled={!isValid || saving} style={{ alignSelf: 'flex-start' }}>

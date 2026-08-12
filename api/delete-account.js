@@ -5,6 +5,7 @@
 // the request body, so one user can never delete another's account.
 
 import { createClient } from '@supabase/supabase-js'
+import { deleteUserStorageFiles } from './_lib/storageCleanup.js'
 
 function getServiceClient() {
   return createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
@@ -81,6 +82,8 @@ export default async function handler(req, res) {
     await supabase.from('candidate_profiles').delete().eq('user_id', userId)
     await supabase.from('employer_profiles').delete().eq('user_id', userId)
     await supabase.from('users').delete().eq('id', userId)
+
+    await deleteUserStorageFiles(supabase, userId)
 
     const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(userId)
     if (deleteAuthError) throw new Error(deleteAuthError.message)

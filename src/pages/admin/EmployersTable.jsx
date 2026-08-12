@@ -6,6 +6,18 @@ import ConfirmModal from '../../components/ConfirmModal.jsx'
 export default function EmployersTable({ employers, setEmployers }) {
   const [deletingEmployer, setDeletingEmployer] = useState(null)
 
+  async function toggleVisibility(employer) {
+    const nextValue = !employer.isVisible
+    setEmployers((prev) => prev.map((e) => (e.id === employer.id ? { ...e, isVisible: nextValue } : e)))
+    try {
+      await callAdminApi('toggle-employer-visibility', { employerId: employer.id, isVisible: nextValue })
+    } catch (err) {
+      // revert on failure
+      setEmployers((prev) => prev.map((e) => (e.id === employer.id ? { ...e, isVisible: !nextValue } : e)))
+      alert(`Failed to update: ${err.message}`)
+    }
+  }
+
   async function handleDelete(employer) {
     await callAdminApi('delete-user', { userId: employer.userId })
     setEmployers((prev) => prev.filter((e) => e.id !== employer.id))
@@ -17,7 +29,7 @@ export default function EmployersTable({ employers, setEmployers }) {
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
         <thead>
           <tr style={{ textAlign: 'left', borderBottom: '1.5px solid var(--color-border)' }}>
-            {['Company', 'Email', 'Joined', 'Roles posted', 'Messages sent', '', ''].map((h, i) => (
+            {['Company', 'Email', 'Joined', 'Roles posted', 'Messages sent', 'Visible', '', ''].map((h, i) => (
               <th key={i} style={{ padding: '10px 12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
                 {h}
               </th>
@@ -32,6 +44,21 @@ export default function EmployersTable({ employers, setEmployers }) {
               <td style={{ padding: '10px 12px' }}>{e.dateJoined ? new Date(e.dateJoined).toLocaleDateString() : '—'}</td>
               <td style={{ padding: '10px 12px' }}>{e.rolesPosted}</td>
               <td style={{ padding: '10px 12px' }}>{e.messagesSent}</td>
+              <td style={{ padding: '10px 12px' }}>
+                <button
+                  type="button"
+                  onClick={() => toggleVisibility(e)}
+                  className="tag"
+                  style={{
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: e.isVisible ? '#e3f9e9' : '#f2f2f2',
+                    color: e.isVisible ? '#0f7a3d' : 'var(--color-text-muted)',
+                  }}
+                >
+                  {e.isVisible ? 'Visible' : 'Hidden'}
+                </button>
+              </td>
               <td style={{ padding: '10px 12px' }}>
                 {e.companySlug ? (
                   <Link to={`/company/${e.companySlug}`} target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>

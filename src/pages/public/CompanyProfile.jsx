@@ -19,12 +19,12 @@ export default function CompanyProfile() {
       const { data, error } = await supabase
         .from('employer_profiles')
         .select(
-          'id, user_id, company_name, logo_url, industry, company_size, about, company_highlight, typical_roles, linkedin_url, website_url, intro_video_url',
+          'id, user_id, company_name, logo_url, industry, company_size, about, company_highlight, typical_roles, linkedin_url, website_url, intro_video_url, is_visible',
         )
         .eq('company_slug', slug)
         .maybeSingle()
 
-      if (error || !data) {
+      if (error || !data || !data.is_visible) {
         setNotFound(true)
         setLoading(false)
         return

@@ -8,6 +8,7 @@ import { deleteAccount } from '../../lib/deleteAccount.js'
 
 const MAX_SKILLS = 10
 const PROFICIENCIES = ['basic', 'conversational', 'fluent', 'native']
+const EDUCATION_LEVELS = ['High School', 'Diploma', "Bachelor's", "Master's", 'PhD', 'Self-taught', 'Other']
 const AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
 const VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm']
@@ -28,6 +29,7 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
       <OpenToOpportunitiesSection profile={profile} onUpdated={onUpdated} />
       <AvatarSection profile={profile} userId={userId} onUpdated={onUpdated} />
       <BasicsSection profile={profile} onUpdated={onUpdated} />
+      <EducationSection profile={profile} onUpdated={onUpdated} />
       <SkillsSection profile={profile} onUpdated={onUpdated} />
       <LanguagesSection profile={profile} onUpdated={onUpdated} />
       <LinkedInSection profile={profile} onUpdated={onUpdated} />
@@ -288,6 +290,90 @@ function BasicsSection({ profile, onUpdated }) {
         <div className="field">
           <label>Bio</label>
           <textarea className="input" rows={4} value={bio} onChange={(e) => setBio(e.target.value)} required />
+        </div>
+        {error && <p className="form-error">{error}</p>}
+        <SaveButton saving={saving} saved={saved} />
+      </form>
+    </section>
+  )
+}
+
+function EducationSection({ profile, onUpdated }) {
+  const [educationLevel, setEducationLevel] = useState(profile.education_level || '')
+  const [fieldOfStudy, setFieldOfStudy] = useState(profile.field_of_study || '')
+  const [institutionName, setInstitutionName] = useState(profile.institution_name || '')
+  const [graduationYear, setGraduationYear] = useState(profile.graduation_year || '')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [saved, flash] = useSavedFlash()
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    const { data, error: saveError } = await supabase
+      .from('candidate_profiles')
+      .update({
+        education_level: educationLevel || null,
+        field_of_study: fieldOfStudy.trim() || null,
+        institution_name: institutionName.trim() || null,
+        graduation_year: graduationYear ? Number(graduationYear) : null,
+      })
+      .eq('id', profile.id)
+      .select()
+      .single()
+    if (saveError) setError(saveError.message)
+    else {
+      onUpdated(data)
+      flash()
+    }
+    setSaving(false)
+  }
+
+  return (
+    <section>
+      <h3 style={{ fontSize: 16, marginBottom: 12 }}>Education</h3>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
+        <div className="field">
+          <label>Highest level of education (optional)</label>
+          <select className="input" value={educationLevel} onChange={(e) => setEducationLevel(e.target.value)}>
+            <option value="">Select…</option>
+            {EDUCATION_LEVELS.map((level) => (
+              <option key={level} value={level}>
+                {level}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="field">
+          <label>Field of study (optional)</label>
+          <input
+            className="input"
+            value={fieldOfStudy}
+            onChange={(e) => setFieldOfStudy(e.target.value)}
+            placeholder="e.g. Computer Science"
+          />
+        </div>
+        <div className="field">
+          <label>University or institution (optional)</label>
+          <input
+            className="input"
+            value={institutionName}
+            onChange={(e) => setInstitutionName(e.target.value)}
+            placeholder="e.g. University of Bahrain"
+          />
+        </div>
+        <div className="field">
+          <label>Graduation year (optional)</label>
+          <input
+            className="input"
+            type="number"
+            min="1950"
+            max="2100"
+            value={graduationYear}
+            onChange={(e) => setGraduationYear(e.target.value)}
+            placeholder="e.g. 2022"
+          />
         </div>
         {error && <p className="form-error">{error}</p>}
         <SaveButton saving={saving} saved={saved} />

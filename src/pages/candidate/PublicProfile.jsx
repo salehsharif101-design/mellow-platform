@@ -303,6 +303,22 @@ export default function PublicProfile() {
           </div>
         )}
 
+        {(profile.education_level || profile.field_of_study || profile.institution_name || profile.graduation_year) && (
+          <div style={{ marginTop: 24 }}>
+            <h4 style={{ fontSize: 14, color: 'var(--color-text-muted)', marginBottom: 10 }}>Education</h4>
+            {(profile.education_level || profile.field_of_study) && (
+              <p style={{ fontSize: 15 }}>
+                {[profile.education_level, profile.field_of_study].filter(Boolean).join(' in ')}
+              </p>
+            )}
+            {(profile.institution_name || profile.graduation_year) && (
+              <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                {[profile.institution_name, profile.graduation_year].filter(Boolean).join(' · ')}
+              </p>
+            )}
+          </div>
+        )}
+
         {(isOwner || videos.length > 0) && (
         <div style={{ marginTop: 36 }}>
           {!isOwner && videos.length > 0 && (
