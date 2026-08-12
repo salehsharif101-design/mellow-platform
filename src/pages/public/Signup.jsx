@@ -11,6 +11,7 @@ export default function Signup() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [existingAccountType, setExistingAccountType] = useState(null)
   const [loading, setLoading] = useState(false)
   const [needsConfirmation, setNeedsConfirmation] = useState(false)
 
@@ -20,8 +21,24 @@ export default function Signup() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    setExistingAccountType(null)
     setLoading(true)
     try {
+      // Supabase's signUp returns a fake "success" for an email that's
+      // already registered (an anti-enumeration measure), with no way to
+      // tell what kind of account it is — so check first and give a real,
+      // specific error instead of silently pretending to succeed.
+      const checkRes = await fetch('/api/check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const checkData = await checkRes.json()
+      if (checkRes.ok && checkData.exists) {
+        setExistingAccountType(checkData.userType)
+        return
+      }
+
       const data = await signUp({ email, password, userType })
       if (userType === 'candidate') {
         notify('signup-welcome', { userId: data.user.id })
@@ -94,7 +111,10 @@ export default function Signup() {
             type="email"
             required
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              setExistingAccountType(null)
+            }}
           />
         </div>
         <div className="field">
@@ -109,6 +129,19 @@ export default function Signup() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
+        {existingAccountType && (
+          <p className="form-error">
+            This email is already registered as {existingAccountType === 'employer' ? 'an employer' : 'a talent'}.
+            {' '}Please{' '}
+            <Link
+              to={`/login?type=${existingAccountType}`}
+              style={{ color: 'inherit', textDecoration: 'underline', fontWeight: 600 }}
+            >
+              sign in
+            </Link>
+            {' '}instead.
+          </p>
+        )}
         {error && <p className="form-error">{error}</p>}
         <button className="btn btn-primary" type="submit" disabled={loading}>
           {loading ? 'Creating account…' : 'Create account'}
