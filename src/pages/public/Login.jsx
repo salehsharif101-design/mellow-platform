@@ -147,6 +147,13 @@ export default function Login() {
         </button>
       </form>
 
+      <Link
+        to={`/login?type=${type === 'employer' ? 'candidate' : 'employer'}`}
+        style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: 13, padding: 0, marginTop: 6, cursor: 'pointer', display: 'inline-block', textDecoration: 'none' }}
+      >
+        {type === 'employer' ? 'Want to sign in as a talent?' : 'Want to sign in as an employer?'}
+      </Link>
+
       <p style={{ marginTop: 20, fontSize: 14, color: 'var(--color-text-muted)' }}>
         New to Mellow?{' '}
         <Link to={`/signup?type=${type}`} style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
