@@ -234,6 +234,8 @@ function BasicsSection({ profile, onUpdated }) {
   const [currentCompany, setCurrentCompany] = useState(profile.current_company || '')
   const [location, setLocation] = useState(profile.location || '')
   const [bio, setBio] = useState(profile.bio || '')
+  const [threeWords, setThreeWords] = useState(profile.three_words || '')
+  const [proudOf, setProudOf] = useState(profile.proud_of || '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saved, flash] = useSavedFlash()
@@ -250,6 +252,8 @@ function BasicsSection({ profile, onUpdated }) {
         current_company: currentCompany.trim() || null,
         location: location.trim(),
         bio: bio.trim(),
+        three_words: threeWords.trim() || null,
+        proud_of: proudOf.trim() || null,
       })
       .eq('id', profile.id)
       .select()
@@ -290,6 +294,25 @@ function BasicsSection({ profile, onUpdated }) {
         <div className="field">
           <label>Bio</label>
           <textarea className="input" rows={4} value={bio} onChange={(e) => setBio(e.target.value)} required />
+        </div>
+        <div className="field">
+          <label>Known for (optional)</label>
+          <input
+            className="input"
+            value={threeWords}
+            onChange={(e) => setThreeWords(e.target.value)}
+            placeholder="e.g. curious, reliable, creative"
+          />
+        </div>
+        <div className="field">
+          <label>What I'm most proud of (optional)</label>
+          <textarea
+            className="input"
+            rows={3}
+            value={proudOf}
+            onChange={(e) => setProudOf(e.target.value)}
+            placeholder="Could be work, could be personal — anything that matters to you"
+          />
         </div>
         {error && <p className="form-error">{error}</p>}
         <SaveButton saving={saving} saved={saved} />

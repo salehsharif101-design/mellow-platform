@@ -90,6 +90,7 @@ export default function EmployerEditProfile() {
           <LogoSection profile={profile} onUpdated={setProfile} />
           <CompanyInfoSection profile={profile} onUpdated={setProfile} />
           <AboutSection profile={profile} onUpdated={setProfile} />
+          <CultureSection profile={profile} onUpdated={setProfile} />
           <HighlightSection profile={profile} onUpdated={setProfile} />
           <TypicalRolesSection profile={profile} onUpdated={setProfile} />
           <LinksSection profile={profile} onUpdated={setProfile} />
@@ -322,6 +323,51 @@ function AboutSection({ profile, onUpdated }) {
           <p style={{ marginTop: 4, fontSize: 12, color: 'var(--color-text-muted)' }}>
             {about.length}/{MAX_ABOUT_LENGTH}
           </p>
+        </div>
+        {error && <p className="form-error">{error}</p>}
+        <SaveButton saving={saving} saved={saved} />
+      </form>
+    </section>
+  )
+}
+
+function CultureSection({ profile, onUpdated }) {
+  const [cultureDescription, setCultureDescription] = useState(profile.culture_description || '')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [saved, flash] = useSavedFlash()
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    const { data, error: saveError } = await supabase
+      .from('employer_profiles')
+      .update({ culture_description: cultureDescription.trim() || null })
+      .eq('user_id', profile.user_id)
+      .select()
+      .single()
+    if (saveError) setError(saveError.message)
+    else {
+      onUpdated(data)
+      flash()
+    }
+    setSaving(false)
+  }
+
+  return (
+    <section>
+      <h3 style={{ fontSize: 16, marginBottom: 12 }}>Company culture</h3>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
+        <div className="field">
+          <label>What's it like to work here?</label>
+          <textarea
+            className="input"
+            rows={4}
+            value={cultureDescription}
+            onChange={(e) => setCultureDescription(e.target.value)}
+            placeholder="What's it like to work here?"
+          />
         </div>
         {error && <p className="form-error">{error}</p>}
         <SaveButton saving={saving} saved={saved} />
