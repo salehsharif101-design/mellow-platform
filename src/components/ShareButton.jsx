@@ -56,6 +56,7 @@ export default function ShareButton({ url, label = 'Share', size = 17 }) {
             transform: 'translateX(-50%)',
             background: 'var(--color-text)',
             color: 'var(--color-bg)',
+            fontFamily: 'var(--font-body)',
             fontSize: 12,
             fontWeight: 600,
             padding: '4px 9px',
