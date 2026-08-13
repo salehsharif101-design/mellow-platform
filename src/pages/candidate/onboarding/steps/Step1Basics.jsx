@@ -3,11 +3,13 @@ import { useState } from 'react'
 const AVAILABILITY_OPTIONS = ['Immediately', 'Within a month', '1 to 3 months', 'Just exploring']
 const WORK_STYLE_OPTIONS = ['Remote', 'Hybrid', 'On-site']
 const EDUCATION_LEVELS = ['High School', 'Diploma', "Bachelor's", "Master's", 'PhD', 'Self-taught', 'Other']
+const YEARS_OF_EXPERIENCE_OPTIONS = ['Less than 1 year', '1-3 years', '3-5 years', '5-10 years', '10+ years']
 
 export default function Step1Basics({ initial, onContinue, saving }) {
   const [fullName, setFullName] = useState(initial.full_name || '')
   const [jobTitle, setJobTitle] = useState(initial.job_title || '')
   const [currentCompany, setCurrentCompany] = useState(initial.current_company || '')
+  const [yearsOfExperience, setYearsOfExperience] = useState(initial.years_of_experience || '')
   const [location, setLocation] = useState(initial.location || '')
   const [bio, setBio] = useState(initial.bio || '')
   const [threeWords, setThreeWords] = useState(initial.three_words || '')
@@ -32,6 +34,7 @@ export default function Step1Basics({ initial, onContinue, saving }) {
       full_name: fullName.trim(),
       job_title: jobTitle.trim(),
       current_company: currentCompany.trim() || null,
+      years_of_experience: yearsOfExperience || null,
       location: location.trim(),
       bio: bio.trim(),
       three_words: threeWords.trim() || null,
@@ -78,6 +81,22 @@ export default function Step1Basics({ initial, onContinue, saving }) {
           onChange={(e) => setCurrentCompany(e.target.value)}
           placeholder="e.g. Google, Freelance, Between roles"
         />
+      </div>
+      <div className="field">
+        <label htmlFor="years_of_experience">Years of experience (optional)</label>
+        <select
+          id="years_of_experience"
+          className="input"
+          value={yearsOfExperience}
+          onChange={(e) => setYearsOfExperience(e.target.value)}
+        >
+          <option value="">Select…</option>
+          {YEARS_OF_EXPERIENCE_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="field">
         <label htmlFor="location">Location (city)</label>

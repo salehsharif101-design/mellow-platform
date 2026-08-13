@@ -53,7 +53,7 @@ export default function TalentFeed() {
           supabase
             .from('candidate_profiles')
             .select(
-              'id, username, full_name, job_title, current_company, location, skills, availability, work_style, intro_video_url, avatar_url',
+              'id, username, full_name, job_title, current_company, years_of_experience, location, skills, availability, work_style, intro_video_url, avatar_url',
             )
             .eq('is_live', true)
             .eq('is_open_to_opportunities', true)
@@ -286,6 +286,11 @@ export default function TalentFeed() {
                 <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 2 }}>
                   {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title} · {c.location}
                 </p>
+                {c.years_of_experience && (
+                  <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                    {c.years_of_experience} experience
+                  </p>
+                )}
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
                   {c.availability && (
                     <span className="tag" style={{ display: 'inline-flex', fontSize: 12, background: 'var(--color-bg-soft)' }}>

@@ -133,6 +133,7 @@ export default function PublicProfile() {
               </div>
               <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>
                 {profile.current_company ? `${profile.job_title} at ${profile.current_company}` : profile.job_title} · {profile.location}
+                {profile.years_of_experience && ` · ${profile.years_of_experience}`}
               </p>
               {profile.work_style?.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>

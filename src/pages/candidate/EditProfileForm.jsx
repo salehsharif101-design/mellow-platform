@@ -9,6 +9,7 @@ import { deleteAccount } from '../../lib/deleteAccount.js'
 const MAX_SKILLS = 10
 const PROFICIENCIES = ['basic', 'conversational', 'fluent', 'native']
 const EDUCATION_LEVELS = ['High School', 'Diploma', "Bachelor's", "Master's", 'PhD', 'Self-taught', 'Other']
+const YEARS_OF_EXPERIENCE_OPTIONS = ['Less than 1 year', '1-3 years', '3-5 years', '5-10 years', '10+ years']
 const AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
 const VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm']
@@ -232,6 +233,7 @@ function BasicsSection({ profile, onUpdated }) {
   const [fullName, setFullName] = useState(profile.full_name || '')
   const [jobTitle, setJobTitle] = useState(profile.job_title || '')
   const [currentCompany, setCurrentCompany] = useState(profile.current_company || '')
+  const [yearsOfExperience, setYearsOfExperience] = useState(profile.years_of_experience || '')
   const [location, setLocation] = useState(profile.location || '')
   const [bio, setBio] = useState(profile.bio || '')
   const [threeWords, setThreeWords] = useState(profile.three_words || '')
@@ -250,6 +252,7 @@ function BasicsSection({ profile, onUpdated }) {
         full_name: fullName.trim(),
         job_title: jobTitle.trim(),
         current_company: currentCompany.trim() || null,
+        years_of_experience: yearsOfExperience || null,
         location: location.trim(),
         bio: bio.trim(),
         three_words: threeWords.trim() || null,
@@ -286,6 +289,17 @@ function BasicsSection({ profile, onUpdated }) {
             onChange={(e) => setCurrentCompany(e.target.value)}
             placeholder="e.g. Google, Freelance, Between roles"
           />
+        </div>
+        <div className="field">
+          <label>Years of experience (optional)</label>
+          <select className="input" value={yearsOfExperience} onChange={(e) => setYearsOfExperience(e.target.value)}>
+            <option value="">Select…</option>
+            {YEARS_OF_EXPERIENCE_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="field">
           <label>Location (city)</label>
