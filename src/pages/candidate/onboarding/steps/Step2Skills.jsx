@@ -124,7 +124,7 @@ export default function Step2Skills({ initial, onContinue, onBack, saving }) {
       </div>
 
       <div className="field">
-        <label htmlFor="skill-input">Don't see it? Add your own</label>
+        <label htmlFor="skill-input">Don't see it? Type your skill and press Enter to add it</label>
         <input
           id="skill-input"
           className="input"
