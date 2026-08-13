@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { formatDeadline, formatSalary, formatResponseRate } from '../../lib/roleFormat.js'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
@@ -8,7 +7,6 @@ import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
 
 export default function CompanyProfile() {
   const { slug } = useParams()
-  const { user } = useAuth()
 
   const [company, setCompany] = useState(null)
   const [roles, setRoles] = useState([])
@@ -51,8 +49,6 @@ export default function CompanyProfile() {
     }
     load()
   }, [slug])
-
-  const isOwner = user && company && user.id === company.user_id
 
   async function shareProfile() {
     const url = `https://beta.joinmellow.xyz/company/${slug}`
@@ -117,16 +113,14 @@ export default function CompanyProfile() {
                     size={17}
                   />
                 </h1>
-                {isOwner && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    style={{ padding: '6px 14px', fontSize: 13 }}
-                    onClick={shareProfile}
-                  >
-                    {linkCopied ? 'Link copied!' : 'Share profile'}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  style={{ padding: '6px 14px', fontSize: 13 }}
+                  onClick={shareProfile}
+                >
+                  {linkCopied ? 'Link copied!' : 'Share profile'}
+                </button>
               </div>
               {sizeLine && <p style={{ marginTop: 4, fontSize: 14, color: 'var(--color-text-muted)' }}>{sizeLine}</p>}
               {responseLabel && (

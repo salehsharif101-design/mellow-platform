@@ -26,6 +26,7 @@ export default function RolePublic() {
   const [applying, setApplying] = useState(false)
   const [error, setError] = useState('')
   const [responseLabel, setResponseLabel] = useState(null)
+  const [linkCopied, setLinkCopied] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -120,6 +121,29 @@ export default function RolePublic() {
     navigate('/signup')
   }
 
+  async function shareRole() {
+    const url = `https://beta.joinmellow.xyz/jobs/${slug}`
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      // Clipboard API unavailable or blocked (older browser, denied permission,
+      // non-trusted context) — fall back to the legacy selection-based copy.
+      const textarea = document.createElement('textarea')
+      textarea.value = url
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      try {
+        document.execCommand('copy')
+      } finally {
+        document.body.removeChild(textarea)
+      }
+    }
+    setLinkCopied(true)
+    setTimeout(() => setLinkCopied(false), 2000)
+  }
+
   if (loading) return null
 
   if (redirectSlug) {
@@ -151,44 +175,49 @@ export default function RolePublic() {
   return (
     <div className="section">
       <div className="card" style={{ padding: 32, maxWidth: 640, margin: '0 auto' }}>
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-          {employer?.logo_url && (
-            employer.company_slug ? (
-              <Link to={`/company/${employer.company_slug}`}>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+            {employer?.logo_url && (
+              employer.company_slug ? (
+                <Link to={`/company/${employer.company_slug}`}>
+                  <img
+                    src={employer.logo_url}
+                    alt=""
+                    style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 10, background: 'var(--color-bg-soft)', flexShrink: 0 }}
+                  />
+                </Link>
+              ) : (
                 <img
                   src={employer.logo_url}
                   alt=""
                   style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 10, background: 'var(--color-bg-soft)', flexShrink: 0 }}
                 />
-              </Link>
-            ) : (
-              <img
-                src={employer.logo_url}
-                alt=""
-                style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 10, background: 'var(--color-bg-soft)', flexShrink: 0 }}
-              />
-            )
-          )}
-          <div>
-            {employer?.company_name && (
-              <p style={{ fontSize: 14, color: 'var(--color-text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                {employer.company_slug ? (
-                  <Link to={`/company/${employer.company_slug}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-                    {employer.company_name}
-                  </Link>
-                ) : (
-                  employer.company_name
-                )}
-                <CompanyLinkIcons
-                  linkedinUrl={employer.linkedin_url}
-                  websiteUrl={employer.website_url}
-                  label={employer.company_name}
-                  size={15}
-                />
-              </p>
+              )
             )}
-            <h1 style={{ fontSize: 26, marginTop: 2 }}>{role.title}</h1>
+            <div>
+              {employer?.company_name && (
+                <p style={{ fontSize: 14, color: 'var(--color-text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {employer.company_slug ? (
+                    <Link to={`/company/${employer.company_slug}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                      {employer.company_name}
+                    </Link>
+                  ) : (
+                    employer.company_name
+                  )}
+                  <CompanyLinkIcons
+                    linkedinUrl={employer.linkedin_url}
+                    websiteUrl={employer.website_url}
+                    label={employer.company_name}
+                    size={15}
+                  />
+                </p>
+              )}
+              <h1 style={{ fontSize: 26, marginTop: 2 }}>{role.title}</h1>
+            </div>
           </div>
+          <button type="button" className="btn btn-ghost" onClick={shareRole} style={{ flexShrink: 0 }}>
+            {linkCopied ? 'Link copied!' : 'Share role'}
+          </button>
         </div>
 
         {employer?.about && (
