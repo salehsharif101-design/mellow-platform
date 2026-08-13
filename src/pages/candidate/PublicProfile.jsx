@@ -8,6 +8,7 @@ import CalendlyModal from '../../components/CalendlyModal.jsx'
 import MessageThread from '../../components/MessageThread.jsx'
 import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
 import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
+import ShareButton from '../../components/ShareButton.jsx'
 import { notify } from '../../lib/notify.js'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -24,7 +25,6 @@ export default function PublicProfile() {
   const [showCalendly, setShowCalendly] = useState(false)
   const [showContact, setShowContact] = useState(false)
   const [showAddVideo, setShowAddVideo] = useState(false)
-  const [linkCopied, setLinkCopied] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -64,29 +64,6 @@ export default function PublicProfile() {
   }, [username])
 
   const isOwner = user && profile && user.id === profile.user_id
-
-  async function shareProfile() {
-    const url = `https://beta.joinmellow.xyz/profile/${profile.username || profile.id}`
-    try {
-      await navigator.clipboard.writeText(url)
-    } catch {
-      // Clipboard API unavailable or blocked (older browser, denied permission,
-      // non-trusted context) — fall back to the legacy selection-based copy.
-      const textarea = document.createElement('textarea')
-      textarea.value = url
-      textarea.style.position = 'fixed'
-      textarea.style.opacity = '0'
-      document.body.appendChild(textarea)
-      textarea.select()
-      try {
-        document.execCommand('copy')
-      } finally {
-        document.body.removeChild(textarea)
-      }
-    }
-    setLinkCopied(true)
-    setTimeout(() => setLinkCopied(false), 2000)
-  }
 
   useEffect(() => {
     // Only employer views count toward the "profile views" stat shown on the
@@ -149,17 +126,10 @@ export default function PublicProfile() {
                     label={profile.full_name}
                     size={17}
                   />
+                  {(isOwner || isEmployerViewer) && (
+                    <ShareButton url={`https://beta.joinmellow.xyz/profile/${profile.username || profile.id}`} label="Share profile" />
+                  )}
                 </h1>
-                {isOwner && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    style={{ padding: '6px 14px', fontSize: 13, position: 'relative' }}
-                    onClick={shareProfile}
-                  >
-                    {linkCopied ? 'Link copied!' : 'Share profile'}
-                  </button>
-                )}
               </div>
               <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>
                 {profile.current_company ? `${profile.job_title} at ${profile.current_company}` : profile.job_title} · {profile.location}

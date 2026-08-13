@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import ShareButton from '../../components/ShareButton.jsx'
 
 export default function EmployerDashboard() {
   const { user } = useAuth()
@@ -78,14 +79,17 @@ export default function EmployerDashboard() {
     <div className="section">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <h1 style={{ fontSize: 28 }}>{employer.company_name} dashboard</h1>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <Link to="/employer/profile/edit" className="btn btn-primary">
             Edit profile
           </Link>
           {employer.company_slug && (
-            <Link to={`/company/${employer.company_slug}`} className="btn btn-ghost">
-              View Profile
-            </Link>
+            <>
+              <Link to={`/company/${employer.company_slug}`} className="btn btn-ghost">
+                View Profile
+              </Link>
+              <ShareButton url={`https://beta.joinmellow.xyz/company/${employer.company_slug}`} label="Share profile" />
+            </>
           )}
         </div>
       </div>

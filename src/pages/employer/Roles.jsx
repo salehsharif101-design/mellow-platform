@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase.js'
 import EditRoleModal from '../../components/EditRoleModal.jsx'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
+import ShareButton from '../../components/ShareButton.jsx'
 
 const STATUSES = ['open', 'paused', 'closed']
 const STATUS_LABELS = { open: 'Open', paused: 'Paused', closed: 'Closed' }
@@ -24,7 +25,6 @@ export default function EmployerRoles() {
   const [updatingStatusId, setUpdatingStatusId] = useState(null)
   const [editingRole, setEditingRole] = useState(null)
   const [deletingRole, setDeletingRole] = useState(null)
-  const [copiedRoleId, setCopiedRoleId] = useState(null)
 
   useEffect(() => {
     if (!user) return
@@ -99,29 +99,6 @@ export default function EmployerRoles() {
       setRoles((prev) => prev.map((r) => (r.id === role.id ? data : r)))
     }
     setUpdatingStatusId(null)
-  }
-
-  async function shareRole(role) {
-    const url = `https://beta.joinmellow.xyz/jobs/${role.slug}`
-    try {
-      await navigator.clipboard.writeText(url)
-    } catch {
-      // Clipboard API unavailable or blocked (older browser, denied permission,
-      // non-trusted context) — fall back to the legacy selection-based copy.
-      const textarea = document.createElement('textarea')
-      textarea.value = url
-      textarea.style.position = 'fixed'
-      textarea.style.opacity = '0'
-      document.body.appendChild(textarea)
-      textarea.select()
-      try {
-        document.execCommand('copy')
-      } finally {
-        document.body.removeChild(textarea)
-      }
-    }
-    setCopiedRoleId(role.id)
-    setTimeout(() => setCopiedRoleId((prev) => (prev === role.id ? null : prev)), 2000)
   }
 
   async function handleDelete(role) {
@@ -200,10 +177,8 @@ export default function EmployerRoles() {
                   </p>
                 </div>
 
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-                  <button type="button" className="btn btn-ghost" onClick={() => shareRole(role)}>
-                    {copiedRoleId === role.id ? 'Link copied!' : 'Share role'}
-                  </button>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <ShareButton url={`https://beta.joinmellow.xyz/jobs/${role.slug}`} label="Share role" />
                   <select
                     className="input"
                     value={role.status}

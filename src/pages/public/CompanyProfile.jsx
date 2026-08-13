@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase.js'
 import { formatDeadline, formatSalary, formatResponseRate } from '../../lib/roleFormat.js'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
+import ShareButton from '../../components/ShareButton.jsx'
 
 export default function CompanyProfile() {
   const { slug } = useParams()
@@ -13,7 +14,6 @@ export default function CompanyProfile() {
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(true)
   const [responseLabel, setResponseLabel] = useState(null)
-  const [linkCopied, setLinkCopied] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -49,29 +49,6 @@ export default function CompanyProfile() {
     }
     load()
   }, [slug])
-
-  async function shareProfile() {
-    const url = `https://beta.joinmellow.xyz/company/${slug}`
-    try {
-      await navigator.clipboard.writeText(url)
-    } catch {
-      // Clipboard API unavailable or blocked (older browser, denied permission,
-      // non-trusted context) — fall back to the legacy selection-based copy.
-      const textarea = document.createElement('textarea')
-      textarea.value = url
-      textarea.style.position = 'fixed'
-      textarea.style.opacity = '0'
-      document.body.appendChild(textarea)
-      textarea.select()
-      try {
-        document.execCommand('copy')
-      } finally {
-        document.body.removeChild(textarea)
-      }
-    }
-    setLinkCopied(true)
-    setTimeout(() => setLinkCopied(false), 2000)
-  }
 
   if (loading) return null
 
@@ -112,15 +89,8 @@ export default function CompanyProfile() {
                     label={company.company_name}
                     size={17}
                   />
+                  <ShareButton url={`https://beta.joinmellow.xyz/company/${slug}`} label="Share profile" />
                 </h1>
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  style={{ padding: '6px 14px', fontSize: 13 }}
-                  onClick={shareProfile}
-                >
-                  {linkCopied ? 'Link copied!' : 'Share profile'}
-                </button>
               </div>
               {sizeLine && <p style={{ marginTop: 4, fontSize: 14, color: 'var(--color-text-muted)' }}>{sizeLine}</p>}
               {responseLabel && (

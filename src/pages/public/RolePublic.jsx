@@ -6,6 +6,7 @@ import { notify } from '../../lib/notify.js'
 import { formatDeadline, formatSalary, formatResponseRate } from '../../lib/roleFormat.js'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
+import ShareButton from '../../components/ShareButton.jsx'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -26,7 +27,6 @@ export default function RolePublic() {
   const [applying, setApplying] = useState(false)
   const [error, setError] = useState('')
   const [responseLabel, setResponseLabel] = useState(null)
-  const [linkCopied, setLinkCopied] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -121,29 +121,6 @@ export default function RolePublic() {
     navigate('/signup')
   }
 
-  async function shareRole() {
-    const url = `https://beta.joinmellow.xyz/jobs/${slug}`
-    try {
-      await navigator.clipboard.writeText(url)
-    } catch {
-      // Clipboard API unavailable or blocked (older browser, denied permission,
-      // non-trusted context) — fall back to the legacy selection-based copy.
-      const textarea = document.createElement('textarea')
-      textarea.value = url
-      textarea.style.position = 'fixed'
-      textarea.style.opacity = '0'
-      document.body.appendChild(textarea)
-      textarea.select()
-      try {
-        document.execCommand('copy')
-      } finally {
-        document.body.removeChild(textarea)
-      }
-    }
-    setLinkCopied(true)
-    setTimeout(() => setLinkCopied(false), 2000)
-  }
-
   if (loading) return null
 
   if (redirectSlug) {
@@ -215,9 +192,7 @@ export default function RolePublic() {
               <h1 style={{ fontSize: 26, marginTop: 2 }}>{role.title}</h1>
             </div>
           </div>
-          <button type="button" className="btn btn-ghost" onClick={shareRole} style={{ flexShrink: 0 }}>
-            {linkCopied ? 'Link copied!' : 'Share role'}
-          </button>
+          <ShareButton url={`https://beta.joinmellow.xyz/jobs/${slug}`} label="Share role" />
         </div>
 
         {employer?.about && (
