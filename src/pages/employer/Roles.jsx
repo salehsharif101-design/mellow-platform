@@ -171,10 +171,13 @@ export default function EmployerRoles() {
                     {role.location} · {role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')} · Posted{' '}
                     {new Date(role.created_at).toLocaleDateString()}
                   </p>
-                  <p style={{ fontSize: 14, marginTop: 6 }}>
-                    <strong>{applicationCounts[role.id] || 0}</strong> application
-                    {(applicationCounts[role.id] || 0) === 1 ? '' : 's'}
-                  </p>
+                  <Link
+                    to={`/employer/roles/${role.id}/applicants`}
+                    style={{ display: 'inline-block', marginTop: 6, fontSize: 14, color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}
+                  >
+                    {applicationCounts[role.id] || 0} applicant
+                    {(applicationCounts[role.id] || 0) === 1 ? '' : 's'} →
+                  </Link>
                 </div>
 
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>

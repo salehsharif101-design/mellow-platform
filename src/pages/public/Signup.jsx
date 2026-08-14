@@ -3,6 +3,12 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { notify } from '../../lib/notify.js'
 
+const PASSWORD_REQUIREMENT_MESSAGE = 'Password must be at least 8 characters and include a number or special character'
+
+function isStrongPassword(password) {
+  return password.length >= 8 && /[0-9\W]/.test(password)
+}
+
 export default function Signup() {
   const [searchParams] = useSearchParams()
   const initialType = searchParams.get('type') === 'employer' ? 'employer' : searchParams.get('type') === 'candidate' ? 'candidate' : null
@@ -22,6 +28,12 @@ export default function Signup() {
     e.preventDefault()
     setError('')
     setExistingAccountType(null)
+
+    if (!isStrongPassword(password)) {
+      setError(PASSWORD_REQUIREMENT_MESSAGE)
+      return
+    }
+
     setLoading(true)
     try {
       // Supabase's signUp returns a fake "success" for an email that's
@@ -124,10 +136,13 @@ export default function Signup() {
             className="input"
             type="password"
             required
-            minLength={6}
+            minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+          <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+            At least 8 characters, including a number or special character.
+          </p>
         </div>
         {existingAccountType && (
           <p className="form-error">

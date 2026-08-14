@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
@@ -10,6 +10,7 @@ import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 
 export default function BrowseRoles() {
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   const [candidateId, setCandidateId] = useState(null)
   const [roles, setRoles] = useState([])
@@ -19,6 +20,7 @@ export default function BrowseRoles() {
   const [applyingId, setApplyingId] = useState(null)
   const [needsVideoRoleId, setNeedsVideoRoleId] = useState(null)
   const [videoModalEmployer, setVideoModalEmployer] = useState(null)
+  const [expandedIds, setExpandedIds] = useState(new Set())
 
   useEffect(() => {
     if (!user) return
@@ -47,7 +49,7 @@ export default function BrowseRoles() {
           supabase
             .from('roles')
             .select(
-              'id, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, employer_profiles!inner(company_name, company_slug, industry, company_size, culture_description, company_highlight, logo_url, intro_video_url, is_visible)',
+              'id, slug, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, employer_profiles!inner(company_name, company_slug, industry, company_size, culture_description, company_highlight, logo_url, intro_video_url, is_visible)',
             )
             .eq('is_active', true)
             .eq('employer_profiles.is_visible', true)
@@ -136,13 +138,23 @@ export default function BrowseRoles() {
             const cultureShort = culture && culture.length > 60 ? `${culture.slice(0, 60).trim()}…` : culture
             const deadlineLabel = formatDeadline(role.deadline)
             const salaryLabel = formatSalary(role)
+            const expanded = expandedIds.has(role.id)
             return (
-              <div key={role.id} className="card" style={{ padding: 24 }}>
+              <div
+                key={role.id}
+                className="card"
+                style={{ padding: 24, cursor: 'pointer' }}
+                onClick={() => navigate(`/jobs/${role.slug}`)}
+              >
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', gap: 14 }}>
                     {employer?.logo_url && (
                       employer.company_slug ? (
-                        <Link to={`/company/${employer.company_slug}`} style={{ flexShrink: 0 }}>
+                        <Link
+                          to={`/company/${employer.company_slug}`}
+                          style={{ flexShrink: 0 }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <img
                             src={employer.logo_url}
                             alt=""
@@ -161,7 +173,11 @@ export default function BrowseRoles() {
                       <h3 style={{ fontSize: 19 }}>{role.title}</h3>
                       <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
                         {employer?.company_slug ? (
-                          <Link to={`/company/${employer.company_slug}`} style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}>
+                          <Link
+                            to={`/company/${employer.company_slug}`}
+                            style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             {employer?.company_name}
                           </Link>
                         ) : (
@@ -198,7 +214,10 @@ export default function BrowseRoles() {
                             type="button"
                             className="tag"
                             style={{ fontSize: 12, border: 'none', cursor: 'pointer', background: '#005ef5', color: '#ffffff' }}
-                            onClick={() => setVideoModalEmployer(employer)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setVideoModalEmployer(employer)
+                            }}
                           >
                             <span style={{ fontSize: 9 }} aria-hidden="true">▶</span>
                             See the team
@@ -216,13 +235,61 @@ export default function BrowseRoles() {
                     type="button"
                     className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
                     disabled={applied || applyingId === role.id}
-                    onClick={() => apply(role.id)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      apply(role.id)
+                    }}
                     style={{ whiteSpace: 'nowrap', height: 'fit-content' }}
                   >
                     {applied ? 'Applied' : applyingId === role.id ? 'Applying…' : 'Apply'}
                   </button>
                 </div>
-                <p style={{ marginTop: 14, fontSize: 15, color: 'var(--color-text-muted)' }}>{role.description}</p>
+                {role.description && (
+                  <div style={{ marginTop: 14 }}>
+                    <p
+                      style={{
+                        fontSize: 15,
+                        color: 'var(--color-text-muted)',
+                        ...(expanded
+                          ? {}
+                          : {
+                              display: '-webkit-box',
+                              WebkitLineClamp: 3,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                            }),
+                      }}
+                    >
+                      {role.description}
+                    </p>
+                    {role.description.length > 180 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setExpandedIds((prev) => {
+                            const next = new Set(prev)
+                            if (next.has(role.id)) next.delete(role.id)
+                            else next.add(role.id)
+                            return next
+                          })
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--color-primary)',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          padding: 0,
+                          marginTop: 4,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {expanded ? 'Show less' : 'Show more'}
+                      </button>
+                    )}
+                  </div>
+                )}
                 {role.what_matters && (
                   <p style={{ marginTop: 10, fontSize: 13, color: 'var(--color-text-muted)' }}>
                     <strong style={{ color: 'var(--color-text)' }}>What matters most: </strong>
@@ -233,6 +300,7 @@ export default function BrowseRoles() {
                   <div
                     className="card"
                     style={{ marginTop: 14, padding: '16px 20px', background: '#fff4e5', border: 'none' }}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <p style={{ fontSize: 14, fontWeight: 600 }}>
                       Please add your profile video before applying. Employers want to meet you first.
