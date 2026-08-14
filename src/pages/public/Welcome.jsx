@@ -1,10 +1,36 @@
+import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Logo from '../../components/Logo.jsx'
+import { useAuth } from '../../context/AuthContext.jsx'
+import { supabase } from '../../lib/supabase.js'
 
 export default function Welcome() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const accountDeleted = searchParams.get('accountDeleted') === '1'
+  const { session, loading: authLoading } = useAuth()
+
+  useEffect(() => {
+    // Logged-in users should never see the landing page — bounce them
+    // straight to their dashboard. Looked up directly rather than via the
+    // AuthContext profile fetch, which can lag behind session by a beat.
+    if (authLoading || !session) return
+    let cancelled = false
+    supabase
+      .from('users')
+      .select('user_type')
+      .eq('id', session.user.id)
+      .single()
+      .then(({ data }) => {
+        if (cancelled) return
+        navigate(data?.user_type === 'employer' ? '/employer/dashboard' : '/dashboard', { replace: true })
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [session, authLoading, navigate])
+
+  if (authLoading || session) return null
 
   return (
     <div

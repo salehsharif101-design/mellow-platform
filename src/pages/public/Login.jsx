@@ -15,6 +15,7 @@ export default function Login() {
   const confirmedParam = searchParams.get('confirmed') === '1'
   const [showConfirmed, setShowConfirmed] = useState(false)
   const [checkingConfirmation, setCheckingConfirmation] = useState(confirmedParam)
+  const [checkingSession, setCheckingSession] = useState(!confirmedParam)
 
   const { signIn } = useAuth()
   const navigate = useNavigate()
@@ -54,7 +55,33 @@ export default function Login() {
     }
   }, [confirmedParam, navigate])
 
-  if (checkingConfirmation) return null
+  useEffect(() => {
+    // Not the confirmation-link flow — but a logged-in user shouldn't see
+    // the login form at all, so bounce them straight to their dashboard.
+    if (confirmedParam) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data } = await supabase.auth.getSession()
+        const existingSession = data.session
+        if (!existingSession) return
+        const { data: row } = await supabase
+          .from('users')
+          .select('user_type')
+          .eq('id', existingSession.user.id)
+          .single()
+        if (cancelled) return
+        navigate(row?.user_type === 'employer' ? '/employer/dashboard' : '/dashboard', { replace: true })
+      } finally {
+        if (!cancelled) setCheckingSession(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [confirmedParam, navigate])
+
+  if (checkingConfirmation || checkingSession) return null
 
   async function handleSubmit(e) {
     e.preventDefault()

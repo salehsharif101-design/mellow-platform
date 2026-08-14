@@ -1,9 +1,12 @@
 import { Link, Outlet } from 'react-router-dom'
 import Logo from './Logo.jsx'
+import UserMenu from './UserMenu.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useNotifications } from '../context/NotificationContext.jsx'
 
 export default function Layout() {
-  const { session, userType, signOut } = useAuth()
+  const { session, userType } = useAuth()
+  const { unreadMessages } = useNotifications()
 
   const dashboardPath = userType === 'employer' ? '/employer/dashboard' : '/dashboard'
   const messagesPath = userType === 'employer' ? '/employer/messages' : '/messages'
@@ -12,7 +15,7 @@ export default function Layout() {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <header className="app-header">
         <div className="app-header-inner">
-          <Link to="/" style={{ textDecoration: 'none' }}>
+          <Link to={session ? dashboardPath : '/'} style={{ textDecoration: 'none' }}>
             <Logo />
           </Link>
           <nav className="app-nav">
@@ -38,12 +41,18 @@ export default function Layout() {
                     Browse Roles
                   </Link>
                 )}
-                <Link to={messagesPath} style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                <Link
+                  to={messagesPath}
+                  style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
                   Messages
+                  {unreadMessages > 0 && (
+                    <span className="notif-badge" aria-label={`${unreadMessages} unread messages`}>
+                      {unreadMessages > 9 ? '9+' : unreadMessages}
+                    </span>
+                  )}
                 </Link>
-                <button className="btn btn-ghost" onClick={signOut}>
-                  Log out
-                </button>
+                <UserMenu />
               </>
             ) : (
               <>

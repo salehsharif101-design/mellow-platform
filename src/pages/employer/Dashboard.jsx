@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { useNotifications } from '../../context/NotificationContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import ShareButton from '../../components/ShareButton.jsx'
 
 export default function EmployerDashboard() {
   const { user } = useAuth()
+  const { newApplications, clearApplicationsBadge } = useNotifications()
   const [employer, setEmployer] = useState(null)
   const [roles, setRoles] = useState([])
   const [applications, setApplications] = useState([])
@@ -56,6 +58,13 @@ export default function EmployerDashboard() {
     load()
   }, [user])
 
+  useEffect(() => {
+    // The dashboard is where "Applications received" lives, so viewing it
+    // is what clears the unread-applications badge.
+    if (!loading && employer) clearApplicationsBadge()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, employer])
+
   if (loading) return null
 
   if (!employer) {
@@ -103,7 +112,14 @@ export default function EmployerDashboard() {
           </Link>
         </div>
         <div className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontSize: 16 }}>Applications received</h3>
+          <h3 style={{ fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+            Applications received
+            {newApplications > 0 && (
+              <span className="notif-badge" aria-label={`${newApplications} new applications`}>
+                {newApplications > 9 ? '9+' : newApplications}
+              </span>
+            )}
+          </h3>
           <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10 }}>{applications.length}</p>
         </div>
         <div className="card" style={{ padding: 24 }}>

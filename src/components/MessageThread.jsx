@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useNotifications } from '../context/NotificationContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { notify } from '../lib/notify.js'
 
 export default function MessageThread({ otherUserId, otherUserLabel }) {
   const { user } = useAuth()
+  const { refresh: refreshNotifications } = useNotifications()
   const [messages, setMessages] = useState([])
   const [body, setBody] = useState('')
   const [loading, setLoading] = useState(true)
@@ -23,13 +25,24 @@ export default function MessageThread({ otherUserId, otherUserLabel }) {
         )
         .order('sent_at', { ascending: true })
 
-      if (fetchError) setError(fetchError.message)
-      else setMessages(data)
+      if (fetchError) {
+        setError(fetchError.message)
+        setLoading(false)
+        return
+      }
+
+      setMessages(data)
       setLoading(false)
+
+      const unreadIds = data.filter((m) => m.recipient_id === user.id && !m.read_at).map((m) => m.id)
+      if (unreadIds.length > 0) {
+        await supabase.from('messages').update({ read_at: new Date().toISOString() }).in('id', unreadIds)
+        refreshNotifications()
+      }
     }
 
     load()
-  }, [user, otherUserId])
+  }, [user, otherUserId, refreshNotifications])
 
   async function handleSend(e) {
     e.preventDefault()

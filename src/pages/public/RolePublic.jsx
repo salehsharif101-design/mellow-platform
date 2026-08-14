@@ -23,6 +23,8 @@ export default function RolePublic() {
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(true)
   const [candidateId, setCandidateId] = useState(null)
+  const [hasIntroVideo, setHasIntroVideo] = useState(true)
+  const [needsVideo, setNeedsVideo] = useState(false)
   const [applied, setApplied] = useState(false)
   const [applying, setApplying] = useState(false)
   const [error, setError] = useState('')
@@ -65,12 +67,13 @@ export default function RolePublic() {
     async function loadCandidate() {
       const { data: candidate } = await supabase
         .from('candidate_profiles')
-        .select('id')
+        .select('id, intro_video_url')
         .eq('user_id', user.id)
         .maybeSingle()
 
       if (!candidate) return
       setCandidateId(candidate.id)
+      setHasIntroVideo(Boolean(candidate.intro_video_url))
 
       const { data: existing } = await supabase
         .from('applications')
@@ -115,6 +118,10 @@ export default function RolePublic() {
 
   function handleCta() {
     if (!authLoading && user && userType === 'candidate') {
+      if (!hasIntroVideo) {
+        setNeedsVideo(true)
+        return
+      }
       handleApply()
       return
     }
@@ -226,6 +233,20 @@ export default function RolePublic() {
             <strong style={{ color: 'var(--color-text)' }}>What matters most: </strong>
             {role.what_matters}
           </p>
+        )}
+
+        {needsVideo && (
+          <div
+            className="card"
+            style={{ marginTop: 16, padding: '16px 20px', background: '#fff4e5', border: 'none' }}
+          >
+            <p style={{ fontSize: 14, fontWeight: 600 }}>
+              Please add your profile video before applying. Employers want to meet you first.
+            </p>
+            <Link to="/profile/edit" className="btn btn-primary" style={{ marginTop: 12, display: 'inline-flex' }}>
+              Add your profile video
+            </Link>
+          </div>
         )}
 
         {error && <p className="form-error" style={{ marginTop: 16 }}>{error}</p>}
