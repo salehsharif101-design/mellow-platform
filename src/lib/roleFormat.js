@@ -25,3 +25,12 @@ export function formatResponseRate(avgHours, responseCount) {
   if (avgHours < 24) return 'Usually responds within a day'
   return 'Usually responds within a few days'
 }
+
+// Candidates never see the internal "reviewing"/"rejected" statuses used by
+// employers — a rejection is only visible to a candidate if the employer
+// separately chooses to send a rejection email, never as a dashboard label.
+export function getCandidateStatusLabel(status) {
+  if (status === 'shortlisted') return 'Shortlisted'
+  if (status === 'applied') return 'Applied'
+  return 'Under review'
+}

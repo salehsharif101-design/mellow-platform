@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotifications } from '../../context/NotificationContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import ShareButton from '../../components/ShareButton.jsx'
+import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 
 export default function EmployerDashboard() {
   const { user } = useAuth()
@@ -41,7 +42,7 @@ export default function EmployerDashboard() {
       if (roleIds.length > 0) {
         const { data: apps } = await supabase
           .from('applications')
-          .select('id, status, role_id, candidate_profiles(id, username, full_name)')
+          .select('id, status, role_id, candidate_profiles(id, username, full_name, avatar_url, job_title)')
           .in('role_id', roleIds)
         setApplications(apps || [])
       }
@@ -83,6 +84,8 @@ export default function EmployerDashboard() {
     role,
     applications: applications.filter((a) => a.role_id === role.id),
   }))
+
+  const rejectedApplications = applications.filter((a) => a.status === 'rejected')
 
   return (
     <div className="section">
@@ -158,6 +161,30 @@ export default function EmployerDashboard() {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {rejectedApplications.length > 0 && (
+        <div style={{ marginTop: 36 }}>
+          <h3 style={{ fontSize: 18, marginBottom: 14 }}>Rejected candidates</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {rejectedApplications.map((a) => {
+              const c = a.candidate_profiles
+              if (!c) return null
+              return (
+                <div key={a.id} className="card" style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={40} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: 600, fontSize: 14 }}>{c.full_name}</p>
+                    {c.job_title && <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{c.job_title}</p>}
+                  </div>
+                  <Link to={`/profile/${c.username || c.id}`} className="btn btn-ghost">
+                    View profile
+                  </Link>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

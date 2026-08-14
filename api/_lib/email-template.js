@@ -39,7 +39,9 @@ export function renderEmailHtml({
                 <p style="margin:0;font-size:15px;line-height:1.6;color:#444444;">${bodyText}</p>
               </td>
             </tr>
-            <tr>
+            ${
+              ctaLabel && ctaUrl
+                ? `<tr>
               <td style="padding-bottom:40px;">
                 <a
                   href="${ctaUrl}"
@@ -47,7 +49,9 @@ export function renderEmailHtml({
                   >${ctaLabel}</a
                 >
               </td>
-            </tr>
+            </tr>`
+                : ''
+            }
             <tr>
               <td style="border-top:1px solid #eeeeee;padding-top:20px;">
                 <p style="margin:0;font-size:12px;color:#999999;">Mellow &middot; ${footerDomain}</p>

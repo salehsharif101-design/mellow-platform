@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { notify } from '../../lib/notify.js'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
 
@@ -18,6 +19,7 @@ export default function RoleApplicants() {
   const [error, setError] = useState('')
   const [updatingId, setUpdatingId] = useState(null)
   const [activeSkills, setActiveSkills] = useState(new Set())
+  const [pendingRejectionId, setPendingRejectionId] = useState(null)
 
   useEffect(() => {
     if (!user) return
@@ -25,7 +27,7 @@ export default function RoleApplicants() {
     async function load() {
       const { data: roleRow, error: roleError } = await supabase
         .from('roles')
-        .select('id, title, employer_profiles!inner(user_id)')
+        .select('id, title, employer_id, employer_profiles!inner(user_id)')
         .eq('id', roleId)
         .eq('employer_profiles.user_id', user.id)
         .maybeSingle()
@@ -73,7 +75,25 @@ export default function RoleApplicants() {
     })
   }
 
+  // The employer's personal shortlist (used by Talent Feed and
+  // /employer/shortlist) is a separate table from an application's status.
+  // Setting an application to "Shortlisted" here — or moving it away from
+  // that status — keeps the shortlist table in sync so both reflect the
+  // same state.
+  async function syncShortlist(candidateId, newStatus, previousStatus) {
+    if (!role?.employer_id || !candidateId) return
+    if (newStatus === 'shortlisted' && previousStatus !== 'shortlisted') {
+      await supabase
+        .from('shortlists')
+        .upsert({ employer_id: role.employer_id, candidate_id: candidateId }, { onConflict: 'employer_id,candidate_id', ignoreDuplicates: true })
+    } else if (previousStatus === 'shortlisted' && newStatus !== 'shortlisted') {
+      await supabase.from('shortlists').delete().eq('employer_id', role.employer_id).eq('candidate_id', candidateId)
+    }
+  }
+
   async function changeStatus(applicationId, status) {
+    const application = applications.find((a) => a.id === applicationId)
+    const previousStatus = application?.status
     setUpdatingId(applicationId)
     const { data, error: updateError } = await supabase
       .from('applications')
@@ -83,8 +103,26 @@ export default function RoleApplicants() {
       .single()
     if (!updateError) {
       setApplications((prev) => prev.map((a) => (a.id === applicationId ? { ...a, status: data.status } : a)))
+      await syncShortlist(application?.candidate_profiles?.id, status, previousStatus)
     }
     setUpdatingId(null)
+  }
+
+  function handleStatusSelect(applicationId, newStatus) {
+    if (newStatus === 'rejected') {
+      setPendingRejectionId(applicationId)
+      return
+    }
+    setPendingRejectionId(null)
+    changeStatus(applicationId, newStatus)
+  }
+
+  async function confirmRejection(applicationId, shouldNotify) {
+    await changeStatus(applicationId, 'rejected')
+    if (shouldNotify) {
+      notify('rejection-notification', { applicationId })
+    }
+    setPendingRejectionId(null)
   }
 
   if (loading) return null
@@ -141,47 +179,75 @@ export default function RoleApplicants() {
                 const c = a.candidate_profiles
                 if (!c) return null
                 return (
-                  <div
-                    key={a.id}
-                    className="card"
-                    style={{ padding: 20, display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}
-                  >
-                    <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={52} />
+                  <div key={a.id} className="card" style={{ padding: 20 }}>
+                    <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={52} />
 
-                    <div style={{ flex: 1, minWidth: 200 }}>
-                      <p style={{ fontWeight: 700, fontSize: 16 }}>{c.full_name}</p>
-                      <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>
-                        {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title}
-                      </p>
-                      {c.skills?.length > 0 && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                          {c.skills.map((s) => (
-                            <span key={s} className="tag" style={{ fontSize: 11 }}>
-                              {s}
-                            </span>
+                      <div style={{ flex: 1, minWidth: 200 }}>
+                        <p style={{ fontWeight: 700, fontSize: 16 }}>{c.full_name}</p>
+                        <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                          {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title}
+                        </p>
+                        {c.skills?.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                            {c.skills.map((s) => (
+                              <span key={s} className="tag" style={{ fontSize: 11 }}>
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                        <select
+                          className="input"
+                          value={pendingRejectionId === a.id ? 'rejected' : a.status}
+                          disabled={updatingId === a.id}
+                          onChange={(e) => handleStatusSelect(a.id, e.target.value)}
+                          style={{ width: 'auto', padding: '8px 12px' }}
+                        >
+                          {STATUSES.map((s) => (
+                            <option key={s} value={s}>
+                              {STATUS_LABELS[s]}
+                            </option>
                           ))}
-                        </div>
-                      )}
+                        </select>
+                        <Link to={`/profile/${c.username || c.id}`} className="btn btn-ghost">
+                          View profile
+                        </Link>
+                      </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-                      <select
-                        className="input"
-                        value={a.status}
-                        disabled={updatingId === a.id}
-                        onChange={(e) => changeStatus(a.id, e.target.value)}
-                        style={{ width: 'auto', padding: '8px 12px' }}
+                    {pendingRejectionId === a.id && (
+                      <div
+                        className="card"
+                        style={{ marginTop: 16, padding: '14px 18px', background: 'var(--color-bg-soft)', border: 'none' }}
                       >
-                        {STATUSES.map((s) => (
-                          <option key={s} value={s}>
-                            {STATUS_LABELS[s]}
-                          </option>
-                        ))}
-                      </select>
-                      <Link to={`/profile/${c.username || c.id}`} className="btn btn-ghost">
-                        View profile
-                      </Link>
-                    </div>
+                        <p style={{ fontSize: 14, fontWeight: 600 }}>
+                          Would you like to notify this candidate that you have decided to move forward with other
+                          candidates?
+                        </p>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            disabled={updatingId === a.id}
+                            onClick={() => confirmRejection(a.id, true)}
+                          >
+                            Yes, send email
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-ghost"
+                            disabled={updatingId === a.id}
+                            onClick={() => confirmRejection(a.id, false)}
+                          >
+                            No
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })}

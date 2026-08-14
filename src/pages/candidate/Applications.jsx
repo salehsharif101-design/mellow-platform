@@ -2,20 +2,21 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { getCandidateStatusLabel } from '../../lib/roleFormat.js'
 import EmptyState from '../../components/EmptyState.jsx'
 
-const STATUS_STYLES = {
-  applied: { background: 'var(--color-bg-soft)', color: 'var(--color-primary)' },
-  shortlisted: { background: '#fff6e0', color: '#8a6100' },
-  contacted: { background: '#eae5ff', color: '#5b3df0' },
-  hired: { background: '#e3f9e9', color: '#0f7a3d' },
+const STATUS_LABEL_STYLES = {
+  Applied: { background: 'var(--color-bg-soft)', color: 'var(--color-primary)' },
+  'Under review': { background: '#fff6e0', color: '#8a6100' },
+  Shortlisted: { background: '#e3f9e9', color: '#0f7a3d' },
 }
 
 function StatusTag({ status }) {
-  const style = STATUS_STYLES[status] || STATUS_STYLES.applied
+  const label = getCandidateStatusLabel(status)
+  const style = STATUS_LABEL_STYLES[label]
   return (
-    <span className="tag" style={{ background: style.background, color: style.color, textTransform: 'capitalize' }}>
-      {status}
+    <span className="tag" style={{ background: style.background, color: style.color }}>
+      {label}
     </span>
   )
 }

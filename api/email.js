@@ -178,6 +178,31 @@ async function sendShortlistNotification(supabase, shortlistId) {
   })
 }
 
+async function sendRejectionNotification(supabase, applicationId) {
+  const application = unwrap(
+    await supabase.from('applications').select('candidate_id, role_id').eq('id', applicationId).single(),
+  )
+  const role = unwrap(
+    await supabase
+      .from('roles')
+      .select('title, employer_profiles(company_name)')
+      .eq('id', application.role_id)
+      .single(),
+  )
+  const { email } = await getCandidateContact(supabase, application.candidate_id)
+  const companyName = role.employer_profiles?.company_name || 'the company'
+
+  return sendEmail({
+    to: email,
+    subject: `Update on your application to ${companyName}`,
+    html: renderEmailHtml({
+      heading: 'Thank you for applying',
+      bodyText: `Thank you for applying to ${role.title} at ${companyName}. After careful consideration we have decided to move forward with other candidates at this time. We appreciate your interest and wish you all the best in your search.`,
+      illustration: 'thinking.png',
+    }),
+  })
+}
+
 async function getCandidateContact(supabase, candidateId) {
   const candidate = unwrap(
     await supabase.from('candidate_profiles').select('user_id, username').eq('id', candidateId).single(),
@@ -298,6 +323,9 @@ export default async function handler(req, res) {
         break
       case 'shortlist-notification':
         await sendShortlistNotification(supabase, body.shortlistId)
+        break
+      case 'rejection-notification':
+        await sendRejectionNotification(supabase, body.applicationId)
         break
       case 'live-notification':
         await sendLiveNotification(supabase, body.candidateId)

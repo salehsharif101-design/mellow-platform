@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotifications } from '../../context/NotificationContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { getCandidateStatusLabel } from '../../lib/roleFormat.js'
 import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
 
 const COMPLETENESS_FIELDS = ['full_name', 'job_title', 'location', 'bio', 'intro_video_url']
@@ -271,7 +272,7 @@ export default function CandidateDashboard() {
                   <p style={{ fontWeight: 600, fontSize: 14 }}>{a.roles?.title}</p>
                   <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{a.roles?.employer_profiles?.company_name}</p>
                 </div>
-                <span className="tag">{a.status}</span>
+                <span className="tag">{getCandidateStatusLabel(a.status)}</span>
               </div>
             ))}
           </div>
