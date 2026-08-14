@@ -121,16 +121,25 @@ export default function RolePublic() {
       // page mounted — a candidate can remove their video (in another tab,
       // or after coming back to a page they'd left open) without this
       // component re-rendering, so the check has to hit the DB at the
-      // moment they actually click Apply.
+      // moment they actually click Apply. Only candidate_profiles.intro_video_url
+      // counts here — candidate_videos (work videos) is a separate table and
+      // is never consulted, intentionally.
       setCheckingVideo(true)
-      const { data: candidate } = await supabase
+      const { data: candidate, error: candidateError } = await supabase
         .from('candidate_profiles')
         .select('intro_video_url')
         .eq('user_id', user.id)
         .maybeSingle()
       setCheckingVideo(false)
 
-      if (!candidate?.intro_video_url?.trim()) {
+      const introVideoUrl = candidate?.intro_video_url
+      console.log('[apply video check] intro_video_url from candidate_profiles:', introVideoUrl, {
+        userId: user.id,
+        candidateError,
+      })
+
+      const missingVideo = introVideoUrl === null || introVideoUrl === undefined || introVideoUrl.trim() === ''
+      if (missingVideo) {
         setNeedsVideo(true)
         return
       }
