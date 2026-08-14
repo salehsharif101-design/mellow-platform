@@ -12,7 +12,7 @@ export default function CandidateAvatar({ avatarUrl, fullName, size = 44, style 
         width: size,
         height: size,
         borderRadius: '50%',
-        background: avatarUrl ? 'var(--color-bg-soft)' : '#005ef5',
+        backgroundColor: avatarUrl ? 'var(--color-bg-soft)' : '#005ef5',
         backgroundImage: avatarUrl ? `url(${avatarUrl})` : 'none',
         backgroundSize: 'cover',
         backgroundPosition: 'center',

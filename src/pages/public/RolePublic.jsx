@@ -23,8 +23,8 @@ export default function RolePublic() {
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(true)
   const [candidateId, setCandidateId] = useState(null)
-  const [hasIntroVideo, setHasIntroVideo] = useState(true)
   const [needsVideo, setNeedsVideo] = useState(false)
+  const [checkingVideo, setCheckingVideo] = useState(false)
   const [applied, setApplied] = useState(false)
   const [applying, setApplying] = useState(false)
   const [error, setError] = useState('')
@@ -67,13 +67,12 @@ export default function RolePublic() {
     async function loadCandidate() {
       const { data: candidate } = await supabase
         .from('candidate_profiles')
-        .select('id, intro_video_url')
+        .select('id')
         .eq('user_id', user.id)
         .maybeSingle()
 
       if (!candidate) return
       setCandidateId(candidate.id)
-      setHasIntroVideo(Boolean(candidate.intro_video_url))
 
       const { data: existing } = await supabase
         .from('applications')
@@ -116,12 +115,26 @@ export default function RolePublic() {
     setApplying(false)
   }
 
-  function handleCta() {
+  async function handleCta() {
     if (!authLoading && user && userType === 'candidate') {
-      if (!hasIntroVideo) {
+      // Checked fresh here rather than relying on state loaded when the
+      // page mounted — a candidate can remove their video (in another tab,
+      // or after coming back to a page they'd left open) without this
+      // component re-rendering, so the check has to hit the DB at the
+      // moment they actually click Apply.
+      setCheckingVideo(true)
+      const { data: candidate } = await supabase
+        .from('candidate_profiles')
+        .select('intro_video_url')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      setCheckingVideo(false)
+
+      if (!candidate?.intro_video_url?.trim()) {
         setNeedsVideo(true)
         return
       }
+      setNeedsVideo(false)
       handleApply()
       return
     }
@@ -150,11 +163,13 @@ export default function RolePublic() {
   const deadlineLabel = formatDeadline(role.deadline)
   const salaryLabel = formatSalary(role)
 
-  const ctaLabel = applying
-    ? 'Applying…'
-    : applied
-      ? 'Applied'
-      : 'Apply with your Mellow video'
+  const ctaLabel = checkingVideo
+    ? 'Checking…'
+    : applying
+      ? 'Applying…'
+      : applied
+        ? 'Applied'
+        : 'Apply with your Mellow video'
 
   return (
     <div className="section">
@@ -254,7 +269,7 @@ export default function RolePublic() {
         <button
           type="button"
           className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
-          disabled={applied || applying}
+          disabled={applied || applying || checkingVideo}
           onClick={handleCta}
           style={{ marginTop: 28, width: '100%' }}
         >

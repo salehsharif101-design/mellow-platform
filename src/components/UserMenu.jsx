@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
+import CandidateAvatar from './CandidateAvatar.jsx'
 
 export default function UserMenu() {
   const { user, userType, signOut } = useAuth()
@@ -16,22 +17,24 @@ export default function UserMenu() {
       if (userType === 'employer') {
         const { data } = await supabase
           .from('employer_profiles')
-          .select('company_name, company_slug')
+          .select('company_name, company_slug, logo_url')
           .eq('user_id', user.id)
           .maybeSingle()
         setProfile({
           name: data?.company_name || 'Your company',
           viewPath: data?.company_slug ? `/company/${data.company_slug}` : null,
+          imageUrl: data?.logo_url || null,
         })
       } else {
         const { data } = await supabase
           .from('candidate_profiles')
-          .select('id, username, full_name')
+          .select('id, username, full_name, avatar_url')
           .eq('user_id', user.id)
           .maybeSingle()
         setProfile({
           name: data?.full_name || 'Your profile',
           viewPath: data ? `/profile/${data.username || data.id}` : null,
+          imageUrl: data?.avatar_url || null,
         })
       }
     }
@@ -52,7 +55,6 @@ export default function UserMenu() {
 
   const dashboardPath = userType === 'employer' ? '/employer/dashboard' : '/dashboard'
   const editPath = userType === 'employer' ? '/employer/profile/edit' : '/profile/edit'
-  const initial = (profile?.name?.[0] || user.email?.[0] || '?').toUpperCase()
 
   return (
     <div ref={containerRef} style={{ position: 'relative' }}>
@@ -61,23 +63,9 @@ export default function UserMenu() {
         onClick={() => setOpen((o) => !o)}
         aria-label="Account menu"
         aria-expanded={open}
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: '50%',
-          border: 'none',
-          cursor: 'pointer',
-          background: 'var(--color-bg-soft)',
-          color: 'var(--color-primary)',
-          fontWeight: 700,
-          fontSize: 14,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
+        style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', display: 'flex', flexShrink: 0 }}
       >
-        {initial}
+        <CandidateAvatar avatarUrl={profile?.imageUrl} fullName={profile?.name} size={36} style={{ border: 'none', boxShadow: 'none' }} />
       </button>
 
       {open && (
@@ -94,13 +82,25 @@ export default function UserMenu() {
             boxShadow: '0 10px 30px rgba(10, 10, 10, 0.14)',
           }}
         >
-          <div style={{ padding: '8px 12px 10px', borderBottom: '1px solid var(--color-border)', marginBottom: 6 }}>
-            <p style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {profile?.name || '…'}
-            </p>
-            <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user.email}
-            </p>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '8px 12px 10px',
+              borderBottom: '1px solid var(--color-border)',
+              marginBottom: 6,
+            }}
+          >
+            <CandidateAvatar avatarUrl={profile?.imageUrl} fullName={profile?.name} size={38} style={{ border: 'none', boxShadow: 'none' }} />
+            <div style={{ minWidth: 0 }}>
+              <p style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {profile?.name || '…'}
+              </p>
+              <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.email}
+              </p>
+            </div>
           </div>
 
           <Link to={dashboardPath} className="dropdown-item" onClick={() => setOpen(false)}>
