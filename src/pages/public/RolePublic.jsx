@@ -116,6 +116,11 @@ export default function RolePublic() {
   }
 
   async function handleCta() {
+    console.log('[apply] RolePublic handleCta() clicked — the individual role page (/jobs/:slug) apply flow', {
+      authLoading,
+      hasUser: !!user,
+      userType,
+    })
     if (!authLoading && user && userType === 'candidate') {
       // Checked fresh here rather than relying on state loaded when the
       // page mounted — a candidate can remove their video (in another tab,

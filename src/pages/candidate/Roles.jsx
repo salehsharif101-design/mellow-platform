@@ -17,6 +17,7 @@ export default function BrowseRoles() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [applyingId, setApplyingId] = useState(null)
+  const [needsVideoRoleId, setNeedsVideoRoleId] = useState(null)
   const [videoModalEmployer, setVideoModalEmployer] = useState(null)
 
   useEffect(() => {
@@ -66,8 +67,34 @@ export default function BrowseRoles() {
   }, [user])
 
   async function apply(roleId) {
+    console.log('[apply] BrowseRoles apply() clicked — this is the "Browse Roles" list apply flow, not RolePublic', { roleId })
     if (!candidateId) return
     setApplyingId(roleId)
+
+    // Checked fresh here, at click time — same as the RolePublic apply flow.
+    // This page is its own separate apply path (candidates browsing /roles),
+    // so it needs its own copy of this check rather than sharing state with
+    // the individual role page.
+    const { data: candidate, error: candidateError } = await supabase
+      .from('candidate_profiles')
+      .select('intro_video_url')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    const introVideoUrl = candidate?.intro_video_url
+    console.log('[apply video check] intro_video_url from candidate_profiles:', introVideoUrl, {
+      userId: user.id,
+      candidateError,
+    })
+
+    const missingVideo = introVideoUrl === null || introVideoUrl === undefined || introVideoUrl.trim() === ''
+    if (missingVideo) {
+      setNeedsVideoRoleId(roleId)
+      setApplyingId(null)
+      return
+    }
+    setNeedsVideoRoleId(null)
+
     const { data, error: insertError } = await supabase
       .from('applications')
       .insert({ candidate_id: candidateId, role_id: roleId, status: 'applied' })
@@ -201,6 +228,19 @@ export default function BrowseRoles() {
                     <strong style={{ color: 'var(--color-text)' }}>What matters most: </strong>
                     {role.what_matters}
                   </p>
+                )}
+                {needsVideoRoleId === role.id && (
+                  <div
+                    className="card"
+                    style={{ marginTop: 14, padding: '16px 20px', background: '#fff4e5', border: 'none' }}
+                  >
+                    <p style={{ fontSize: 14, fontWeight: 600 }}>
+                      Please add your profile video before applying. Employers want to meet you first.
+                    </p>
+                    <Link to="/profile/edit" className="btn btn-primary" style={{ marginTop: 12, display: 'inline-flex' }}>
+                      Add your profile video
+                    </Link>
+                  </div>
                 )}
               </div>
             )
