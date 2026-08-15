@@ -133,6 +133,16 @@ export default function PublicProfile() {
                 {profile.current_company ? `${profile.job_title} at ${profile.current_company}` : profile.job_title} · {profile.location}
                 {profile.years_of_experience && ` · ${profile.years_of_experience}`}
               </p>
+              {profile.availability && (
+                <div style={{ marginTop: 8 }}>
+                  <span
+                    className="tag"
+                    style={{ fontSize: 12, fontWeight: 600, background: '#e3f9e9', color: '#0f7a3d' }}
+                  >
+                    Available: {profile.availability}
+                  </span>
+                </div>
+              )}
               {profile.work_style?.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                   {profile.work_style.map((w) => (

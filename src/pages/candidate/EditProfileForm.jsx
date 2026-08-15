@@ -10,6 +10,7 @@ const MAX_SKILLS = 10
 const PROFICIENCIES = ['basic', 'conversational', 'fluent', 'native']
 const EDUCATION_LEVELS = ['High School', 'Diploma', "Bachelor's", "Master's", 'PhD', 'Self-taught', 'Other']
 const YEARS_OF_EXPERIENCE_OPTIONS = ['Less than 1 year', '1-3 years', '3-5 years', '5-10 years', '10+ years']
+const AVAILABILITY_OPTIONS = ['Immediately', 'Within a month', '1 to 3 months', 'Just exploring']
 const AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
 const VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm']
@@ -238,6 +239,7 @@ function BasicsSection({ profile, onUpdated }) {
   const [bio, setBio] = useState(profile.bio || '')
   const [threeWords, setThreeWords] = useState(profile.three_words || '')
   const [proudOf, setProudOf] = useState(profile.proud_of || '')
+  const [availability, setAvailability] = useState(profile.availability || '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saved, flash] = useSavedFlash()
@@ -257,6 +259,7 @@ function BasicsSection({ profile, onUpdated }) {
         bio: bio.trim(),
         three_words: threeWords.trim() || null,
         proud_of: proudOf.trim() || null,
+        availability: availability || null,
       })
       .eq('id', profile.id)
       .select()
@@ -295,6 +298,17 @@ function BasicsSection({ profile, onUpdated }) {
           <select className="input" value={yearsOfExperience} onChange={(e) => setYearsOfExperience(e.target.value)}>
             <option value="">Select…</option>
             {YEARS_OF_EXPERIENCE_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="field">
+          <label>When can you start?</label>
+          <select className="input" value={availability} onChange={(e) => setAvailability(e.target.value)}>
+            <option value="">Select…</option>
+            {AVAILABILITY_OPTIONS.map((option) => (
               <option key={option} value={option}>
                 {option}
               </option>
