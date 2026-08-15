@@ -95,7 +95,7 @@ export default function NewRole() {
         <div style={{ flex: '1 1 420px', minWidth: 0 }}>
           <h1 style={{ fontSize: 28 }}>Post a new role</h1>
           <p style={{ marginTop: 8, color: 'var(--color-text-muted)', fontSize: 15 }}>
-            Candidates will see this in their feed alongside your company details.
+            Talent will see this in their feed alongside your company details.
           </p>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18, marginTop: 28 }}>
@@ -149,7 +149,7 @@ export default function NewRole() {
               />
             </div>
             <div className="field">
-              <label htmlFor="what_matters">What matters most in a candidate?</label>
+              <label htmlFor="what_matters">What matters most in a hire?</label>
               <textarea
                 id="what_matters"
                 className="input"
@@ -224,7 +224,7 @@ export default function NewRole() {
         >
           <img src="/Your_Requested_Is_Posted.png" alt="" style={{ width: '100%', maxWidth: 220 }} />
           <p style={{ marginTop: 16, fontSize: 14, color: 'var(--color-text-muted)' }}>
-            Once posted, your role goes straight into the candidate feed.
+            Once posted, your role goes straight into the talent feed.
           </p>
         </div>
       </div>

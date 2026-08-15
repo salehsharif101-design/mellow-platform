@@ -71,13 +71,13 @@ export default function Shortlist() {
 
   return (
     <div className="section">
-      <h1 style={{ fontSize: 28 }}>Shortlisted candidates</h1>
+      <h1 style={{ fontSize: 28 }}>Shortlisted talent</h1>
 
       {entries.length === 0 ? (
         <>
           <EmptyState
-            heading="No shortlisted candidates yet"
-            body="Browse the talent feed and click Shortlist on any candidate you want to save here."
+            heading="No shortlisted talent yet"
+            body="Browse the talent feed and click Shortlist on any talent you want to save here."
             illustration="/Collaborate2.png"
           />
           <p style={{ textAlign: 'center', marginTop: -20 }}>

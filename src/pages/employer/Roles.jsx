@@ -152,7 +152,7 @@ export default function EmployerRoles() {
       {roles.length === 0 ? (
         <EmptyState
           heading="No roles posted yet"
-          body="Post your first role and start browsing real candidates on video, not paper."
+          body="Post your first role and start browsing real talent on video, not paper."
           illustration="/Collaborate2.png"
         />
       ) : (

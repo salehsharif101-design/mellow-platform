@@ -44,7 +44,7 @@ export default function EmployerMessages() {
         const lastMessage = messages.find((m) => m.sender_id === otherId || m.recipient_id === otherId)
         return {
           otherId,
-          label: infoByUserId[otherId]?.name || 'Candidate',
+          label: infoByUserId[otherId]?.name || 'Talent',
           candidateId: infoByUserId[otherId]?.candidateId,
           lastBody: lastMessage?.body,
         }
@@ -66,7 +66,7 @@ export default function EmployerMessages() {
       {conversations.length === 0 ? (
         <EmptyState
           heading="No messages yet"
-          body="Start a conversation by visiting a candidate profile and clicking Contact."
+          body="Start a conversation by visiting a talent profile and clicking Contact."
         />
       ) : (
         <div className="messages-layout" style={{ display: 'flex', gap: 32, marginTop: 28, alignItems: 'flex-start' }}>

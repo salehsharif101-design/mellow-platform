@@ -72,7 +72,7 @@ export default function EditRoleModal({ role, onClose, onSaved }) {
           <textarea className="input" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} required />
         </div>
         <div className="field">
-          <label>What matters most in a candidate?</label>
+          <label>What matters most in a hire?</label>
           <textarea className="input" rows={3} value={whatMatters} onChange={(e) => setWhatMatters(e.target.value)} />
         </div>
         <div className="field">

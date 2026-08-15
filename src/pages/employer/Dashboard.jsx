@@ -126,7 +126,7 @@ export default function EmployerDashboard() {
           <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10 }}>{applications.length}</p>
         </div>
         <div className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontSize: 16 }}>Shortlisted candidates</h3>
+          <h3 style={{ fontSize: 16 }}>Shortlisted talent</h3>
           <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10 }}>{shortlistCount}</p>
           <Link to="/employer/shortlist" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}>
             View shortlist →
@@ -167,7 +167,7 @@ export default function EmployerDashboard() {
 
       {rejectedApplications.length > 0 && (
         <div style={{ marginTop: 36 }}>
-          <h3 style={{ fontSize: 18, marginBottom: 14 }}>Rejected candidates</h3>
+          <h3 style={{ fontSize: 18, marginBottom: 14 }}>Rejected talent</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {rejectedApplications.map((a) => {
               const c = a.candidate_profiles

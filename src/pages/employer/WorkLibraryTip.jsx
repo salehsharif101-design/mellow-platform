@@ -11,7 +11,7 @@ export default function WorkLibraryTip() {
           A tip before you start browsing
         </h1>
         <p style={{ marginTop: 20, fontSize: 17, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
-          When you find a candidate you like, check their work video library. These are videos where candidates show
+          When you find talent you like, check their work video library. These are videos where talent shows
           you how they actually think and operate. A designer walking through a rebrand, a developer solving a
           problem live, a marketer breaking down a campaign. It is the closest thing to working with someone before
           you hire them.

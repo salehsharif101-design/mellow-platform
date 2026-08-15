@@ -179,7 +179,7 @@ export default function CandidateDashboard() {
         >
           <h3 style={{ fontSize: 18 }}>Stand out from the crowd</h3>
           <p style={{ marginTop: 10, fontSize: 14, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
-            Candidates with work videos get significantly more employer attention. Show employers how you think and
+            Talent with work videos gets significantly more employer attention. Show employers how you think and
             what you are capable of. A designer can walk through a project. A developer can screen record a problem
             they solved. A marketer can break down a campaign.
           </p>

@@ -18,7 +18,7 @@ export default function Privacy() {
 
         <h3 style={{ marginTop: 32, fontSize: 18 }}>How we use it</h3>
         <p style={{ marginTop: 10, fontSize: 16, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
-          To operate your Mellow profile, match candidates with employers, send you notifications about activity on
+          To operate your Mellow profile, match talent with employers, send you notifications about activity on
           your account, and improve the platform.
         </p>
 

@@ -192,7 +192,7 @@ export default function EmployerOnboarding() {
         <div style={{ flex: '1 1 420px', minWidth: 0 }}>
           <h1 style={{ fontSize: 28 }}>Tell us about your company</h1>
           <p style={{ marginTop: 8, color: 'var(--color-text-muted)', fontSize: 15 }}>
-            This shows up on your roles and helps candidates know who they'd be working with.
+            This shows up on your roles and helps talent know who they'd be working with.
           </p>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18, marginTop: 28 }}>
@@ -328,7 +328,7 @@ export default function EmployerOnboarding() {
         >
           <img src="/Client_to_creative.png" alt="" style={{ width: '100%', maxWidth: 220 }} />
           <p style={{ marginTop: 16, fontSize: 14, color: 'var(--color-text-muted)' }}>
-            Next up: post your first role and start meeting candidates on video.
+            Next up: post your first role and start meeting talent on video.
           </p>
         </div>
       </div>

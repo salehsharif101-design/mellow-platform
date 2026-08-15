@@ -14,7 +14,7 @@ export default function WorkVideoTip({ candidateId, userId }) {
           Make your profile unforgettable
         </h1>
         <p style={{ marginTop: 20, fontSize: 17, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
-          Candidates with work videos get significantly more employer attention. Add videos that show how you
+          Talent with work videos gets significantly more employer attention. Add videos that show how you
           actually think and operate. A designer can walk through a rebrand. A developer can screen record a
           problem they solved. A marketer can break down a campaign from brief to result. The more you show, the
           more employers know.

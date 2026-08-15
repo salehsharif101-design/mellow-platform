@@ -20,7 +20,7 @@ export default function OnboardingCelebration() {
         />
         <h1 style={{ marginTop: 40, fontSize: 'clamp(32px, 4vw, 44px)' }}>Your talent feed is ready.</h1>
         <p style={{ marginTop: 20, fontSize: 17, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
-          You can now browse real candidates, post your first role, and find the right person without reading a
+          You can now browse real talent, post your first role, and find the right person without reading a
           single CV. The best hire starts with a real conversation.
         </p>
 

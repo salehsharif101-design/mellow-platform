@@ -50,7 +50,7 @@ async function sendEmployerWelcome(supabase, userId) {
     html: renderEmailHtml({
       heading: 'Start meeting people, not documents',
       bodyText:
-        'Browse real candidates, post your first role, and find the right person without reading a single CV. Your talent feed is ready and waiting.',
+        'Browse real talent, post your first role, and find the right person without reading a single CV. Your talent feed is ready and waiting.',
       ctaLabel: 'Browse the talent feed',
       ctaUrl: `${SITE_URL}/employer/talent`,
       illustration: 'Client_to_creative.png',
@@ -81,7 +81,7 @@ async function sendFirstRoleVideoNudge(supabase, employerId) {
     html: renderEmailHtml({
       heading: 'Your role is live',
       bodyText:
-        'Employers who add a company video get more applications. Candidates want to know who they will be working with before they apply, a 60-second video gives them exactly that. It takes two minutes to record and makes your role stand out from every other posting.',
+        'Employers who add a company video get more applications. Talent wants to know who they will be working with before they apply, a 60-second video gives them exactly that. It takes two minutes to record and makes your role stand out from every other posting.',
       ctaLabel: 'Add your company video',
       ctaUrl: `${SITE_URL}/employer/profile/edit`,
       illustration: 'Client_to_creative.png',
@@ -186,7 +186,7 @@ async function sendRejectionNotification(supabase, applicationId) {
     subject: `Update on your application to ${companyName}`,
     html: renderEmailHtml({
       heading: 'Thank you for applying',
-      bodyText: `Thank you for applying to ${role.title} at ${companyName}. After careful consideration we have decided to move forward with other candidates at this time. We appreciate your interest and wish you all the best in your search.`,
+      bodyText: `Thank you for applying to ${role.title} at ${companyName}. After careful consideration we have decided to move forward with other talent at this time. We appreciate your interest and wish you all the best in your search.`,
       illustration: 'thinking.png',
     }),
   })
@@ -217,7 +217,7 @@ async function sendVideoLibraryNotification(supabase, candidateId) {
     html: renderEmailHtml({
       heading: 'Show employers how you actually work',
       bodyText:
-        'Your Mellow profile starts with your 60-second intro video. But the candidates who stand out go further. The work video library lets you upload additional videos that show employers exactly how you think and what you are capable of, before the first interview.<br><br>' +
+        'Your Mellow profile starts with your 60-second intro video. But top talent goes further. The work video library lets you upload additional videos that show employers exactly how you think and what you are capable of, before the first interview.<br><br>' +
         'Here are a few ideas to get you started:<br><br>' +
         '🎨 Designer? Walk through a recent project, the brief, your thinking, the final result.<br><br>' +
         '💻 Developer? Screen record yourself solving a problem or building a feature and talk through your decisions.<br><br>' +

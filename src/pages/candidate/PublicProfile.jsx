@@ -304,7 +304,7 @@ export default function PublicProfile() {
             <>
               <h4 style={{ fontSize: 18 }}>How {profile.full_name?.split(' ')[0]} actually works</h4>
               <p style={{ marginTop: 6, fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
-                These videos show how this candidate thinks, operates, and approaches real work, not just how they
+                These videos show how this person thinks, operates, and approaches real work, not just how they
                 present themselves.
               </p>
             </>

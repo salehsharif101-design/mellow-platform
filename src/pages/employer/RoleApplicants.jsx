@@ -145,7 +145,7 @@ export default function RoleApplicants() {
       {applications.length === 0 ? (
         <EmptyState
           heading="No applicants yet"
-          body="Applications will show up here as candidates apply to this role."
+          body="Applications will show up here as talent applies to this role."
         />
       ) : (
         <>
@@ -225,8 +225,8 @@ export default function RoleApplicants() {
                         style={{ marginTop: 16, padding: '14px 18px', background: 'var(--color-bg-soft)', border: 'none' }}
                       >
                         <p style={{ fontSize: 14, fontWeight: 600 }}>
-                          Would you like to notify this candidate that you have decided to move forward with other
-                          candidates?
+                          Would you like to notify them that you have decided to move forward with other
+                          talent?
                         </p>
                         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                           <button

@@ -232,12 +232,12 @@ export default function TalentFeed() {
 
       {candidates.length === 0 ? (
         <EmptyState
-          heading="No candidates yet"
+          heading="No talent yet"
           body="We are growing fast. Check back soon or share Mellow with people you know who are looking for opportunities."
           illustration="/Collaborate2.png"
         />
       ) : filtered.length === 0 ? (
-        <p style={{ marginTop: 32, color: 'var(--color-text-muted)' }}>No candidates match those filters yet.</p>
+        <p style={{ marginTop: 32, color: 'var(--color-text-muted)' }}>No talent matches those filters yet.</p>
       ) : (
         <div
           style={{
