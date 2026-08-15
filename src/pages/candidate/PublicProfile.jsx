@@ -9,7 +9,6 @@ import MessageThread from '../../components/MessageThread.jsx'
 import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
 import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
 import ShareButton from '../../components/ShareButton.jsx'
-import { notify } from '../../lib/notify.js'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -68,12 +67,11 @@ export default function PublicProfile() {
   useEffect(() => {
     // Only employer views count toward the "profile views" stat shown on the
     // candidate dashboard — a candidate browsing another candidate's profile
-    // shouldn't inflate that number.
+    // shouldn't inflate that number. Notifications are batched into a daily
+    // digest (api/cron/profile-view-digest.js) rather than sent per view.
     if (!profile || !user || isOwner || userType !== 'employer') return
     // Fire-and-forget view tracking — never block or break the page on failure.
-    supabase.from('profile_views').insert({ candidate_id: profile.id, viewer_id: user.id }).then(() => {
-      notify('profile-view-notification', { candidateId: profile.id, viewerId: user.id })
-    })
+    supabase.from('profile_views').insert({ candidate_id: profile.id, viewer_id: user.id })
   }, [profile, user, isOwner, userType])
 
   if (loading) return null

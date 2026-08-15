@@ -4,15 +4,9 @@
 // authoritative data itself via the service role client rather than trusting
 // client-supplied email content.
 
-import { createClient } from '@supabase/supabase-js'
 import { sendEmail } from './_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from './_lib/email-template.js'
-
-function getServiceClient() {
-  return createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-}
+import { getServiceClient, unwrap, getCandidateContact } from './_lib/db.js'
 
 function readJsonBody(req) {
   if (req.body && typeof req.body === 'object') return Promise.resolve(req.body)
@@ -28,11 +22,6 @@ function readJsonBody(req) {
     })
     req.on('error', reject)
   })
-}
-
-function unwrap({ data, error }) {
-  if (error) throw new Error(error.message)
-  return data
 }
 
 async function sendSignupWelcome(supabase, userId) {
@@ -203,14 +192,6 @@ async function sendRejectionNotification(supabase, applicationId) {
   })
 }
 
-async function getCandidateContact(supabase, candidateId) {
-  const candidate = unwrap(
-    await supabase.from('candidate_profiles').select('user_id, username').eq('id', candidateId).single(),
-  )
-  const candidateUser = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
-  return { email: candidateUser.email, username: candidate.username }
-}
-
 async function sendLiveNotification(supabase, candidateId) {
   const { email, username } = await getCandidateContact(supabase, candidateId)
 
@@ -246,39 +227,6 @@ async function sendVideoLibraryNotification(supabase, candidateId) {
       ctaLabel: 'Add a work video',
       ctaUrl: `${SITE_URL}/profile/edit`,
       illustration: 'working.png',
-    }),
-  })
-}
-
-async function sendProfileViewNotification(supabase, candidateId, viewerId) {
-  if (!viewerId) return { skipped: true }
-
-  // Only one email per employer per candidate per 24h — the row the client
-  // just inserted counts as one, so more than one means an earlier view
-  // already triggered a notification within the window.
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-  const recentViews = unwrap(
-    await supabase
-      .from('profile_views')
-      .select('id')
-      .eq('candidate_id', candidateId)
-      .eq('viewer_id', viewerId)
-      .gte('viewed_at', since),
-  )
-  if (recentViews.length > 1) return { skipped: true }
-
-  const { email, username } = await getCandidateContact(supabase, candidateId)
-
-  return sendEmail({
-    to: email,
-    subject: 'Someone viewed your Mellow profile',
-    html: renderEmailHtml({
-      heading: 'Someone viewed your profile',
-      bodyText:
-        'An employer just viewed your profile on Mellow. Make sure your intro video and work library are up to date to make the best impression.',
-      ctaLabel: 'View my profile',
-      ctaUrl: `${SITE_URL}/profile/${username || candidateId}`,
-      illustration: 'Easy_stuff.png',
     }),
   })
 }
@@ -332,9 +280,6 @@ export default async function handler(req, res) {
         break
       case 'video-library-notification':
         await sendVideoLibraryNotification(supabase, body.candidateId)
-        break
-      case 'profile-view-notification':
-        await sendProfileViewNotification(supabase, body.candidateId, body.viewerId)
         break
       default:
         res.statusCode = 400
