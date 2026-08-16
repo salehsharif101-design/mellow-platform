@@ -227,7 +227,9 @@ export default function EmployerRoles() {
       {deletingRole && (
         <ConfirmModal
           title="Delete this role?"
-          message={`"${deletingRole.title}" will be permanently removed, along with any applications tied to it. This can't be undone.`}
+          message={`This will permanently delete all ${applicationCounts[deletingRole.id] || 0} application${
+            applicationCounts[deletingRole.id] === 1 ? '' : 's'
+          } submitted to it. This cannot be undone.`}
           onClose={() => setDeletingRole(null)}
           onConfirm={() => handleDelete(deletingRole)}
         />
