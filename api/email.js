@@ -93,6 +93,27 @@ async function sendFirstRoleVideoNudge(supabase, employerId) {
   return result
 }
 
+async function sendRoleLiveNotification(supabase, roleId) {
+  const role = unwrap(
+    await supabase.from('roles').select('title, slug, employer_profiles(user_id)').eq('id', roleId).single(),
+  )
+  const employerUser = unwrap(
+    await supabase.from('users').select('email').eq('id', role.employer_profiles.user_id).single(),
+  )
+
+  return sendEmail({
+    to: employerUser.email,
+    subject: 'Your role is live on Mellow',
+    html: renderEmailHtml({
+      heading: 'Your role is live',
+      bodyText: `Your ${role.title} role has been posted successfully. Talent can now discover and apply to it on Mellow. Share it widely to get the best applications.`,
+      ctaLabel: 'View your role',
+      ctaUrl: `${SITE_URL}/jobs/${role.slug}`,
+      illustration: 'Collaborate2.png',
+    }),
+  })
+}
+
 async function sendMessageNotification(supabase, messageId) {
   const message = unwrap(
     await supabase.from('messages').select('recipient_id').eq('id', messageId).single(),
@@ -262,6 +283,9 @@ export default async function handler(req, res) {
         break
       case 'first-role-video-nudge':
         await sendFirstRoleVideoNudge(supabase, body.employerId)
+        break
+      case 'role-live-notification':
+        await sendRoleLiveNotification(supabase, body.roleId)
         break
       case 'message-notification':
         await sendMessageNotification(supabase, body.messageId)

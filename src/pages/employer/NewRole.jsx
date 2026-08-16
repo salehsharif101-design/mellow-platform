@@ -55,20 +55,25 @@ export default function NewRole() {
     setError('')
     setSaving(true)
     try {
-      const { error: insertError } = await supabase.from('roles').insert({
-        employer_id: employerId,
-        title: title.trim(),
-        location: location.trim(),
-        role_type: roleType,
-        description: description.trim(),
-        what_matters: whatMatters.trim(),
-        deadline: deadline || null,
-        salary_min: salaryMin ? Number(salaryMin) : null,
-        salary_max: salaryMax ? Number(salaryMax) : null,
-        salary_currency: salaryMin || salaryMax ? salaryCurrency : null,
-      })
+      const { data: newRole, error: insertError } = await supabase
+        .from('roles')
+        .insert({
+          employer_id: employerId,
+          title: title.trim(),
+          location: location.trim(),
+          role_type: roleType,
+          description: description.trim(),
+          what_matters: whatMatters.trim(),
+          deadline: deadline || null,
+          salary_min: salaryMin ? Number(salaryMin) : null,
+          salary_max: salaryMax ? Number(salaryMax) : null,
+          salary_currency: salaryMin || salaryMax ? salaryCurrency : null,
+        })
+        .select()
+        .single()
       if (insertError) throw insertError
       notify('first-role-video-nudge', { employerId })
+      notify('role-live-notification', { roleId: newRole.id })
       navigate('/employer/roles')
     } catch (err) {
       setError(err.message)
