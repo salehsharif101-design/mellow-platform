@@ -182,6 +182,9 @@ export default function EmployerRoles() {
 
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                   <ShareButton url={`https://beta.joinmellow.xyz/jobs/${role.slug}`} label="Share role" />
+                  <a href={`/jobs/${role.slug}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost">
+                    View role
+                  </a>
                   <select
                     className="input"
                     value={role.status}
