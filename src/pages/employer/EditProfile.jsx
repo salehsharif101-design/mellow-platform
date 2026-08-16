@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
@@ -13,23 +13,6 @@ const MAX_ABOUT_LENGTH = 300
 const VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm']
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024
 const MAX_VIDEO_SECONDS = 60
-
-function SaveButton({ saving, saved }) {
-  return (
-    <button className="btn btn-primary" type="submit" disabled={saving} style={{ alignSelf: 'flex-start' }}>
-      {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save'}
-    </button>
-  )
-}
-
-function useSavedFlash() {
-  const [saved, setSaved] = useState(false)
-  function flash() {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-  return [saved, flash]
-}
 
 export default function EmployerEditProfile() {
   const { user } = useAuth()
@@ -86,18 +69,181 @@ export default function EmployerEditProfile() {
     <div className="section">
       <div style={{ maxWidth: 480, margin: '0 auto' }}>
         <h1 style={{ fontSize: 28, marginBottom: 32 }}>Edit your profile</h1>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
-          <LogoSection profile={profile} onUpdated={setProfile} />
-          <CompanyInfoSection profile={profile} onUpdated={setProfile} />
-          <AboutSection profile={profile} onUpdated={setProfile} />
-          <CultureSection profile={profile} onUpdated={setProfile} />
-          <HighlightSection profile={profile} onUpdated={setProfile} />
-          <TypicalRolesSection profile={profile} onUpdated={setProfile} />
-          <LinksSection profile={profile} onUpdated={setProfile} />
-          <IntroVideoSection profile={profile} onUpdated={setProfile} />
-          <DangerZoneSection />
-        </div>
+        <EditProfileFormBody profile={profile} onUpdated={setProfile} />
       </div>
+    </div>
+  )
+}
+
+function EditProfileFormBody({ profile, onUpdated }) {
+  const [companyName, setCompanyName] = useState(profile.company_name || '')
+  const [industry, setIndustry] = useState(profile.industry || '')
+  const [companySize, setCompanySize] = useState(profile.company_size || COMPANY_SIZES[0])
+  const [about, setAbout] = useState(profile.about || '')
+  const [cultureDescription, setCultureDescription] = useState(profile.culture_description || '')
+  const [companyHighlight, setCompanyHighlight] = useState(profile.company_highlight || '')
+  const [typicalRoles, setTypicalRoles] = useState(profile.typical_roles || '')
+  const [linkedinUrl, setLinkedinUrl] = useState(profile.linkedin_url || '')
+  const [websiteUrl, setWebsiteUrl] = useState(profile.website_url || '')
+  const [introVideoUrl, setIntroVideoUrl] = useState(profile.intro_video_url || null)
+
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const [errorField, setErrorField] = useState(null)
+  const [success, setSuccess] = useState(false)
+
+  const fieldRefs = {
+    companyName: useRef(null),
+    industry: useRef(null),
+    websiteUrl: useRef(null),
+  }
+
+  function validate() {
+    if (!companyName.trim()) return { field: 'companyName', message: 'Company name is required.' }
+    if (!industry.trim()) return { field: 'industry', message: 'Industry is required.' }
+    const trimmedWebsite = websiteUrl.trim()
+    if (trimmedWebsite && !/^https?:\/\//i.test(trimmedWebsite)) {
+      return { field: 'websiteUrl', message: 'Company website must start with https:// or http://' }
+    }
+    return null
+  }
+
+  async function handleSaveAll(e) {
+    e.preventDefault()
+    const problem = validate()
+    if (problem) {
+      setErrorField(problem.field)
+      setSaveError(problem.message)
+      setSuccess(false)
+      const ref = fieldRefs[problem.field]?.current
+      if (ref) {
+        ref.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        ref.focus()
+      }
+      return
+    }
+
+    setErrorField(null)
+    setSaveError('')
+    setSaving(true)
+    const { data, error } = await supabase
+      .from('employer_profiles')
+      .update({
+        company_name: companyName.trim(),
+        industry: industry.trim(),
+        company_size: companySize,
+        about: about.trim() || null,
+        culture_description: cultureDescription.trim() || null,
+        company_highlight: companyHighlight.trim() || null,
+        typical_roles: typicalRoles.trim() || null,
+        linkedin_url: linkedinUrl.trim() || null,
+        website_url: websiteUrl.trim() || null,
+        intro_video_url: introVideoUrl || null,
+      })
+      .eq('user_id', profile.user_id)
+      .select()
+      .single()
+    setSaving(false)
+    if (error) {
+      setSaveError(error.message)
+      return
+    }
+    onUpdated(data)
+    setSuccess(true)
+    setTimeout(() => setSuccess(false), 3000)
+  }
+
+  return (
+    <form onSubmit={handleSaveAll} style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
+      <SaveControls floating saving={saving} success={success} error={saveError} />
+
+      <LogoSection profile={profile} onUpdated={onUpdated} />
+
+      <CompanyInfoSection
+        companyName={companyName}
+        setCompanyName={setCompanyName}
+        industry={industry}
+        setIndustry={setIndustry}
+        companySize={companySize}
+        setCompanySize={setCompanySize}
+        errorField={errorField}
+        fieldRefs={fieldRefs}
+      />
+
+      <AboutSection about={about} setAbout={setAbout} />
+
+      <CultureSection cultureDescription={cultureDescription} setCultureDescription={setCultureDescription} />
+
+      <HighlightSection companyHighlight={companyHighlight} setCompanyHighlight={setCompanyHighlight} />
+
+      <TypicalRolesSection typicalRoles={typicalRoles} setTypicalRoles={setTypicalRoles} />
+
+      <LinksSection
+        linkedinUrl={linkedinUrl}
+        setLinkedinUrl={setLinkedinUrl}
+        websiteUrl={websiteUrl}
+        setWebsiteUrl={setWebsiteUrl}
+        errorField={errorField}
+        fieldRefs={fieldRefs}
+      />
+
+      <IntroVideoSection introVideoUrl={introVideoUrl} setIntroVideoUrl={setIntroVideoUrl} />
+
+      <SaveControls saving={saving} success={success} error={saveError} />
+
+      <DangerZoneSection />
+    </form>
+  )
+}
+
+function SaveControls({ saving, success, error, floating }) {
+  return (
+    <div
+      style={
+        floating
+          ? {
+              position: 'fixed',
+              bottom: 24,
+              right: 24,
+              zIndex: 40,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-end',
+              gap: 8,
+            }
+          : { display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }
+      }
+    >
+      {error && (
+        <p
+          className="form-error"
+          style={
+            floating ? { background: '#fff', padding: '6px 12px', borderRadius: 8, boxShadow: '0 2px 10px rgba(0,0,0,0.15)' } : undefined
+          }
+        >
+          {error}
+        </p>
+      )}
+      {success && !error && (
+        <p
+          style={{
+            color: '#0f7a3d',
+            fontWeight: 600,
+            fontSize: 14,
+            ...(floating ? { background: '#fff', padding: '6px 12px', borderRadius: 8, boxShadow: '0 2px 10px rgba(0,0,0,0.15)' } : {}),
+          }}
+        >
+          Profile updated
+        </p>
+      )}
+      <button
+        type="submit"
+        className="btn btn-primary"
+        disabled={saving}
+        style={floating ? { boxShadow: '0 4px 14px rgba(0,0,0,0.2)', padding: '12px 28px' } : { alignSelf: 'flex-start' }}
+      >
+        {saving ? 'Saving…' : 'Save'}
+      </button>
     </div>
   )
 }
@@ -223,47 +369,43 @@ function LogoSection({ profile, onUpdated }) {
   )
 }
 
-function CompanyInfoSection({ profile, onUpdated }) {
-  const [companyName, setCompanyName] = useState(profile.company_name || '')
-  const [industry, setIndustry] = useState(profile.industry || '')
-  const [companySize, setCompanySize] = useState(profile.company_size || COMPANY_SIZES[0])
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [saved, flash] = useSavedFlash()
+function fieldStyle(hasError) {
+  return hasError ? { borderColor: '#d92d20' } : undefined
+}
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setSaving(true)
-    setError('')
-    const { data, error: saveError } = await supabase
-      .from('employer_profiles')
-      .update({
-        company_name: companyName.trim(),
-        industry: industry.trim(),
-        company_size: companySize,
-      })
-      .eq('user_id', profile.user_id)
-      .select()
-      .single()
-    if (saveError) setError(saveError.message)
-    else {
-      onUpdated(data)
-      flash()
-    }
-    setSaving(false)
-  }
-
+function CompanyInfoSection({
+  companyName,
+  setCompanyName,
+  industry,
+  setIndustry,
+  companySize,
+  setCompanySize,
+  errorField,
+  fieldRefs,
+}) {
   return (
     <section>
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Company info</h3>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
           <label>Company name</label>
-          <input className="input" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required />
+          <input
+            ref={fieldRefs.companyName}
+            className="input"
+            value={companyName}
+            onChange={(e) => setCompanyName(e.target.value)}
+            style={fieldStyle(errorField === 'companyName')}
+          />
         </div>
         <div className="field">
           <label>Industry</label>
-          <input className="input" value={industry} onChange={(e) => setIndustry(e.target.value)} required />
+          <input
+            ref={fieldRefs.industry}
+            className="input"
+            value={industry}
+            onChange={(e) => setIndustry(e.target.value)}
+            style={fieldStyle(errorField === 'industry')}
+          />
         </div>
         <div className="field">
           <label>Company size</label>
@@ -275,41 +417,16 @@ function CompanyInfoSection({ profile, onUpdated }) {
             ))}
           </select>
         </div>
-        {error && <p className="form-error">{error}</p>}
-        <SaveButton saving={saving} saved={saved} />
-      </form>
+      </div>
     </section>
   )
 }
 
-function AboutSection({ profile, onUpdated }) {
-  const [about, setAbout] = useState(profile.about || '')
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [saved, flash] = useSavedFlash()
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setSaving(true)
-    setError('')
-    const { data, error: saveError } = await supabase
-      .from('employer_profiles')
-      .update({ about: about.trim() || null })
-      .eq('user_id', profile.user_id)
-      .select()
-      .single()
-    if (saveError) setError(saveError.message)
-    else {
-      onUpdated(data)
-      flash()
-    }
-    setSaving(false)
-  }
-
+function AboutSection({ about, setAbout }) {
   return (
     <section>
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>About your company</h3>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
           <label>Short description (optional)</label>
           <textarea
@@ -324,41 +441,16 @@ function AboutSection({ profile, onUpdated }) {
             {about.length}/{MAX_ABOUT_LENGTH}
           </p>
         </div>
-        {error && <p className="form-error">{error}</p>}
-        <SaveButton saving={saving} saved={saved} />
-      </form>
+      </div>
     </section>
   )
 }
 
-function CultureSection({ profile, onUpdated }) {
-  const [cultureDescription, setCultureDescription] = useState(profile.culture_description || '')
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [saved, flash] = useSavedFlash()
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setSaving(true)
-    setError('')
-    const { data, error: saveError } = await supabase
-      .from('employer_profiles')
-      .update({ culture_description: cultureDescription.trim() || null })
-      .eq('user_id', profile.user_id)
-      .select()
-      .single()
-    if (saveError) setError(saveError.message)
-    else {
-      onUpdated(data)
-      flash()
-    }
-    setSaving(false)
-  }
-
+function CultureSection({ cultureDescription, setCultureDescription }) {
   return (
     <section>
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Company culture</h3>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
           <label>What's it like to work here?</label>
           <textarea
@@ -369,41 +461,16 @@ function CultureSection({ profile, onUpdated }) {
             placeholder="What's it like to work here?"
           />
         </div>
-        {error && <p className="form-error">{error}</p>}
-        <SaveButton saving={saving} saved={saved} />
-      </form>
+      </div>
     </section>
   )
 }
 
-function HighlightSection({ profile, onUpdated }) {
-  const [companyHighlight, setCompanyHighlight] = useState(profile.company_highlight || '')
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [saved, flash] = useSavedFlash()
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setSaving(true)
-    setError('')
-    const { data, error: saveError } = await supabase
-      .from('employer_profiles')
-      .update({ company_highlight: companyHighlight.trim() || null })
-      .eq('user_id', profile.user_id)
-      .select()
-      .single()
-    if (saveError) setError(saveError.message)
-    else {
-      onUpdated(data)
-      flash()
-    }
-    setSaving(false)
-  }
-
+function HighlightSection({ companyHighlight, setCompanyHighlight }) {
   return (
     <section>
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>What makes your company a great place to work?</h3>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
           <label>Company highlight (optional)</label>
           <input
@@ -417,41 +484,16 @@ function HighlightSection({ profile, onUpdated }) {
             {companyHighlight.length}/{MAX_HIGHLIGHT_LENGTH}
           </p>
         </div>
-        {error && <p className="form-error">{error}</p>}
-        <SaveButton saving={saving} saved={saved} />
-      </form>
+      </div>
     </section>
   )
 }
 
-function TypicalRolesSection({ profile, onUpdated }) {
-  const [typicalRoles, setTypicalRoles] = useState(profile.typical_roles || '')
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [saved, flash] = useSavedFlash()
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setSaving(true)
-    setError('')
-    const { data, error: saveError } = await supabase
-      .from('employer_profiles')
-      .update({ typical_roles: typicalRoles.trim() || null })
-      .eq('user_id', profile.user_id)
-      .select()
-      .single()
-    if (saveError) setError(saveError.message)
-    else {
-      onUpdated(data)
-      flash()
-    }
-    setSaving(false)
-  }
-
+function TypicalRolesSection({ typicalRoles, setTypicalRoles }) {
   return (
     <section>
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Typical roles</h3>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
           <label>What kind of roles do you usually hire for? (optional)</label>
           <input
@@ -461,49 +503,16 @@ function TypicalRolesSection({ profile, onUpdated }) {
             placeholder="e.g. designers, engineers, sales, operations"
           />
         </div>
-        {error && <p className="form-error">{error}</p>}
-        <SaveButton saving={saving} saved={saved} />
-      </form>
+      </div>
     </section>
   )
 }
 
-function LinksSection({ profile, onUpdated }) {
-  const [linkedinUrl, setLinkedinUrl] = useState(profile.linkedin_url || '')
-  const [websiteUrl, setWebsiteUrl] = useState(profile.website_url || '')
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [saved, flash] = useSavedFlash()
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
-
-    const trimmedWebsite = websiteUrl.trim()
-    if (trimmedWebsite && !/^https?:\/\//i.test(trimmedWebsite)) {
-      setError('Company website must start with https:// or http://')
-      return
-    }
-
-    setSaving(true)
-    const { data, error: saveError } = await supabase
-      .from('employer_profiles')
-      .update({ linkedin_url: linkedinUrl.trim() || null, website_url: trimmedWebsite || null })
-      .eq('user_id', profile.user_id)
-      .select()
-      .single()
-    if (saveError) setError(saveError.message)
-    else {
-      onUpdated(data)
-      flash()
-    }
-    setSaving(false)
-  }
-
+function LinksSection({ linkedinUrl, setLinkedinUrl, websiteUrl, setWebsiteUrl, errorField, fieldRefs }) {
   return (
     <section>
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Links</h3>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
           <label>LinkedIn company page (optional)</label>
           <input
@@ -517,49 +526,27 @@ function LinksSection({ profile, onUpdated }) {
         <div className="field">
           <label>Company website (optional)</label>
           <input
+            ref={fieldRefs.websiteUrl}
             className="input"
             type="url"
             value={websiteUrl}
             onChange={(e) => setWebsiteUrl(e.target.value)}
             placeholder="https://yourcompany.com"
+            style={fieldStyle(errorField === 'websiteUrl')}
           />
         </div>
-        {error && <p className="form-error">{error}</p>}
-        <SaveButton saving={saving} saved={saved} />
-      </form>
+      </div>
     </section>
   )
 }
 
-function IntroVideoSection({ profile, onUpdated }) {
+function IntroVideoSection({ introVideoUrl, setIntroVideoUrl }) {
   const [file, setFile] = useState(null)
-  const [previewUrl, setPreviewUrl] = useState(profile.intro_video_url || null)
+  const [localPreviewUrl, setLocalPreviewUrl] = useState(null)
   const [uploading, setUploading] = useState(false)
-  const [removing, setRemoving] = useState(false)
   const [error, setError] = useState('')
 
-  async function handleRemove() {
-    setRemoving(true)
-    setError('')
-    try {
-      const { data: { user: freshUser }, error: userError } = await supabase.auth.getUser()
-      if (userError || !freshUser) throw new Error(userError?.message || 'Your session has expired — please log in again.')
-      const { data: row, error: saveError } = await supabase
-        .from('employer_profiles')
-        .update({ intro_video_url: null })
-        .eq('user_id', freshUser.id)
-        .select()
-        .single()
-      if (saveError) throw saveError
-      onUpdated(row)
-      setPreviewUrl(null)
-      setFile(null)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setRemoving(false)
-    }
-  }
+  const previewUrl = localPreviewUrl || introVideoUrl
 
   function handleFileChange(e) {
     const selected = e.target.files?.[0]
@@ -583,7 +570,7 @@ function IntroVideoSection({ profile, onUpdated }) {
         return
       }
       setFile(selected)
-      setPreviewUrl(objectUrl)
+      setLocalPreviewUrl(objectUrl)
     }
     probe.src = objectUrl
   }
@@ -603,20 +590,20 @@ function IntroVideoSection({ profile, onUpdated }) {
         .upload(path, file, { upsert: true, contentType: file.type })
       if (uploadError) throw uploadError
       const { data } = supabase.storage.from('company-videos').getPublicUrl(path)
-      const { data: row, error: saveError } = await supabase
-        .from('employer_profiles')
-        .update({ intro_video_url: `${data.publicUrl}?t=${Date.now()}` })
-        .eq('user_id', freshUser.id)
-        .select()
-        .single()
-      if (saveError) throw saveError
-      onUpdated(row)
+      setIntroVideoUrl(`${data.publicUrl}?t=${Date.now()}`)
       setFile(null)
+      setLocalPreviewUrl(null)
     } catch (err) {
       setError(err.message)
     } finally {
       setUploading(false)
     }
+  }
+
+  function handleRemove() {
+    setIntroVideoUrl(null)
+    setFile(null)
+    setLocalPreviewUrl(null)
   }
 
   return (
@@ -649,20 +636,23 @@ function IntroVideoSection({ profile, onUpdated }) {
         {error && <p className="form-error">{error}</p>}
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-primary" type="button" onClick={handleUpload} disabled={!file || uploading} style={{ alignSelf: 'flex-start' }}>
-            {uploading ? 'Uploading…' : 'Save video'}
+            {uploading ? 'Uploading…' : 'Upload video'}
           </button>
-          {profile.intro_video_url && (
+          {introVideoUrl && (
             <button
               type="button"
               className="btn btn-ghost"
               style={{ color: '#d92d20', borderColor: '#d92d20' }}
               onClick={handleRemove}
-              disabled={removing || uploading}
+              disabled={uploading}
             >
-              {removing ? 'Removing…' : 'Remove video'}
+              Remove video
             </button>
           )}
         </div>
+        <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+          Click Save below to apply your video change.
+        </p>
       </div>
     </section>
   )

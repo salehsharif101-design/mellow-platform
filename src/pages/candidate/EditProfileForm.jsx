@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase.js'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
@@ -17,38 +17,223 @@ const VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm']
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024
 const MAX_VIDEO_SECONDS = 60
 
-function SaveButton({ saving, saved }) {
-  return (
-    <button className="btn btn-primary" type="submit" disabled={saving} style={{ alignSelf: 'flex-start' }}>
-      {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save'}
-    </button>
-  )
-}
-
 export default function EditProfileForm({ profile, userId, onUpdated }) {
+  const [fullName, setFullName] = useState(profile.full_name || '')
+  const [jobTitle, setJobTitle] = useState(profile.job_title || '')
+  const [currentCompany, setCurrentCompany] = useState(profile.current_company || '')
+  const [yearsOfExperience, setYearsOfExperience] = useState(profile.years_of_experience || '')
+  const [availability, setAvailability] = useState(profile.availability || '')
+  const [location, setLocation] = useState(profile.location || '')
+  const [bio, setBio] = useState(profile.bio || '')
+  const [threeWords, setThreeWords] = useState(profile.three_words || '')
+  const [proudOf, setProudOf] = useState(profile.proud_of || '')
+  const [educationLevel, setEducationLevel] = useState(profile.education_level || '')
+  const [fieldOfStudy, setFieldOfStudy] = useState(profile.field_of_study || '')
+  const [institutionName, setInstitutionName] = useState(profile.institution_name || '')
+  const [graduationYear, setGraduationYear] = useState(profile.graduation_year || '')
+  const [skills, setSkills] = useState(profile.skills || [])
+  const [languages, setLanguages] = useState(profile.languages || [])
+  const [linkedinUrl, setLinkedinUrl] = useState(profile.linkedin_url || '')
+  const [calendlyUrl, setCalendlyUrl] = useState(profile.calendly_url || '')
+  const [websiteUrl, setWebsiteUrl] = useState(profile.website_url || '')
+  const [introVideoUrl, setIntroVideoUrl] = useState(profile.intro_video_url || null)
+
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const [errorField, setErrorField] = useState(null)
+  const [success, setSuccess] = useState(false)
+
+  const fieldRefs = {
+    fullName: useRef(null),
+    jobTitle: useRef(null),
+    location: useRef(null),
+    bio: useRef(null),
+    websiteUrl: useRef(null),
+  }
+
+  function validate() {
+    if (!fullName.trim()) return { field: 'fullName', message: 'Full name is required.' }
+    if (!jobTitle.trim()) return { field: 'jobTitle', message: 'Current role or title is required.' }
+    if (!location.trim()) return { field: 'location', message: 'Location is required.' }
+    if (!bio.trim()) return { field: 'bio', message: 'Bio is required.' }
+    const trimmedWebsite = websiteUrl.trim()
+    if (trimmedWebsite && !/^https?:\/\//i.test(trimmedWebsite)) {
+      return { field: 'websiteUrl', message: 'Portfolio or website must start with https:// or http://' }
+    }
+    return null
+  }
+
+  async function handleSaveAll(e) {
+    e.preventDefault()
+    const problem = validate()
+    if (problem) {
+      setErrorField(problem.field)
+      setSaveError(problem.message)
+      setSuccess(false)
+      const ref = fieldRefs[problem.field]?.current
+      if (ref) {
+        ref.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        ref.focus()
+      }
+      return
+    }
+
+    setErrorField(null)
+    setSaveError('')
+    setSaving(true)
+    const { data, error } = await supabase
+      .from('candidate_profiles')
+      .update({
+        full_name: fullName.trim(),
+        job_title: jobTitle.trim(),
+        current_company: currentCompany.trim() || null,
+        years_of_experience: yearsOfExperience || null,
+        availability: availability || null,
+        location: location.trim(),
+        bio: bio.trim(),
+        three_words: threeWords.trim() || null,
+        proud_of: proudOf.trim() || null,
+        education_level: educationLevel || null,
+        field_of_study: fieldOfStudy.trim() || null,
+        institution_name: institutionName.trim() || null,
+        graduation_year: graduationYear ? Number(graduationYear) : null,
+        skills,
+        languages,
+        linkedin_url: linkedinUrl.trim() || null,
+        calendly_url: calendlyUrl.trim() || null,
+        website_url: websiteUrl.trim() || null,
+        intro_video_url: introVideoUrl || null,
+      })
+      .eq('id', profile.id)
+      .select()
+      .single()
+    setSaving(false)
+    if (error) {
+      setSaveError(error.message)
+      return
+    }
+    onUpdated(data)
+    setSuccess(true)
+    setTimeout(() => setSuccess(false), 3000)
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
+    <form onSubmit={handleSaveAll} style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
+      <SaveControls floating saving={saving} success={success} error={saveError} />
+
       <OpenToOpportunitiesSection profile={profile} onUpdated={onUpdated} />
       <AvatarSection profile={profile} userId={userId} onUpdated={onUpdated} />
-      <BasicsSection profile={profile} onUpdated={onUpdated} />
-      <EducationSection profile={profile} onUpdated={onUpdated} />
-      <SkillsSection profile={profile} onUpdated={onUpdated} />
-      <LanguagesSection profile={profile} onUpdated={onUpdated} />
-      <LinkedInSection profile={profile} onUpdated={onUpdated} />
-      <VideoSection profile={profile} userId={userId} onUpdated={onUpdated} />
+
+      <BasicsSection
+        fullName={fullName}
+        setFullName={setFullName}
+        jobTitle={jobTitle}
+        setJobTitle={setJobTitle}
+        currentCompany={currentCompany}
+        setCurrentCompany={setCurrentCompany}
+        yearsOfExperience={yearsOfExperience}
+        setYearsOfExperience={setYearsOfExperience}
+        availability={availability}
+        setAvailability={setAvailability}
+        location={location}
+        setLocation={setLocation}
+        bio={bio}
+        setBio={setBio}
+        threeWords={threeWords}
+        setThreeWords={setThreeWords}
+        proudOf={proudOf}
+        setProudOf={setProudOf}
+        errorField={errorField}
+        fieldRefs={fieldRefs}
+      />
+
+      <EducationSection
+        educationLevel={educationLevel}
+        setEducationLevel={setEducationLevel}
+        fieldOfStudy={fieldOfStudy}
+        setFieldOfStudy={setFieldOfStudy}
+        institutionName={institutionName}
+        setInstitutionName={setInstitutionName}
+        graduationYear={graduationYear}
+        setGraduationYear={setGraduationYear}
+      />
+
+      <SkillsSection skills={skills} setSkills={setSkills} />
+
+      <LanguagesSection languages={languages} setLanguages={setLanguages} />
+
+      <LinkedInSection
+        linkedinUrl={linkedinUrl}
+        setLinkedinUrl={setLinkedinUrl}
+        calendlyUrl={calendlyUrl}
+        setCalendlyUrl={setCalendlyUrl}
+        websiteUrl={websiteUrl}
+        setWebsiteUrl={setWebsiteUrl}
+        errorField={errorField}
+        fieldRefs={fieldRefs}
+      />
+
+      <VideoSection userId={userId} introVideoUrl={introVideoUrl} setIntroVideoUrl={setIntroVideoUrl} />
+
       <WorkVideosSection profile={profile} userId={userId} />
+
+      <SaveControls saving={saving} success={success} error={saveError} />
+
       <DangerZoneSection />
-    </div>
+    </form>
   )
 }
 
-function useSavedFlash() {
-  const [saved, setSaved] = useState(false)
-  function flash() {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-  return [saved, flash]
+function SaveControls({ saving, success, error, floating }) {
+  return (
+    <div
+      style={
+        floating
+          ? {
+              position: 'fixed',
+              bottom: 24,
+              right: 24,
+              zIndex: 40,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-end',
+              gap: 8,
+            }
+          : { display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }
+      }
+    >
+      {error && (
+        <p
+          className="form-error"
+          style={
+            floating ? { background: '#fff', padding: '6px 12px', borderRadius: 8, boxShadow: '0 2px 10px rgba(0,0,0,0.15)' } : undefined
+          }
+        >
+          {error}
+        </p>
+      )}
+      {success && !error && (
+        <p
+          style={{
+            color: '#0f7a3d',
+            fontWeight: 600,
+            fontSize: 14,
+            ...(floating ? { background: '#fff', padding: '6px 12px', borderRadius: 8, boxShadow: '0 2px 10px rgba(0,0,0,0.15)' } : {}),
+          }}
+        >
+          Profile updated
+        </p>
+      )}
+      <button
+        type="submit"
+        className="btn btn-primary"
+        disabled={saving}
+        style={floating ? { boxShadow: '0 4px 14px rgba(0,0,0,0.2)', padding: '12px 28px' } : { alignSelf: 'flex-start' }}
+      >
+        {saving ? 'Saving…' : 'Save'}
+      </button>
+    </div>
+  )
 }
 
 function AvatarSection({ profile, userId, onUpdated }) {
@@ -230,59 +415,55 @@ function OpenToOpportunitiesSection({ profile, onUpdated }) {
   )
 }
 
-function BasicsSection({ profile, onUpdated }) {
-  const [fullName, setFullName] = useState(profile.full_name || '')
-  const [jobTitle, setJobTitle] = useState(profile.job_title || '')
-  const [currentCompany, setCurrentCompany] = useState(profile.current_company || '')
-  const [yearsOfExperience, setYearsOfExperience] = useState(profile.years_of_experience || '')
-  const [location, setLocation] = useState(profile.location || '')
-  const [bio, setBio] = useState(profile.bio || '')
-  const [threeWords, setThreeWords] = useState(profile.three_words || '')
-  const [proudOf, setProudOf] = useState(profile.proud_of || '')
-  const [availability, setAvailability] = useState(profile.availability || '')
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [saved, flash] = useSavedFlash()
+function fieldStyle(hasError) {
+  return hasError ? { borderColor: '#d92d20' } : undefined
+}
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setSaving(true)
-    setError('')
-    const { data, error: saveError } = await supabase
-      .from('candidate_profiles')
-      .update({
-        full_name: fullName.trim(),
-        job_title: jobTitle.trim(),
-        current_company: currentCompany.trim() || null,
-        years_of_experience: yearsOfExperience || null,
-        location: location.trim(),
-        bio: bio.trim(),
-        three_words: threeWords.trim() || null,
-        proud_of: proudOf.trim() || null,
-        availability: availability || null,
-      })
-      .eq('id', profile.id)
-      .select()
-      .single()
-    if (saveError) setError(saveError.message)
-    else {
-      onUpdated(data)
-      flash()
-    }
-    setSaving(false)
-  }
-
+function BasicsSection({
+  fullName,
+  setFullName,
+  jobTitle,
+  setJobTitle,
+  currentCompany,
+  setCurrentCompany,
+  yearsOfExperience,
+  setYearsOfExperience,
+  availability,
+  setAvailability,
+  location,
+  setLocation,
+  bio,
+  setBio,
+  threeWords,
+  setThreeWords,
+  proudOf,
+  setProudOf,
+  errorField,
+  fieldRefs,
+}) {
   return (
     <section>
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Basics</h3>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
           <label>Full name</label>
-          <input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+          <input
+            ref={fieldRefs.fullName}
+            className="input"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            style={fieldStyle(errorField === 'fullName')}
+          />
         </div>
         <div className="field">
           <label>Current role or title</label>
-          <input className="input" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} required />
+          <input
+            ref={fieldRefs.jobTitle}
+            className="input"
+            value={jobTitle}
+            onChange={(e) => setJobTitle(e.target.value)}
+            style={fieldStyle(errorField === 'jobTitle')}
+          />
         </div>
         <div className="field">
           <label>Current company (optional)</label>
@@ -317,11 +498,24 @@ function BasicsSection({ profile, onUpdated }) {
         </div>
         <div className="field">
           <label>Location (city)</label>
-          <input className="input" value={location} onChange={(e) => setLocation(e.target.value)} required />
+          <input
+            ref={fieldRefs.location}
+            className="input"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            style={fieldStyle(errorField === 'location')}
+          />
         </div>
         <div className="field">
           <label>Bio</label>
-          <textarea className="input" rows={4} value={bio} onChange={(e) => setBio(e.target.value)} required />
+          <textarea
+            ref={fieldRefs.bio}
+            className="input"
+            rows={4}
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            style={fieldStyle(errorField === 'bio')}
+          />
         </div>
         <div className="field">
           <label>Known for (optional)</label>
@@ -342,49 +536,25 @@ function BasicsSection({ profile, onUpdated }) {
             placeholder="Could be work, could be personal — anything that matters to you"
           />
         </div>
-        {error && <p className="form-error">{error}</p>}
-        <SaveButton saving={saving} saved={saved} />
-      </form>
+      </div>
     </section>
   )
 }
 
-function EducationSection({ profile, onUpdated }) {
-  const [educationLevel, setEducationLevel] = useState(profile.education_level || '')
-  const [fieldOfStudy, setFieldOfStudy] = useState(profile.field_of_study || '')
-  const [institutionName, setInstitutionName] = useState(profile.institution_name || '')
-  const [graduationYear, setGraduationYear] = useState(profile.graduation_year || '')
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [saved, flash] = useSavedFlash()
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setSaving(true)
-    setError('')
-    const { data, error: saveError } = await supabase
-      .from('candidate_profiles')
-      .update({
-        education_level: educationLevel || null,
-        field_of_study: fieldOfStudy.trim() || null,
-        institution_name: institutionName.trim() || null,
-        graduation_year: graduationYear ? Number(graduationYear) : null,
-      })
-      .eq('id', profile.id)
-      .select()
-      .single()
-    if (saveError) setError(saveError.message)
-    else {
-      onUpdated(data)
-      flash()
-    }
-    setSaving(false)
-  }
-
+function EducationSection({
+  educationLevel,
+  setEducationLevel,
+  fieldOfStudy,
+  setFieldOfStudy,
+  institutionName,
+  setInstitutionName,
+  graduationYear,
+  setGraduationYear,
+}) {
   return (
     <section>
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Education</h3>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
           <label>Highest level of education (optional)</label>
           <select className="input" value={educationLevel} onChange={(e) => setEducationLevel(e.target.value)}>
@@ -426,19 +596,13 @@ function EducationSection({ profile, onUpdated }) {
             placeholder="e.g. 2022"
           />
         </div>
-        {error && <p className="form-error">{error}</p>}
-        <SaveButton saving={saving} saved={saved} />
-      </form>
+      </div>
     </section>
   )
 }
 
-function SkillsSection({ profile, onUpdated }) {
-  const [skills, setSkills] = useState(profile.skills || [])
+function SkillsSection({ skills, setSkills }) {
   const [input, setInput] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [saved, flash] = useSavedFlash()
 
   function addSkill() {
     const value = input.trim()
@@ -460,28 +624,10 @@ function SkillsSection({ profile, onUpdated }) {
     }
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setSaving(true)
-    setError('')
-    const { data, error: saveError } = await supabase
-      .from('candidate_profiles')
-      .update({ skills })
-      .eq('id', profile.id)
-      .select()
-      .single()
-    if (saveError) setError(saveError.message)
-    else {
-      onUpdated(data)
-      flash()
-    }
-    setSaving(false)
-  }
-
   return (
     <section>
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Skills</h3>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
           <label>Skills ({skills.length}/{MAX_SKILLS})</label>
           <input
@@ -510,20 +656,14 @@ function SkillsSection({ profile, onUpdated }) {
             ))}
           </div>
         )}
-        {error && <p className="form-error">{error}</p>}
-        <SaveButton saving={saving} saved={saved} />
-      </form>
+      </div>
     </section>
   )
 }
 
-function LanguagesSection({ profile, onUpdated }) {
-  const [languages, setLanguages] = useState(profile.languages || [])
+function LanguagesSection({ languages, setLanguages }) {
   const [language, setLanguage] = useState('')
   const [proficiency, setProficiency] = useState('conversational')
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [saved, flash] = useSavedFlash()
 
   function addLanguage() {
     const value = language.trim()
@@ -536,28 +676,10 @@ function LanguagesSection({ profile, onUpdated }) {
     setProficiency('conversational')
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setSaving(true)
-    setError('')
-    const { data, error: saveError } = await supabase
-      .from('candidate_profiles')
-      .update({ languages })
-      .eq('id', profile.id)
-      .select()
-      .single()
-    if (saveError) setError(saveError.message)
-    else {
-      onUpdated(data)
-      flash()
-    }
-    setSaving(false)
-  }
-
   return (
     <section>
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Languages</h3>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div className="field" style={{ flex: 1, minWidth: 140 }}>
             <label>Language</label>
@@ -596,54 +718,25 @@ function LanguagesSection({ profile, onUpdated }) {
             ))}
           </div>
         )}
-        {error && <p className="form-error">{error}</p>}
-        <SaveButton saving={saving} saved={saved} />
-      </form>
+      </div>
     </section>
   )
 }
 
-function LinkedInSection({ profile, onUpdated }) {
-  const [linkedinUrl, setLinkedinUrl] = useState(profile.linkedin_url || '')
-  const [calendlyUrl, setCalendlyUrl] = useState(profile.calendly_url || '')
-  const [websiteUrl, setWebsiteUrl] = useState(profile.website_url || '')
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [saved, flash] = useSavedFlash()
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
-
-    const trimmedWebsite = websiteUrl.trim()
-    if (trimmedWebsite && !/^https?:\/\//i.test(trimmedWebsite)) {
-      setError('Portfolio or website must start with https:// or http://')
-      return
-    }
-
-    setSaving(true)
-    const { data, error: saveError } = await supabase
-      .from('candidate_profiles')
-      .update({
-        linkedin_url: linkedinUrl.trim() || null,
-        calendly_url: calendlyUrl.trim() || null,
-        website_url: trimmedWebsite || null,
-      })
-      .eq('id', profile.id)
-      .select()
-      .single()
-    if (saveError) setError(saveError.message)
-    else {
-      onUpdated(data)
-      flash()
-    }
-    setSaving(false)
-  }
-
+function LinkedInSection({
+  linkedinUrl,
+  setLinkedinUrl,
+  calendlyUrl,
+  setCalendlyUrl,
+  websiteUrl,
+  setWebsiteUrl,
+  errorField,
+  fieldRefs,
+}) {
   return (
     <section>
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Links</h3>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
           <label>LinkedIn URL</label>
           <input
@@ -667,47 +760,27 @@ function LinkedInSection({ profile, onUpdated }) {
         <div className="field">
           <label>Portfolio or website (optional)</label>
           <input
+            ref={fieldRefs.websiteUrl}
             className="input"
             type="url"
             value={websiteUrl}
             onChange={(e) => setWebsiteUrl(e.target.value)}
             placeholder="https://yourportfolio.com"
+            style={fieldStyle(errorField === 'websiteUrl')}
           />
         </div>
-        {error && <p className="form-error">{error}</p>}
-        <SaveButton saving={saving} saved={saved} />
-      </form>
+      </div>
     </section>
   )
 }
 
-function VideoSection({ profile, userId, onUpdated }) {
+function VideoSection({ userId, introVideoUrl, setIntroVideoUrl }) {
   const [file, setFile] = useState(null)
-  const [previewUrl, setPreviewUrl] = useState(profile.intro_video_url || null)
+  const [localPreviewUrl, setLocalPreviewUrl] = useState(null)
   const [uploading, setUploading] = useState(false)
-  const [removing, setRemoving] = useState(false)
   const [error, setError] = useState('')
 
-  async function handleRemove() {
-    setRemoving(true)
-    setError('')
-    try {
-      const { data: row, error: saveError } = await supabase
-        .from('candidate_profiles')
-        .update({ intro_video_url: null })
-        .eq('id', profile.id)
-        .select()
-        .single()
-      if (saveError) throw saveError
-      onUpdated(row)
-      setPreviewUrl(null)
-      setFile(null)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setRemoving(false)
-    }
-  }
+  const previewUrl = localPreviewUrl || introVideoUrl
 
   function handleFileChange(e) {
     const selected = e.target.files?.[0]
@@ -731,7 +804,7 @@ function VideoSection({ profile, userId, onUpdated }) {
         return
       }
       setFile(selected)
-      setPreviewUrl(objectUrl)
+      setLocalPreviewUrl(objectUrl)
     }
     probe.src = objectUrl
   }
@@ -748,20 +821,20 @@ function VideoSection({ profile, userId, onUpdated }) {
         .upload(path, file, { upsert: true, contentType: file.type })
       if (uploadError) throw uploadError
       const { data } = supabase.storage.from('candidate-videos').getPublicUrl(path)
-      const { data: row, error: saveError } = await supabase
-        .from('candidate_profiles')
-        .update({ intro_video_url: `${data.publicUrl}?t=${Date.now()}` })
-        .eq('id', profile.id)
-        .select()
-        .single()
-      if (saveError) throw saveError
-      onUpdated(row)
+      setIntroVideoUrl(`${data.publicUrl}?t=${Date.now()}`)
       setFile(null)
+      setLocalPreviewUrl(null)
     } catch (err) {
       setError(err.message)
     } finally {
       setUploading(false)
     }
+  }
+
+  function handleRemove() {
+    setIntroVideoUrl(null)
+    setFile(null)
+    setLocalPreviewUrl(null)
   }
 
   return (
@@ -794,20 +867,23 @@ function VideoSection({ profile, userId, onUpdated }) {
         {error && <p className="form-error">{error}</p>}
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-primary" type="button" onClick={handleUpload} disabled={!file || uploading} style={{ alignSelf: 'flex-start' }}>
-            {uploading ? 'Uploading…' : 'Save video'}
+            {uploading ? 'Uploading…' : 'Upload video'}
           </button>
-          {profile.intro_video_url && (
+          {introVideoUrl && (
             <button
               type="button"
               className="btn btn-ghost"
               style={{ color: '#d92d20', borderColor: '#d92d20' }}
               onClick={handleRemove}
-              disabled={removing || uploading}
+              disabled={uploading}
             >
-              {removing ? 'Removing…' : 'Remove video'}
+              Remove video
             </button>
           )}
         </div>
+        <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+          Click Save below to apply your video change.
+        </p>
       </div>
     </section>
   )
@@ -852,7 +928,7 @@ function WorkVideosSection({ profile, userId }) {
     <section>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
         <h3 style={{ fontSize: 16 }}>Work videos</h3>
-        <button className="btn btn-ghost" style={{ fontSize: 13, padding: '6px 14px' }} onClick={() => setShowAddVideo(true)}>
+        <button type="button" className="btn btn-ghost" style={{ fontSize: 13, padding: '6px 14px' }} onClick={() => setShowAddVideo(true)}>
           + Add work video
         </button>
       </div>
