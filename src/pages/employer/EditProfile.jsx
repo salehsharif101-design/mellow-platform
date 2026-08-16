@@ -95,12 +95,19 @@ function EditProfileFormBody({ profile, onUpdated }) {
   const fieldRefs = {
     companyName: useRef(null),
     industry: useRef(null),
+    about: useRef(null),
+    linkedinUrl: useRef(null),
     websiteUrl: useRef(null),
   }
 
   function validate() {
     if (!companyName.trim()) return { field: 'companyName', message: 'Company name is required.' }
     if (!industry.trim()) return { field: 'industry', message: 'Industry is required.' }
+    if (!about.trim()) return { field: 'about', message: 'About your company is required.' }
+    const trimmedLinkedin = linkedinUrl.trim()
+    if (trimmedLinkedin && !/^https?:\/\//i.test(trimmedLinkedin)) {
+      return { field: 'linkedinUrl', message: 'LinkedIn URL must start with https:// or http://' }
+    }
     const trimmedWebsite = websiteUrl.trim()
     if (trimmedWebsite && !/^https?:\/\//i.test(trimmedWebsite)) {
       return { field: 'websiteUrl', message: 'Company website must start with https:// or http://' }
@@ -170,7 +177,7 @@ function EditProfileFormBody({ profile, onUpdated }) {
         fieldRefs={fieldRefs}
       />
 
-      <AboutSection about={about} setAbout={setAbout} />
+      <AboutSection about={about} setAbout={setAbout} errorField={errorField} fieldRefs={fieldRefs} />
 
       <CultureSection cultureDescription={cultureDescription} setCultureDescription={setCultureDescription} />
 
@@ -422,20 +429,22 @@ function CompanyInfoSection({
   )
 }
 
-function AboutSection({ about, setAbout }) {
+function AboutSection({ about, setAbout, errorField, fieldRefs }) {
   return (
     <section>
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>About your company</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
-          <label>Short description (optional)</label>
+          <label>Short description</label>
           <textarea
+            ref={fieldRefs.about}
             className="input"
             rows={4}
             value={about}
             onChange={(e) => setAbout(e.target.value.slice(0, MAX_ABOUT_LENGTH))}
             placeholder="A brief intro to your company — shown on your public role pages."
             maxLength={MAX_ABOUT_LENGTH}
+            style={fieldStyle(errorField === 'about')}
           />
           <p style={{ marginTop: 4, fontSize: 12, color: 'var(--color-text-muted)' }}>
             {about.length}/{MAX_ABOUT_LENGTH}
@@ -516,11 +525,13 @@ function LinksSection({ linkedinUrl, setLinkedinUrl, websiteUrl, setWebsiteUrl, 
         <div className="field">
           <label>LinkedIn company page (optional)</label>
           <input
+            ref={fieldRefs.linkedinUrl}
             className="input"
-            type="url"
+            type="text"
             value={linkedinUrl}
             onChange={(e) => setLinkedinUrl(e.target.value)}
             placeholder="https://linkedin.com/company/yourcompany"
+            style={fieldStyle(errorField === 'linkedinUrl')}
           />
         </div>
         <div className="field">
@@ -528,7 +539,7 @@ function LinksSection({ linkedinUrl, setLinkedinUrl, websiteUrl, setWebsiteUrl, 
           <input
             ref={fieldRefs.websiteUrl}
             className="input"
-            type="url"
+            type="text"
             value={websiteUrl}
             onChange={(e) => setWebsiteUrl(e.target.value)}
             placeholder="https://yourcompany.com"

@@ -48,6 +48,11 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
     jobTitle: useRef(null),
     location: useRef(null),
     bio: useRef(null),
+    availability: useRef(null),
+    skills: useRef(null),
+    languages: useRef(null),
+    linkedinUrl: useRef(null),
+    calendlyUrl: useRef(null),
     websiteUrl: useRef(null),
   }
 
@@ -56,6 +61,17 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
     if (!jobTitle.trim()) return { field: 'jobTitle', message: 'Current role or title is required.' }
     if (!location.trim()) return { field: 'location', message: 'Location is required.' }
     if (!bio.trim()) return { field: 'bio', message: 'Bio is required.' }
+    if (!availability) return { field: 'availability', message: 'Please select when you can start.' }
+    if (skills.length === 0) return { field: 'skills', message: 'Please add at least one skill.' }
+    if (languages.length === 0) return { field: 'languages', message: 'Please add at least one language.' }
+    const trimmedLinkedin = linkedinUrl.trim()
+    if (trimmedLinkedin && !/^https?:\/\//i.test(trimmedLinkedin)) {
+      return { field: 'linkedinUrl', message: 'LinkedIn URL must start with https:// or http://' }
+    }
+    const trimmedCalendly = calendlyUrl.trim()
+    if (trimmedCalendly && !/^https?:\/\//i.test(trimmedCalendly)) {
+      return { field: 'calendlyUrl', message: 'Calendly link must start with https:// or http://' }
+    }
     const trimmedWebsite = websiteUrl.trim()
     if (trimmedWebsite && !/^https?:\/\//i.test(trimmedWebsite)) {
       return { field: 'websiteUrl', message: 'Portfolio or website must start with https:// or http://' }
@@ -158,9 +174,9 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
         setGraduationYear={setGraduationYear}
       />
 
-      <SkillsSection skills={skills} setSkills={setSkills} />
+      <SkillsSection skills={skills} setSkills={setSkills} errorField={errorField} fieldRefs={fieldRefs} />
 
-      <LanguagesSection languages={languages} setLanguages={setLanguages} />
+      <LanguagesSection languages={languages} setLanguages={setLanguages} errorField={errorField} fieldRefs={fieldRefs} />
 
       <LinkedInSection
         linkedinUrl={linkedinUrl}
@@ -487,7 +503,13 @@ function BasicsSection({
         </div>
         <div className="field">
           <label>When can you start?</label>
-          <select className="input" value={availability} onChange={(e) => setAvailability(e.target.value)}>
+          <select
+            ref={fieldRefs.availability}
+            className="input"
+            value={availability}
+            onChange={(e) => setAvailability(e.target.value)}
+            style={fieldStyle(errorField === 'availability')}
+          >
             <option value="">Select…</option>
             {AVAILABILITY_OPTIONS.map((option) => (
               <option key={option} value={option}>
@@ -601,7 +623,7 @@ function EducationSection({
   )
 }
 
-function SkillsSection({ skills, setSkills }) {
+function SkillsSection({ skills, setSkills, errorField, fieldRefs }) {
   const [input, setInput] = useState('')
 
   function addSkill() {
@@ -629,15 +651,20 @@ function SkillsSection({ skills, setSkills }) {
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Skills</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
-          <label>Skills ({skills.length}/{MAX_SKILLS})</label>
+          <label>Skills</label>
           <input
+            ref={fieldRefs.skills}
             className="input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={skills.length >= MAX_SKILLS ? 'Limit reached' : 'Type a skill and hit enter'}
             disabled={skills.length >= MAX_SKILLS}
+            style={fieldStyle(errorField === 'skills')}
           />
+          <p style={{ marginTop: 4, fontSize: 12, color: 'var(--color-text-muted)' }}>
+            {skills.length}/{MAX_SKILLS} — at least one required
+          </p>
         </div>
         {skills.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -661,7 +688,7 @@ function SkillsSection({ skills, setSkills }) {
   )
 }
 
-function LanguagesSection({ languages, setLanguages }) {
+function LanguagesSection({ languages, setLanguages, errorField, fieldRefs }) {
   const [language, setLanguage] = useState('')
   const [proficiency, setProficiency] = useState('conversational')
 
@@ -683,7 +710,14 @@ function LanguagesSection({ languages, setLanguages }) {
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div className="field" style={{ flex: 1, minWidth: 140 }}>
             <label>Language</label>
-            <input className="input" value={language} onChange={(e) => setLanguage(e.target.value)} placeholder="Spanish" />
+            <input
+              ref={fieldRefs.languages}
+              className="input"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              placeholder="Spanish"
+              style={fieldStyle(errorField === 'languages')}
+            />
           </div>
           <div className="field" style={{ minWidth: 160 }}>
             <label>Proficiency</label>
@@ -699,6 +733,7 @@ function LanguagesSection({ languages, setLanguages }) {
             Add
           </button>
         </div>
+        <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: -6 }}>At least one language required</p>
         {languages.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {languages.map((l) => (
@@ -738,23 +773,27 @@ function LinkedInSection({
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Links</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
-          <label>LinkedIn URL</label>
+          <label>LinkedIn URL (optional)</label>
           <input
+            ref={fieldRefs.linkedinUrl}
             className="input"
-            type="url"
+            type="text"
             value={linkedinUrl}
             onChange={(e) => setLinkedinUrl(e.target.value)}
             placeholder="https://linkedin.com/in/yourname"
+            style={fieldStyle(errorField === 'linkedinUrl')}
           />
         </div>
         <div className="field">
           <label>Calendly link (optional)</label>
           <input
+            ref={fieldRefs.calendlyUrl}
             className="input"
-            type="url"
+            type="text"
             value={calendlyUrl}
             onChange={(e) => setCalendlyUrl(e.target.value)}
             placeholder="https://calendly.com/yourname"
+            style={fieldStyle(errorField === 'calendlyUrl')}
           />
         </div>
         <div className="field">
@@ -762,7 +801,7 @@ function LinkedInSection({
           <input
             ref={fieldRefs.websiteUrl}
             className="input"
-            type="url"
+            type="text"
             value={websiteUrl}
             onChange={(e) => setWebsiteUrl(e.target.value)}
             placeholder="https://yourportfolio.com"
