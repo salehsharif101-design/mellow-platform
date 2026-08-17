@@ -117,6 +117,7 @@ export default function ProfileEdit() {
           <h1 style={{ fontSize: 28, marginBottom: 32 }}>Edit your profile</h1>
           <EditProfileForm profile={profile} userId={user.id} onUpdated={setProfile} />
         </div>
+        <HashScroll />
       </div>
     )
   }
@@ -197,4 +198,17 @@ export default function ProfileEdit() {
       </div>
     </div>
   )
+}
+
+// Jumps to the section named by the URL hash (e.g. #skills-section) — used
+// by the profile strength checklist's "Add a work video →" style links so
+// they land directly on the relevant field instead of the top of the page.
+// React Router doesn't scroll to hash fragments on its own.
+function HashScroll() {
+  useEffect(() => {
+    if (!window.location.hash) return
+    const el = document.querySelector(window.location.hash)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [])
+  return null
 }

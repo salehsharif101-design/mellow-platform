@@ -21,3 +21,11 @@ export async function getCandidateContact(supabase, candidateId) {
   const candidateUser = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
   return { email: candidateUser.email, username: candidate.username }
 }
+
+export async function getEmployerContact(supabase, employerId) {
+  const employer = unwrap(
+    await supabase.from('employer_profiles').select('user_id, company_name').eq('id', employerId).single(),
+  )
+  const employerUser = unwrap(await supabase.from('users').select('email').eq('id', employer.user_id).single())
+  return { email: employerUser.email, companyName: employer.company_name }
+}

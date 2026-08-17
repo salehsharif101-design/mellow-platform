@@ -7,6 +7,7 @@ import { formatDeadline, formatSalary, formatResponseRate } from '../../lib/role
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
 import ShareButton from '../../components/ShareButton.jsx'
+import SaveRoleButton from '../../components/SaveRoleButton.jsx'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -29,6 +30,7 @@ export default function RolePublic() {
   const [applying, setApplying] = useState(false)
   const [error, setError] = useState('')
   const [responseLabel, setResponseLabel] = useState(null)
+  const [savedEntryId, setSavedEntryId] = useState(null)
 
   useEffect(() => {
     async function load() {
@@ -82,9 +84,38 @@ export default function RolePublic() {
         .maybeSingle()
 
       if (existing) setApplied(true)
+
+      const { data: savedRow } = await supabase
+        .from('saved_roles')
+        .select('id')
+        .eq('candidate_id', candidate.id)
+        .eq('role_id', role.id)
+        .maybeSingle()
+
+      if (savedRow) setSavedEntryId(savedRow.id)
     }
     loadCandidate()
   }, [user, userType, role])
+
+  async function toggleSave() {
+    if (!candidateId || !role) return
+    if (savedEntryId) {
+      const { error: deleteError } = await supabase.from('saved_roles').delete().eq('id', savedEntryId)
+      if (!deleteError) setSavedEntryId(null)
+      return
+    }
+    const { data, error: insertError } = await supabase
+      .from('saved_roles')
+      .insert({
+        candidate_id: candidateId,
+        role_id: role.id,
+        role_title: role.title,
+        company_name: role.employer_profiles?.company_name || null,
+      })
+      .select('id')
+      .single()
+    if (!insertError) setSavedEntryId(data.id)
+  }
 
   useEffect(() => {
     if (!role?.id) return
@@ -234,7 +265,12 @@ export default function RolePublic() {
               <h1 style={{ fontSize: 26, marginTop: 2 }}>{role.title}</h1>
             </div>
           </div>
-          <ShareButton url={`https://beta.joinmellow.xyz/jobs/${slug}`} label="Share role" />
+          <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexShrink: 0 }}>
+            {userType === 'candidate' && candidateId && (
+              <SaveRoleButton saved={Boolean(savedEntryId)} onToggle={toggleSave} size={19} />
+            )}
+            <ShareButton url={`https://beta.joinmellow.xyz/jobs/${slug}`} label="Share role" />
+          </div>
         </div>
 
         {employer?.about && (

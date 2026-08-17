@@ -55,3 +55,35 @@ export function getCandidateStatusLabel(status) {
   if (status === 'applied') return 'Applied'
   return 'Under review'
 }
+
+// Loose word-overlap match used for both the Browse Roles "Recommended for
+// you" section and the talent activity feed's "new roles that match your
+// skills" item. Deliberately generous (substring-based) rather than exact —
+// "React" should match a role titled "Senior React Engineer", and a skill
+// like "Product Management" should match an employer's typical_roles entry
+// "Product Manager" even though the words aren't identical.
+export function roleMatchesCandidate(role, candidateSkills, candidateJobTitle) {
+  const haystack = [role.title, role.employer_profiles?.typical_roles]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+  if (!haystack) return false
+
+  const needles = [...(candidateSkills || []), candidateJobTitle].filter(Boolean).map((s) => s.toLowerCase().trim())
+
+  return needles.some((needle) => {
+    if (needle.length < 3) return false
+    if (haystack.includes(needle)) return true
+    // Also check the reverse direction — a short role title word (e.g.
+    // "Designer") appearing inside a longer candidate needle (e.g. "Senior
+    // Product Designer") should still count as a match.
+    return needle.split(/\s+/).some((word) => word.length >= 3 && haystack.includes(word))
+  })
+}
+
+export function daysUntil(dateString) {
+  if (!dateString) return null
+  const [year, month, day] = dateString.split('-').map(Number)
+  const target = new Date(year, month - 1, day)
+  return Math.ceil((target.getTime() - Date.now()) / 86400000)
+}

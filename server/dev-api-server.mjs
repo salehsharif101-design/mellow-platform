@@ -21,6 +21,7 @@ const { default: deleteAccountHandler } = await import('../api/delete-account.js
 const { default: waitlistHandler } = await import('../api/waitlist.js')
 const { default: checkEmailHandler } = await import('../api/check-email.js')
 const { default: profileViewDigestHandler } = await import('../api/cron/profile-view-digest.js')
+const { default: weeklyDigestHandler } = await import('../api/cron/weekly-digest.js')
 
 const PORT = process.env.ADMIN_API_PORT || 5174
 
@@ -31,6 +32,7 @@ const ROUTES = {
   '/api/waitlist': waitlistHandler,
   '/api/check-email': checkEmailHandler,
   '/api/cron/profile-view-digest': profileViewDigestHandler,
+  '/api/cron/weekly-digest': weeklyDigestHandler,
 }
 
 const server = http.createServer(async (req, res) => {

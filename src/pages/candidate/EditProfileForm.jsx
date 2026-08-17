@@ -313,7 +313,7 @@ function AvatarSection({ profile, userId, onUpdated }) {
   }
 
   return (
-    <section>
+    <section id="photo-section">
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Profile picture</h3>
       <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
         <div
@@ -458,7 +458,7 @@ function BasicsSection({
   fieldRefs,
 }) {
   return (
-    <section>
+    <section id="basics-section">
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Basics</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
@@ -574,7 +574,7 @@ function EducationSection({
   setGraduationYear,
 }) {
   return (
-    <section>
+    <section id="education-section">
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Education</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
@@ -647,7 +647,7 @@ function SkillsSection({ skills, setSkills, errorField, fieldRefs }) {
   }
 
   return (
-    <section>
+    <section id="skills-section">
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Skills</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
@@ -769,7 +769,7 @@ function LinkedInSection({
   fieldRefs,
 }) {
   return (
-    <section>
+    <section id="linkedin-section">
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Links</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
@@ -877,7 +877,7 @@ function VideoSection({ userId, introVideoUrl, setIntroVideoUrl }) {
   }
 
   return (
-    <section>
+    <section id="video-section">
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Intro video</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         {previewUrl && (
@@ -964,7 +964,7 @@ function WorkVideosSection({ profile, userId }) {
   }
 
   return (
-    <section>
+    <section id="work-videos-section">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
         <h3 style={{ fontSize: 16 }}>Work videos</h3>
         <button type="button" className="btn btn-ghost" style={{ fontSize: 13, padding: '6px 14px' }} onClick={() => setShowAddVideo(true)}>

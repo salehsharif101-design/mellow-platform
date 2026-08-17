@@ -21,11 +21,60 @@ function StatusTag({ status }) {
   )
 }
 
+function formatDate(dateString) {
+  return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function Timeline({ application }) {
+  const steps = [{ label: 'Applied', date: application.applied_at, done: true }]
+  steps.push({ label: 'Profile viewed by employer', date: application.viewed_at, done: Boolean(application.viewed_at) })
+  if (['reviewing', 'shortlisted'].includes(application.status) && application.status_changed_at) {
+    steps.push({
+      label: `Status update — ${getCandidateStatusLabel(application.status)}`,
+      date: application.status_changed_at,
+      done: true,
+    })
+  } else {
+    steps.push({ label: 'Status update', date: null, done: false })
+  }
+
+  return (
+    <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--color-border)' }}>
+      {steps.map((step, i) => (
+        <div key={step.label} style={{ display: 'flex', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <span
+              aria-hidden="true"
+              style={{
+                width: 12,
+                height: 12,
+                borderRadius: '50%',
+                flexShrink: 0,
+                background: step.done ? 'var(--color-primary)' : 'var(--color-border)',
+              }}
+            />
+            {i < steps.length - 1 && <span style={{ width: 2, flex: 1, minHeight: 24, background: 'var(--color-border)' }} />}
+          </div>
+          <div style={{ paddingBottom: 18 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: step.done ? 'var(--color-text)' : 'var(--color-text-muted)' }}>
+              {step.label}
+            </p>
+            <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
+              {step.date ? formatDate(step.date) : 'Not yet'}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function Applications() {
   const { user } = useAuth()
   const [applications, setApplications] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [expandedIds, setExpandedIds] = useState(new Set())
 
   useEffect(() => {
     if (!user) return
@@ -49,7 +98,7 @@ export default function Applications() {
 
       const { data, error: appsError } = await supabase
         .from('applications')
-        .select('id, status, applied_at, roles(title, employer_profiles(company_name))')
+        .select('id, status, applied_at, viewed_at, status_changed_at, roles(title, employer_profiles(company_name))')
         .eq('candidate_id', candidate.id)
         .order('applied_at', { ascending: false })
 
@@ -61,6 +110,15 @@ export default function Applications() {
 
     load()
   }, [user])
+
+  function toggleExpanded(id) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   if (loading) return null
 
@@ -91,21 +149,32 @@ export default function Applications() {
         </>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 28, maxWidth: 640 }}>
-          {applications.map((a) => (
-            <div
-              key={a.id}
-              className="card"
-              style={{ padding: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}
-            >
-              <div>
-                <p style={{ fontWeight: 700, fontSize: 15 }}>{a.roles?.title}</p>
-                <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
-                  {a.roles?.employer_profiles?.company_name} · Applied {new Date(a.applied_at).toLocaleDateString()}
-                </p>
+          {applications.map((a) => {
+            const expanded = expandedIds.has(a.id)
+            return (
+              <div key={a.id} className="card" style={{ padding: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                  <div>
+                    <p style={{ fontWeight: 700, fontSize: 15 }}>{a.roles?.title}</p>
+                    <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
+                      {a.roles?.employer_profiles?.company_name} · Applied {formatDate(a.applied_at)}
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <StatusTag status={a.status} />
+                    <button
+                      type="button"
+                      onClick={() => toggleExpanded(a.id)}
+                      style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                    >
+                      {expanded ? 'Hide timeline' : 'View timeline'}
+                    </button>
+                  </div>
+                </div>
+                {expanded && <Timeline application={a} />}
               </div>
-              <StatusTag status={a.status} />
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
