@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { SKILL_CATEGORIES } from '../../../../lib/skillCategories.js'
+import SkillCategorySection from '../../../../components/SkillCategorySection.jsx'
 
 const MAX_SKILLS = 10
 
@@ -86,33 +87,14 @@ export default function Step2Skills({ initial, onContinue, onBack, saving }) {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {Object.entries(SKILL_CATEGORIES).map(([category, options]) => (
-          <div key={category}>
-            <h4 style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 8 }}>{category}</h4>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {options.map((option) => {
-                const selected = skills.some((s) => s.toLowerCase() === option.toLowerCase())
-                const disabled = !selected && atLimit
-                return (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => toggleSkill(option)}
-                    disabled={disabled}
-                    className="tag"
-                    style={{
-                      border: 'none',
-                      cursor: disabled ? 'not-allowed' : 'pointer',
-                      background: selected ? 'var(--color-primary)' : 'var(--color-bg-soft)',
-                      color: selected ? '#fff' : 'var(--color-primary)',
-                      opacity: disabled ? 0.5 : 1,
-                    }}
-                  >
-                    {option}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
+          <SkillCategorySection
+            key={category}
+            category={category}
+            options={options}
+            selected={skills}
+            atLimit={atLimit}
+            onToggle={toggleSkill}
+          />
         ))}
       </div>
 
