@@ -44,14 +44,12 @@ export default function CandidateDashboard() {
   const [loading, setLoading] = useState(true)
   const [togglingVisibility, setTogglingVisibility] = useState(false)
   const [showAddVideo, setShowAddVideo] = useState(false)
-  const [highlightWhatsNew, setHighlightWhatsNew] = useState(false)
   // Frozen on first load — see the employer dashboard's identical pattern.
   // Without this, the 30s poll re-reads last_viewed_dashboard_at *after*
   // clearDashboardBadges() has already overwritten it, collapsing the
   // feed's "since" window to almost nothing on every subsequent poll.
   const sinceMsRef = useRef(null)
   const hasClearedBadgeRef = useRef(false)
-  const whatsNewRef = useRef(null)
 
   useEffect(() => {
     if (!user) return
@@ -281,16 +279,6 @@ export default function CandidateDashboard() {
     )
   }
 
-  // Scrolls to What's new and briefly flashes its background — a scroll
-  // alone gives no feedback when the section is already near the top of the
-  // viewport (e.g. right after page load), which read as "this button does
-  // nothing" even though the click was registering correctly.
-  function scrollToWhatsNew() {
-    whatsNewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    setHighlightWhatsNew(true)
-    setTimeout(() => setHighlightWhatsNew(false), 1600)
-  }
-
   async function toggleVisibility() {
     setTogglingVisibility(true)
     const { data } = await supabase
@@ -395,18 +383,7 @@ export default function CandidateDashboard() {
         </button>
       </div>
 
-      <div
-        ref={whatsNewRef}
-        id="whats-new-section"
-        style={{
-          margin: '28px -12px 0',
-          padding: 12,
-          scrollMarginTop: 20,
-          borderRadius: 12,
-          background: highlightWhatsNew ? '#EEF4FF' : 'transparent',
-          transition: 'background 0.4s ease',
-        }}
-      >
+      <div id="whats-new-section" style={{ marginTop: 28, scrollMarginTop: 20 }}>
         <h3 style={{ fontSize: 18, marginBottom: 14 }}>What's new</h3>
         {feedItems.length === 0 ? (
           <p className="card" style={{ padding: 16, fontSize: 14, color: 'var(--color-text-muted)' }}>
@@ -437,15 +414,10 @@ export default function CandidateDashboard() {
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Applications sent</p>
             <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{applications.length}</p>
           </Link>
-          <button
-            type="button"
-            className="card stat-card-link"
-            style={{ padding: 20, border: '1px solid var(--color-border)', background: 'var(--color-bg)' }}
-            onClick={scrollToWhatsNew}
-          >
+          <Link to="/profile-views" className="card stat-card-link" style={{ padding: 20 }}>
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Profile views this week</p>
             <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{weeklyViewCount}</p>
-          </button>
+          </Link>
           <Link to="/shortlisted" className="card stat-card-link" style={{ padding: 20 }}>
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Times shortlisted</p>
             <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{shortlistCount ?? 0}</p>

@@ -208,7 +208,7 @@ async function sendRejectionNotification(supabase, applicationId) {
     html: renderEmailHtml({
       heading: 'Thank you for applying',
       bodyText: `Thank you for applying to ${role.title} at ${companyName}. After careful consideration we have decided to move forward with other talent at this time. We appreciate your interest and wish you all the best in your search.`,
-      illustration: 'thinking.png',
+      illustration: 'Flexible.PNG',
     }),
   })
 }

@@ -19,6 +19,7 @@ import PublicProfile from './pages/candidate/PublicProfile.jsx'
 import BrowseRoles from './pages/candidate/Roles.jsx'
 import Applications from './pages/candidate/Applications.jsx'
 import Shortlisted from './pages/candidate/Shortlisted.jsx'
+import ProfileViews from './pages/candidate/ProfileViews.jsx'
 import CandidateMessages from './pages/candidate/Messages.jsx'
 
 import EmployerOnboarding from './pages/employer/Onboarding.jsx'
@@ -97,6 +98,14 @@ export default function App() {
           element={
             <ProtectedRoute requireUserType="candidate">
               <Shortlisted />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile-views"
+          element={
+            <ProtectedRoute requireUserType="candidate">
+              <ProfileViews />
             </ProtectedRoute>
           }
         />
