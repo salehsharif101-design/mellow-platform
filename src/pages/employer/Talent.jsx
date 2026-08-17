@@ -22,7 +22,6 @@ export default function TalentFeed() {
   const [savingId, setSavingId] = useState(null)
 
   const [searchQuery, setSearchQuery] = useState('')
-  const [locationFilter, setLocationFilter] = useState('')
   const [activeSkills, setActiveSkills] = useState(new Set())
   const [activeAvailability, setActiveAvailability] = useState(new Set())
   const [activeWorkStyle, setActiveWorkStyle] = useState(new Set())
@@ -102,14 +101,12 @@ export default function TalentFeed() {
           .join(' ')
           .toLowerCase()
           .includes(q)
-      const matchesLocation =
-        !locationFilter.trim() || (c.location || '').toLowerCase().includes(locationFilter.trim().toLowerCase())
       const matchesSkills = activeSkills.size === 0 || c.skills.some((s) => activeSkills.has(s))
       const matchesAvailability = activeAvailability.size === 0 || activeAvailability.has(c.availability)
       const matchesWorkStyle = activeWorkStyle.size === 0 || (c.work_style || []).some((w) => activeWorkStyle.has(w))
-      return matchesSearch && matchesLocation && matchesSkills && matchesAvailability && matchesWorkStyle
+      return matchesSearch && matchesSkills && matchesAvailability && matchesWorkStyle
     })
-  }, [candidates, searchQuery, locationFilter, activeSkills, activeAvailability, activeWorkStyle])
+  }, [candidates, searchQuery, activeSkills, activeAvailability, activeWorkStyle])
 
   function toggleSkill(skill) {
     setActiveSkills((prev) => {
@@ -176,35 +173,26 @@ export default function TalentFeed() {
       />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-          <input
-            className="input"
-            style={{ maxWidth: 260 }}
-            placeholder="Filter by location"
-            value={locationFilter}
-            onChange={(e) => setLocationFilter(e.target.value)}
-          />
-          {allSkills.length > 0 && (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {allSkills.map((skill) => (
-                <button
-                  key={skill}
-                  type="button"
-                  onClick={() => toggleSkill(skill)}
-                  className="tag"
-                  style={{
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: activeSkills.has(skill) ? 'var(--color-primary)' : 'var(--color-bg-soft)',
-                    color: activeSkills.has(skill) ? '#fff' : 'var(--color-primary)',
-                  }}
-                >
-                  {skill}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        {allSkills.length > 0 && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {allSkills.map((skill) => (
+              <button
+                key={skill}
+                type="button"
+                onClick={() => toggleSkill(skill)}
+                className="tag"
+                style={{
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: activeSkills.has(skill) ? 'var(--color-primary)' : 'var(--color-bg-soft)',
+                  color: activeSkills.has(skill) ? '#fff' : 'var(--color-primary)',
+                }}
+              >
+                {skill}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ fontSize: 13, color: 'var(--color-text-muted)', fontWeight: 600 }}>Availability:</span>
