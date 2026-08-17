@@ -89,7 +89,7 @@ export default function AllApplicants() {
         <EmptyState
           heading="No applications yet"
           body="Applications will show up here as talent applies to your roles."
-          illustration="/Collaborate2.png"
+          illustration="/Your_Requested_Is_Posted.png"
         />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 28, maxWidth: 720 }}>

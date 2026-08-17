@@ -139,7 +139,7 @@ export default function Applications() {
           <EmptyState
             heading="No applications yet"
             body="Browse open roles and apply with one tap. Your applications will appear here."
-            illustration="/Collaborate2.png"
+            illustration="/Your_Requested_Is_Posted.png"
           />
           <p style={{ textAlign: 'center', marginTop: -20 }}>
             <Link to="/roles" style={{ color: 'var(--color-primary)', fontWeight: 600, fontSize: 14 }}>
