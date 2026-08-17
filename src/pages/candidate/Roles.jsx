@@ -28,6 +28,7 @@ export default function BrowseRoles() {
   const [needsVideoRoleId, setNeedsVideoRoleId] = useState(null)
   const [videoModalEmployer, setVideoModalEmployer] = useState(null)
   const [expandedIds, setExpandedIds] = useState(new Set())
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     if (!user) return
@@ -88,10 +89,28 @@ export default function BrowseRoles() {
 
   const savedRoleIds = useMemo(() => new Set(savedEntries.filter((s) => s.role_id).map((s) => s.role_id)), [savedEntries])
 
+  const searchedRoles = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return roles
+    return roles.filter((role) => {
+      const haystack = [
+        role.title,
+        role.employer_profiles?.company_name,
+        role.location,
+        role.description,
+        role.what_matters,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      return haystack.includes(q)
+    })
+  }, [roles, searchQuery])
+
   const recommended = useMemo(() => {
     if (!candidateId) return []
-    return roles.filter((role) => roleMatchesCandidate(role, candidateSkills, candidateJobTitle)).slice(0, MAX_RECOMMENDATIONS)
-  }, [roles, candidateId, candidateSkills, candidateJobTitle])
+    return searchedRoles.filter((role) => roleMatchesCandidate(role, candidateSkills, candidateJobTitle)).slice(0, MAX_RECOMMENDATIONS)
+  }, [searchedRoles, candidateId, candidateSkills, candidateJobTitle])
 
   async function toggleSave(role) {
     const existing = savedEntries.find((s) => s.role_id === role.id)
@@ -428,6 +447,17 @@ export default function BrowseRoles() {
         </div>
       </div>
 
+      {tab === 'browse' && (
+        <div style={{ marginTop: 20, maxWidth: 720 }}>
+          <input
+            className="input"
+            placeholder="Search by title, company, skills, or location…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      )}
+
       {tab === 'saved' ? (
         savedEntries.length === 0 ? (
           <EmptyState
@@ -446,17 +476,38 @@ export default function BrowseRoles() {
           body="New roles are added regularly. Make sure your profile is complete so employers can find you in the meantime."
           illustration="/Collaborate2.png"
         />
+      ) : searchedRoles.length === 0 ? (
+        <EmptyState
+          heading="No roles match your search"
+          body="Try a different title, skill, company, or location."
+          illustration="/Collaborate2.png"
+        />
       ) : (
         <div style={{ marginTop: 28, maxWidth: 720 }}>
           {recommended.length > 0 && (
-            <div style={{ marginBottom: 32 }}>
-              <h3 style={{ fontSize: 18, marginBottom: 14 }}>Recommended for you</h3>
+            <div
+              style={{
+                marginBottom: 32,
+                padding: 20,
+                background: '#EEF4FF',
+                borderRadius: 12,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                <SparkleIcon />
+                <h3 style={{ fontSize: 18 }}>Recommended for you</h3>
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {recommended.map((role) => renderRoleCard(role, { compact: true }))}
               </div>
             </div>
           )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>{roles.map((role) => renderRoleCard(role))}</div>
+          <div>
+            <h3 style={{ fontSize: 18, marginBottom: 14 }}>All open roles</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {searchedRoles.map((role) => renderRoleCard(role))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -481,5 +532,14 @@ export default function BrowseRoles() {
         </Modal>
       )}
     </div>
+  )
+}
+
+function SparkleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--color-primary)" aria-hidden="true">
+      <path d="M12 2l1.8 5.6L19.4 9.4 13.8 11.2 12 17l-1.8-5.8L4.6 9.4l5.6-1.8L12 2z" />
+      <path d="M19 15l0.8 2.5 2.5 0.8-2.5 0.8-0.8 2.5-0.8-2.5-2.5-0.8 2.5-0.8z" />
+    </svg>
   )
 }

@@ -21,6 +21,7 @@ export default function TalentFeed() {
   const [error, setError] = useState('')
   const [savingId, setSavingId] = useState(null)
 
+  const [searchQuery, setSearchQuery] = useState('')
   const [locationFilter, setLocationFilter] = useState('')
   const [activeSkills, setActiveSkills] = useState(new Set())
   const [activeAvailability, setActiveAvailability] = useState(new Set())
@@ -92,15 +93,23 @@ export default function TalentFeed() {
   }, [candidates])
 
   const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
     return candidates.filter((c) => {
+      const matchesSearch =
+        !q ||
+        [c.full_name, c.job_title, c.location, ...(c.skills || [])]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(q)
       const matchesLocation =
         !locationFilter.trim() || (c.location || '').toLowerCase().includes(locationFilter.trim().toLowerCase())
       const matchesSkills = activeSkills.size === 0 || c.skills.some((s) => activeSkills.has(s))
       const matchesAvailability = activeAvailability.size === 0 || activeAvailability.has(c.availability)
       const matchesWorkStyle = activeWorkStyle.size === 0 || (c.work_style || []).some((w) => activeWorkStyle.has(w))
-      return matchesLocation && matchesSkills && matchesAvailability && matchesWorkStyle
+      return matchesSearch && matchesLocation && matchesSkills && matchesAvailability && matchesWorkStyle
     })
-  }, [candidates, locationFilter, activeSkills, activeAvailability, activeWorkStyle])
+  }, [candidates, searchQuery, locationFilter, activeSkills, activeAvailability, activeWorkStyle])
 
   function toggleSkill(skill) {
     setActiveSkills((prev) => {
@@ -158,7 +167,15 @@ export default function TalentFeed() {
     <div className="section">
       <h1 style={{ fontSize: 28 }}>Browse talent</h1>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 20 }}>
+      <input
+        className="input"
+        style={{ marginTop: 20 }}
+        placeholder="Search by name, current role, skills, or location…"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
           <input
             className="input"
@@ -237,7 +254,11 @@ export default function TalentFeed() {
           illustration="/Collaborate2.png"
         />
       ) : filtered.length === 0 ? (
-        <p style={{ marginTop: 32, color: 'var(--color-text-muted)' }}>No talent matches those filters yet.</p>
+        <EmptyState
+          heading="No talent matches"
+          body="Try a different search term or clear a filter to see more candidates."
+          illustration="/Collaborate2.png"
+        />
       ) : (
         <div
           style={{
