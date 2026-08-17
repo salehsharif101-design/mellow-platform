@@ -9,13 +9,13 @@ export const NEW_USER_HINT_KEYS = {
   employer: 'mellow_new_user_hint_employer',
 }
 
-// Wraps a nav Link with a one-time "start here" pulse + tooltip. The flag
-// this checks is set once, at signup (see Signup.jsx), so only genuinely
-// new accounts ever see it — existing users loading the app with empty
-// localStorage (a new browser, a cleared cache) never get it. It then
-// persists across visits until the link is actually clicked, at which
-// point it's cleared for good.
-export default function NavHighlight({ to, storageKey, tooltip = 'Start here', children, style }) {
+// Wraps a nav Link with a one-time pulsing highlight. The flag this checks
+// is set once, at signup (see Signup.jsx), so only genuinely new accounts
+// ever see it — existing users loading the app with empty localStorage (a
+// new browser, a cleared cache) never get it. It then persists across
+// visits until the link is actually clicked, at which point it's cleared
+// for good.
+export default function NavHighlight({ to, storageKey, children, style }) {
   const [show, setShow] = useState(() => localStorage.getItem(storageKey) === '1')
 
   function handleClick() {
@@ -29,14 +29,7 @@ export default function NavHighlight({ to, storageKey, tooltip = 'Start here', c
       <Link to={to} onClick={handleClick} style={style}>
         {children}
       </Link>
-      {show && (
-        <>
-          <span className="nav-hint-pulse" aria-hidden="true" />
-          <span className="nav-hint-tooltip" role="status">
-            {tooltip}
-          </span>
-        </>
-      )}
+      {show && <span className="nav-hint-pulse" aria-hidden="true" />}
     </span>
   )
 }
