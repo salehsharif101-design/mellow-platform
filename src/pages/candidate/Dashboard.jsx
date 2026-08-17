@@ -33,7 +33,7 @@ const PROFILE_STRENGTH_CHECKS = [
 export default function CandidateDashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const { newShortlists, newProfileViews, clearDashboardBadges } = useNotifications()
+  const { clearDashboardBadges } = useNotifications()
   const [profile, setProfile] = useState(null)
   const [applications, setApplications] = useState([])
   const [views, setViews] = useState(null) // null = unavailable, [] = none yet
@@ -515,49 +515,6 @@ export default function CandidateDashboard() {
           onAdded={() => setWorkVideoCount((prev) => (prev || 0) + 1)}
         />
       )}
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20, marginTop: 28 }}>
-        <div className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontSize: 16 }}>Applications sent</h3>
-          <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10 }}>{applications.length}</p>
-          <Link to="/applications" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}>
-            View all →
-          </Link>
-        </div>
-
-        <div className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            Profile views
-            {newProfileViews > 0 && <span className="notif-dot" aria-label="New profile views" />}
-          </h3>
-          {views === null ? (
-            <p style={{ marginTop: 10, fontSize: 14, color: 'var(--color-text-muted)' }}>Not available yet.</p>
-          ) : (
-            <>
-              <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10 }}>{views.length}</p>
-              <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-                {views.length > 0 ? 'employers have viewed your profile' : 'No views yet'}
-              </p>
-            </>
-          )}
-        </div>
-
-        <div className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            Shortlisted by employers
-            {newShortlists > 0 && (
-              <span className="notif-badge" aria-label={`${newShortlists} new shortlists`}>
-                {newShortlists > 9 ? '9+' : newShortlists}
-              </span>
-            )}
-          </h3>
-          {shortlistCount === null ? (
-            <p style={{ marginTop: 10, fontSize: 14, color: 'var(--color-text-muted)' }}>Not available yet.</p>
-          ) : (
-            <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10 }}>{shortlistCount}</p>
-          )}
-        </div>
-      </div>
 
       {applications.length > 0 && (
         <div style={{ marginTop: 32 }}>
