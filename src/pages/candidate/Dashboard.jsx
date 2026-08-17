@@ -200,7 +200,7 @@ export default function CandidateDashboard() {
       const appliedEmployerIds = new Set((apps || []).map((a) => a.roles?.employer_id).filter(Boolean))
       const { data: recentRoles } = await supabase
         .from('roles')
-        .select('id, slug, title, created_at, employer_id, employer_profiles(company_name, typical_roles)')
+        .select('id, slug, title, created_at, employer_id, required_skills, employer_profiles(company_name, typical_roles)')
         .eq('is_active', true)
         .gt('created_at', sinceIso)
         .order('created_at', { ascending: false })

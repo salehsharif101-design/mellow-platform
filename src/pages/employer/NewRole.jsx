@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
+import SkillsPicker from '../../components/SkillsPicker.jsx'
 
 const ROLE_TYPES = ['full-time', 'part-time', 'contract', 'freelance']
 const CURRENCIES = ['BHD', 'AED', 'SAR', 'USD']
@@ -28,6 +29,7 @@ export default function NewRole() {
   const [salaryCurrency, setSalaryCurrency] = useState(CURRENCIES[0])
   const [workStyle, setWorkStyle] = useState('')
   const [isUrgent, setIsUrgent] = useState(false)
+  const [requiredSkills, setRequiredSkills] = useState([])
 
   useEffect(() => {
     if (!user) return
@@ -73,6 +75,7 @@ export default function NewRole() {
           salary_currency: salaryMin || salaryMax ? salaryCurrency : null,
           work_style: workStyle || null,
           is_urgent: isUrgent,
+          required_skills: requiredSkills,
         })
         .select()
         .single()
@@ -180,6 +183,9 @@ export default function NewRole() {
                 placeholder="Describe the day-to-day of this role."
                 required
               />
+            </div>
+            <div className="field">
+              <SkillsPicker label="Skills required" value={requiredSkills} onChange={setRequiredSkills} />
             </div>
             <div className="field">
               <label htmlFor="what_matters">What matters most in a hire?</label>

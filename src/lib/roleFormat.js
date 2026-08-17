@@ -56,6 +56,17 @@ export function getCandidateStatusLabel(status) {
   return 'Under review'
 }
 
+// Exact (case-insensitive) overlap between a candidate's skills and a
+// role's structured required_skills tags — the most reliable signal we
+// have, since both sides are drawn from the same predefined skill list
+// rather than free text.
+export function countMatchedSkills(role, candidateSkills) {
+  const requiredSkills = role.required_skills || []
+  if (requiredSkills.length === 0 || !candidateSkills?.length) return 0
+  const requiredLower = requiredSkills.map((s) => s.toLowerCase())
+  return candidateSkills.filter((s) => requiredLower.includes(s.toLowerCase())).length
+}
+
 // Loose word-overlap match used for both the Browse Roles "Recommended for
 // you" section and the talent activity feed's "new roles that match your
 // skills" item. Deliberately generous (substring-based) rather than exact —
@@ -63,6 +74,8 @@ export function getCandidateStatusLabel(status) {
 // like "Product Management" should match an employer's typical_roles entry
 // "Product Manager" even though the words aren't identical.
 export function roleMatchesCandidate(role, candidateSkills, candidateJobTitle) {
+  if (countMatchedSkills(role, candidateSkills) > 0) return true
+
   const haystack = [role.title, role.employer_profiles?.typical_roles]
     .filter(Boolean)
     .join(' ')
@@ -100,6 +113,8 @@ const UNDER_THREE_YEARS = new Set(['Less than 1 year', '1-3 years'])
 // Ranks how well a role fits a candidate for the Browse Roles "Recommended
 // for you" section, layering several signals on top of the original
 // skills/title match:
+//   - Required skills: an exact match against the role's required_skills
+//     tags outweighs every other signal below.
 //   - Seniority: a senior-titled role (Senior/Lead/Head of/Director) is
 //     excluded for candidates with under 5 years of experience, and an
 //     entry-level/junior-titled role is excluded for candidates with 3+
@@ -129,6 +144,12 @@ export function scoreRoleForCandidate(role, candidate, appliedRoleIds) {
   }
 
   let score = 1 // baseline credit for the required skills/title match
+
+  // Weighted above every other signal below — an exact match against the
+  // role's own required_skills tags is the strongest evidence of fit we
+  // have, so it should dominate the ranking rather than just nudge it.
+  const matchedSkills = countMatchedSkills(role, candidate.skills)
+  if (matchedSkills > 0) score += 5 * matchedSkills
 
   if (candidate.workStyle?.length > 0 && (!role.work_style || candidate.workStyle.includes(role.work_style))) {
     score += 2

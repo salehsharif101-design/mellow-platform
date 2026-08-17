@@ -66,7 +66,7 @@ export default function BrowseRoles() {
           supabase
             .from('roles')
             .select(
-              'id, slug, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, created_at, work_style, is_urgent, employer_profiles!inner(company_name, company_slug, industry, company_size, culture_description, company_highlight, logo_url, intro_video_url, typical_roles, is_visible)',
+              'id, slug, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, created_at, work_style, is_urgent, required_skills, employer_profiles!inner(company_name, company_slug, industry, company_size, culture_description, company_highlight, logo_url, intro_video_url, typical_roles, is_visible)',
             )
             .eq('is_active', true)
             .eq('employer_profiles.is_visible', true)
@@ -106,6 +106,7 @@ export default function BrowseRoles() {
         role.location,
         role.description,
         role.what_matters,
+        ...(role.required_skills || []),
       ]
         .filter(Boolean)
         .join(' ')
@@ -287,6 +288,19 @@ export default function BrowseRoles() {
                   </button>
                 )}
               </div>
+              {role.required_skills?.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                  {role.required_skills.slice(0, 3).map((skill) => (
+                    <span
+                      key={skill}
+                      className="tag"
+                      style={{ fontSize: 12, background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              )}
               {cultureShort && (
                 <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4, fontStyle: 'italic' }}>
                   “{cultureShort}”

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Modal from './Modal.jsx'
 import { supabase } from '../lib/supabase.js'
+import SkillsPicker from './SkillsPicker.jsx'
 
 const ROLE_TYPES = ['full-time', 'part-time', 'contract', 'freelance']
 const CURRENCIES = ['BHD', 'AED', 'SAR', 'USD']
@@ -18,6 +19,7 @@ export default function EditRoleModal({ role, onClose, onSaved }) {
   const [salaryCurrency, setSalaryCurrency] = useState(role.salary_currency || CURRENCIES[0])
   const [workStyle, setWorkStyle] = useState(role.work_style || '')
   const [isUrgent, setIsUrgent] = useState(role.is_urgent || false)
+  const [requiredSkills, setRequiredSkills] = useState(role.required_skills || [])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -39,6 +41,7 @@ export default function EditRoleModal({ role, onClose, onSaved }) {
         salary_currency: salaryMin !== '' || salaryMax !== '' ? salaryCurrency : null,
         work_style: workStyle || null,
         is_urgent: isUrgent,
+        required_skills: requiredSkills,
       })
       .eq('id', role.id)
       .select()
@@ -94,6 +97,9 @@ export default function EditRoleModal({ role, onClose, onSaved }) {
           <label htmlFor="edit_is_urgent" style={{ marginBottom: 0 }}>
             Mark as urgent — we need to fill this quickly
           </label>
+        </div>
+        <div className="field">
+          <SkillsPicker label="Skills required" value={requiredSkills} onChange={setRequiredSkills} />
         </div>
         <div className="field">
           <label>What does the role involve?</label>

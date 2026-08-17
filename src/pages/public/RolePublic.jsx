@@ -12,7 +12,7 @@ import SaveRoleButton from '../../components/SaveRoleButton.jsx'
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const ROLE_SELECT =
-  'id, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, employer_profiles(company_name, company_slug, logo_url, linkedin_url, website_url, about, intro_video_url, user_id, is_visible)'
+  'id, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, required_skills, employer_profiles(company_name, company_slug, logo_url, linkedin_url, website_url, about, intro_video_url, user_id, is_visible)'
 
 export default function RolePublic() {
   const { slug } = useParams()
@@ -297,6 +297,19 @@ export default function RolePublic() {
 
         {role.description && (
           <p style={{ marginTop: 24, fontSize: 15, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>{role.description}</p>
+        )}
+
+        {role.required_skills?.length > 0 && (
+          <div style={{ marginTop: 20 }}>
+            <h3 style={{ fontSize: 15, marginBottom: 10 }}>Skills required</h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {role.required_skills.map((skill) => (
+                <span key={skill} className="tag">
+                  {skill}
+                </span>
+              ))}
+            </div>
+          </div>
         )}
 
         {role.what_matters && (
