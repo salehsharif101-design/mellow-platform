@@ -1,17 +1,25 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
+import { formatRelativeTime } from '../../lib/roleFormat.js'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
 
 const STATUSES = ['applied', 'reviewing', 'shortlisted', 'rejected']
 const STATUS_LABELS = { applied: 'New', reviewing: 'Reviewing', shortlisted: 'Shortlisted', rejected: 'Rejected' }
+const STATUS_COLORS = {
+  applied: { background: 'var(--color-bg-soft)', color: 'var(--color-primary)' },
+  reviewing: { background: '#fff6e0', color: '#8a6100' },
+  shortlisted: { background: '#e3f9e9', color: '#0f7a3d' },
+  rejected: { background: '#fdeceb', color: '#d92d20' },
+}
 
 export default function RoleApplicants() {
   const { roleId } = useParams()
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   const [role, setRole] = useState(null)
   const [applications, setApplications] = useState([])
@@ -42,7 +50,7 @@ export default function RoleApplicants() {
       const { data: apps, error: appsError } = await supabase
         .from('applications')
         .select(
-          'id, status, applied_at, candidate_profiles(id, username, full_name, avatar_url, job_title, current_company, skills)',
+          'id, status, applied_at, viewed_at, candidate_profiles(id, username, full_name, avatar_url, job_title, current_company, skills, years_of_experience, availability)',
         )
         .eq('role_id', roleId)
         .order('applied_at', { ascending: false })
@@ -125,6 +133,19 @@ export default function RoleApplicants() {
     setPendingRejectionId(null)
   }
 
+  // Opening a candidate's profile from the applicant list is what counts as
+  // "viewed" — regardless of whether they go on to watch the intro video.
+  // Marked optimistically so the New badge clears instantly; the write is
+  // fire-and-forget since a failure here shouldn't block navigation.
+  function handleOpenProfile(a) {
+    if (!a.viewed_at) {
+      const now = new Date().toISOString()
+      setApplications((prev) => prev.map((x) => (x.id === a.id ? { ...x, viewed_at: now } : x)))
+      supabase.from('applications').update({ viewed_at: now }).eq('id', a.id).then(() => {})
+    }
+    navigate(`/profile/${a.candidate_profiles?.username || a.candidate_profiles?.id}`)
+  }
+
   if (loading) return null
 
   if (error) {
@@ -178,19 +199,56 @@ export default function RoleApplicants() {
               {filtered.map((a) => {
                 const c = a.candidate_profiles
                 if (!c) return null
+                const unviewed = !a.viewed_at
                 return (
-                  <div key={a.id} className="card" style={{ padding: 20 }}>
+                  <div
+                    key={a.id}
+                    className="card"
+                    onClick={() => handleOpenProfile(a)}
+                    style={{ padding: 20, cursor: 'pointer', position: 'relative' }}
+                  >
                     <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={52} />
+                      <div style={{ position: 'relative', flexShrink: 0 }}>
+                        <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={52} />
+                        {unviewed && (
+                          <span
+                            aria-label="Unviewed applicant"
+                            style={{
+                              position: 'absolute',
+                              top: -2,
+                              right: -2,
+                              width: 12,
+                              height: 12,
+                              borderRadius: '50%',
+                              background: 'var(--color-primary)',
+                              border: '2px solid #fff',
+                            }}
+                          />
+                        )}
+                      </div>
 
                       <div style={{ flex: 1, minWidth: 200 }}>
-                        <p style={{ fontWeight: 700, fontSize: 16 }}>{c.full_name}</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <p style={{ fontWeight: 700, fontSize: 16 }}>{c.full_name}</p>
+                          <span className="tag" style={{ fontSize: 11, ...STATUS_COLORS[a.status] }}>
+                            {STATUS_LABELS[a.status]}
+                          </span>
+                        </div>
                         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>
                           {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title}
+                          {c.years_of_experience && ` · ${c.years_of_experience}`}
                         </p>
-                        {c.skills?.length > 0 && (
+                        <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                          Applied {formatRelativeTime(a.applied_at)}
+                        </p>
+                        {(c.skills?.length > 0 || c.availability) && (
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                            {c.skills.map((s) => (
+                            {c.availability && (
+                              <span className="tag" style={{ fontSize: 11, background: '#e3f9e9', color: '#0f7a3d' }}>
+                                Available: {c.availability}
+                              </span>
+                            )}
+                            {c.skills?.slice(0, 4).map((s) => (
                               <span key={s} className="tag" style={{ fontSize: 11 }}>
                                 {s}
                               </span>
@@ -199,7 +257,10 @@ export default function RoleApplicants() {
                         )}
                       </div>
 
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                      <div
+                        style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <select
                           className="input"
                           value={pendingRejectionId === a.id ? 'rejected' : a.status}
@@ -213,15 +274,13 @@ export default function RoleApplicants() {
                             </option>
                           ))}
                         </select>
-                        <Link to={`/profile/${c.username || c.id}`} className="btn btn-ghost">
-                          View profile
-                        </Link>
                       </div>
                     </div>
 
                     {pendingRejectionId === a.id && (
                       <div
                         className="card"
+                        onClick={(e) => e.stopPropagation()}
                         style={{ marginTop: 16, padding: '14px 18px', background: 'var(--color-bg-soft)', border: 'none' }}
                       >
                         <p style={{ fontSize: 14, fontWeight: 600 }}>

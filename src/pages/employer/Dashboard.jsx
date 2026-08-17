@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotifications } from '../../context/NotificationContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { formatRelativeTime } from '../../lib/roleFormat.js'
 import ShareButton from '../../components/ShareButton.jsx'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 
+// Matches NotificationContext's poll interval so the pipeline cards' New
+// counts stay current even if the employer leaves this tab open while
+// reviewing applicants in another one.
+const POLL_MS = 30000
+
 export default function EmployerDashboard() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const { newApplications, clearApplicationsBadge } = useNotifications()
   const [employer, setEmployer] = useState(null)
   const [roles, setRoles] = useState([])
@@ -33,7 +40,7 @@ export default function EmployerDashboard() {
 
       const { data: myRoles } = await supabase
         .from('roles')
-        .select('id, title, is_active')
+        .select('id, title, is_active, created_at')
         .eq('employer_id', emp.id)
         .order('created_at', { ascending: false })
       setRoles(myRoles || [])
@@ -42,7 +49,7 @@ export default function EmployerDashboard() {
       if (roleIds.length > 0) {
         const { data: apps } = await supabase
           .from('applications')
-          .select('id, status, role_id, candidate_profiles(id, username, full_name, avatar_url, job_title)')
+          .select('id, status, role_id, viewed_at, candidate_profiles(id, username, full_name, avatar_url, job_title)')
           .in('role_id', roleIds)
         setApplications(apps || [])
       }
@@ -57,6 +64,8 @@ export default function EmployerDashboard() {
     }
 
     load()
+    const interval = setInterval(load, POLL_MS)
+    return () => clearInterval(interval)
   }, [user])
 
   useEffect(() => {
@@ -80,10 +89,14 @@ export default function EmployerDashboard() {
 
   const activeRoles = roles.filter((r) => r.is_active)
 
-  const applicationsByRole = roles.map((role) => ({
-    role,
-    applications: applications.filter((a) => a.role_id === role.id),
-  }))
+  const pipeline = activeRoles.map((role) => {
+    const roleApps = applications.filter((a) => a.role_id === role.id)
+    return {
+      role,
+      total: roleApps.length,
+      unviewed: roleApps.filter((a) => !a.viewed_at).length,
+    }
+  })
 
   const rejectedApplications = applications.filter((a) => a.status === 'rejected')
 
@@ -134,36 +147,45 @@ export default function EmployerDashboard() {
         </div>
       </div>
 
-      {roles.length > 0 && (
-        <div style={{ marginTop: 36 }}>
-          <h3 style={{ fontSize: 18, marginBottom: 14 }}>Applications by role</h3>
+      <div style={{ marginTop: 36 }}>
+        <h3 style={{ fontSize: 18, marginBottom: 14 }}>Hiring pipeline</h3>
+        {pipeline.length === 0 ? (
+          <p style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>
+            No active roles yet. <Link to="/employer/roles/new">Post a role</Link> to start building your pipeline.
+          </p>
+        ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {applicationsByRole.map(({ role, applications: roleApps }) => (
-              <div key={role.id} className="card" style={{ padding: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <p style={{ fontWeight: 700 }}>
-                    {role.title} {!role.is_active && <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>(closed)</span>}
+            {pipeline.map(({ role, total, unviewed }) => (
+              <div
+                key={role.id}
+                className="card"
+                onClick={() => navigate(`/employer/roles/${role.id}/applicants`)}
+                style={{ padding: 20, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}
+              >
+                <div>
+                  <p style={{ fontWeight: 700, fontSize: 16 }}>{role.title}</p>
+                  <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
+                    Posted {formatRelativeTime(role.created_at)}
                   </p>
-                  <span className="tag">{roleApps.length} applicant{roleApps.length === 1 ? '' : 's'}</span>
                 </div>
-                {roleApps.length > 0 && (
-                  <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {roleApps.map((a) => (
-                      <Link
-                        key={a.id}
-                        to={`/profile/${a.candidate_profiles?.username || a.candidate_profiles?.id}`}
-                        style={{ fontSize: 14, color: 'var(--color-primary)', textDecoration: 'none' }}
-                      >
-                        {a.candidate_profiles?.full_name} · {a.status}
-                      </Link>
-                    ))}
-                  </div>
-                )}
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                  {unviewed > 0 && (
+                    <span
+                      className="tag"
+                      style={{ fontWeight: 700, background: 'var(--color-primary)', color: '#fff' }}
+                    >
+                      New: {unviewed}
+                    </span>
+                  )}
+                  <span className="tag">
+                    {total} applicant{total === 1 ? '' : 's'}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {rejectedApplications.length > 0 && (
         <div style={{ marginTop: 36 }}>
