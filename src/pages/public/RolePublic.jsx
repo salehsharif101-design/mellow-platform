@@ -87,6 +87,12 @@ export default function RolePublic() {
   }, [user, userType, role])
 
   useEffect(() => {
+    if (!role?.id) return
+    // Fire-and-forget — a failed view count shouldn't affect the page.
+    supabase.rpc('increment_role_view', { role_id: role.id }).then(() => {})
+  }, [role?.id])
+
+  useEffect(() => {
     const targetUserId = role?.employer_profiles?.user_id
     if (!targetUserId) return
     supabase

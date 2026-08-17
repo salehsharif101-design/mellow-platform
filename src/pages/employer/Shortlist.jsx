@@ -37,7 +37,9 @@ export default function Shortlist() {
 
       const { data, error: shortlistError } = await supabase
         .from('shortlists')
-        .select('id, candidate_id, candidate_profiles(id, username, full_name, job_title, location, skills, intro_video_url, avatar_url)')
+        .select(
+          'id, candidate_id, status, candidate_profiles(id, user_id, username, full_name, job_title, current_company, location, skills, availability, years_of_experience, intro_video_url, avatar_url, education_level, field_of_study, institution_name, graduation_year, linkedin_url, calendly_url, website_url)',
+        )
         .eq('employer_id', employer.id)
         .order('created_at', { ascending: false })
 
@@ -71,7 +73,14 @@ export default function Shortlist() {
 
   return (
     <div className="section">
-      <h1 style={{ fontSize: 28 }}>Shortlisted talent</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <h1 style={{ fontSize: 28 }}>Shortlisted talent</h1>
+        {entries.length > 0 && (
+          <Link to="/employer/shortlist/review" className="btn btn-primary">
+            Review candidates
+          </Link>
+        )}
+      </div>
 
       {entries.length === 0 ? (
         <>

@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotifications } from '../../context/NotificationContext.jsx'
 import { supabase } from '../../lib/supabase.js'
-import { formatRelativeTime } from '../../lib/roleFormat.js'
+import { formatRelativeTime, daysSince } from '../../lib/roleFormat.js'
 import ShareButton from '../../components/ShareButton.jsx'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 
@@ -11,6 +11,18 @@ import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 // counts stay current even if the employer leaves this tab open while
 // reviewing applicants in another one.
 const POLL_MS = 30000
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
+const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000
+
+function groupByOtherParty(messages, myId) {
+  const map = new Map()
+  for (const m of messages) {
+    const otherId = m.sender_id === myId ? m.recipient_id : m.sender_id
+    if (!map.has(otherId)) map.set(otherId, [])
+    map.get(otherId).push(m)
+  }
+  return map
+}
 
 export default function EmployerDashboard() {
   const { user } = useAuth()
@@ -20,7 +32,16 @@ export default function EmployerDashboard() {
   const [roles, setRoles] = useState([])
   const [applications, setApplications] = useState([])
   const [shortlistCount, setShortlistCount] = useState(0)
+  const [feedItems, setFeedItems] = useState([])
+  const [hasUnansweredMessage, setHasUnansweredMessage] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [nudgeVersion, setNudgeVersion] = useState(0)
+  // Captured once from the first load of this page visit, before our own
+  // clearApplicationsBadge() call overwrites last_viewed_applications_at —
+  // every subsequent 30s poll reuses this frozen cutoff instead of
+  // re-reading the (by then already-updated) column, which would otherwise
+  // collapse the feed's window to almost nothing after the first poll.
+  const sinceMsRef = useRef(null)
 
   useEffect(() => {
     if (!user) return
@@ -28,7 +49,7 @@ export default function EmployerDashboard() {
     async function load() {
       const { data: emp } = await supabase
         .from('employer_profiles')
-        .select('id, company_name, company_slug')
+        .select('id, company_name, company_slug, intro_video_url, about, linkedin_url, website_url, last_viewed_applications_at')
         .eq('user_id', user.id)
         .maybeSingle()
 
@@ -40,18 +61,20 @@ export default function EmployerDashboard() {
 
       const { data: myRoles } = await supabase
         .from('roles')
-        .select('id, title, is_active, created_at')
+        .select('id, title, is_active, created_at, view_count')
         .eq('employer_id', emp.id)
         .order('created_at', { ascending: false })
       setRoles(myRoles || [])
 
       const roleIds = (myRoles || []).map((r) => r.id)
+      let apps = []
       if (roleIds.length > 0) {
-        const { data: apps } = await supabase
+        const { data } = await supabase
           .from('applications')
-          .select('id, status, role_id, viewed_at, candidate_profiles(id, username, full_name, avatar_url, job_title)')
+          .select('id, status, role_id, applied_at, viewed_at, candidate_profiles(id, username, full_name, avatar_url, job_title)')
           .in('role_id', roleIds)
-        setApplications(apps || [])
+        apps = data || []
+        setApplications(apps)
       }
 
       const { count } = await supabase
@@ -59,6 +82,101 @@ export default function EmployerDashboard() {
         .select('id', { count: 'exact', head: true })
         .eq('employer_id', emp.id)
       setShortlistCount(count || 0)
+
+      // "Since last visit," capped to the last 7 days regardless of how
+      // long it's actually been. Frozen after the first load — see
+      // sinceMsRef above.
+      if (sinceMsRef.current === null) {
+        const sevenDaysAgoMs = Date.now() - SEVEN_DAYS_MS
+        const lastViewedMs = emp.last_viewed_applications_at ? new Date(emp.last_viewed_applications_at).getTime() : 0
+        sinceMsRef.current = Math.max(sevenDaysAgoMs, lastViewedMs)
+      }
+      const sinceMs = sinceMsRef.current
+      const sinceIso = new Date(sinceMs).toISOString()
+
+      const { data: allMessages } = await supabase
+        .from('messages')
+        .select('id, sender_id, recipient_id, body, sent_at, read_at')
+        .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
+        .order('sent_at', { ascending: false })
+
+      const messagesByOther = groupByOtherParty(allMessages || [], user.id)
+      let unanswered = false
+      messagesByOther.forEach((msgs) => {
+        const latest = msgs[0]
+        if (latest.sender_id !== user.id && Date.now() - new Date(latest.sent_at).getTime() > THREE_DAYS_MS) {
+          unanswered = true
+        }
+      })
+      setHasUnansweredMessage(unanswered)
+
+      const unreadSince = (allMessages || []).filter(
+        (m) => m.recipient_id === user.id && !m.read_at && new Date(m.sent_at).getTime() > sinceMs,
+      )
+      const unreadBySender = new Map()
+      unreadSince.forEach((m) => {
+        const entry = unreadBySender.get(m.sender_id) || { count: 0, latest: m.sent_at }
+        entry.count += 1
+        if (m.sent_at > entry.latest) entry.latest = m.sent_at
+        unreadBySender.set(m.sender_id, entry)
+      })
+
+      const senderIds = Array.from(unreadBySender.keys())
+      let namesBySenderId = {}
+      if (senderIds.length > 0) {
+        const { data: senderProfiles } = await supabase
+          .from('candidate_profiles')
+          .select('user_id, full_name')
+          .in('user_id', senderIds)
+        namesBySenderId = Object.fromEntries((senderProfiles || []).map((p) => [p.user_id, p.full_name]))
+      }
+
+      const { data: views } = await supabase
+        .from('company_views')
+        .select('viewed_at')
+        .eq('employer_id', emp.id)
+        .gt('viewed_at', sinceIso)
+
+      const newApps = apps.filter((a) => a.applied_at && new Date(a.applied_at).getTime() > sinceMs)
+      const newAppsByRole = new Map()
+      newApps.forEach((a) => {
+        const entry = newAppsByRole.get(a.role_id) || { count: 0, latest: a.applied_at }
+        entry.count += 1
+        if (a.applied_at > entry.latest) entry.latest = a.applied_at
+        newAppsByRole.set(a.role_id, entry)
+      })
+
+      const items = []
+      newAppsByRole.forEach((entry, roleId) => {
+        const role = (myRoles || []).find((r) => r.id === roleId)
+        if (!role) return
+        items.push({
+          id: `apps-${roleId}`,
+          text: `${entry.count} new applicant${entry.count === 1 ? '' : 's'} to ${role.title}`,
+          link: `/employer/roles/${roleId}/applicants`,
+          timestamp: entry.latest,
+        })
+      })
+      unreadBySender.forEach((entry, senderId) => {
+        const name = namesBySenderId[senderId] || 'Talent'
+        items.push({
+          id: `msg-${senderId}`,
+          text: entry.count === 1 ? `New message from ${name}` : `${entry.count} new messages from ${name}`,
+          link: '/employer/messages',
+          timestamp: entry.latest,
+        })
+      })
+      if (views && views.length > 0) {
+        const latestView = views.reduce((max, v) => (v.viewed_at > max ? v.viewed_at : max), views[0].viewed_at)
+        items.push({
+          id: 'company-views',
+          text: `${views.length} talent${views.length === 1 ? '' : 's'} viewed your company profile`,
+          link: emp.company_slug ? `/company/${emp.company_slug}` : '/employer/dashboard',
+          timestamp: latestView,
+        })
+      }
+      items.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      setFeedItems(items)
 
       setLoading(false)
     }
@@ -68,12 +186,58 @@ export default function EmployerDashboard() {
     return () => clearInterval(interval)
   }, [user])
 
+  const hasClearedBadgeRef = useRef(false)
   useEffect(() => {
     // The dashboard is where "Applications received" lives, so viewing it
-    // is what clears the unread-applications badge.
-    if (!loading && employer) clearApplicationsBadge()
+    // is what clears the unread-applications badge. Also doubles as the
+    // "since you last checked" marker for the activity feed above — read
+    // before this fires, so it always reflects the previous visit. Guarded
+    // to fire once per mount only — `employer` gets a new object reference
+    // on every 30s poll, and re-running this on each of those would keep
+    // resetting the marker to "now," collapsing the feed's window to
+    // almost nothing.
+    if (!loading && employer && !hasClearedBadgeRef.current) {
+      hasClearedBadgeRef.current = true
+      clearApplicationsBadge()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, employer])
+
+  const activeNudge = useMemo(() => {
+    if (!employer) return null
+    const candidates = []
+    if (hasUnansweredMessage) {
+      candidates.push({
+        key: 'unanswered-messages',
+        text: 'You have unanswered messages. Candidates are waiting for your response.',
+        linkTo: '/employer/messages',
+        linkLabel: 'View messages',
+      })
+    }
+    if (!employer.intro_video_url) {
+      candidates.push({
+        key: 'no-video',
+        text: 'Add a company video to get more applicants.',
+        linkTo: '/employer/profile/edit',
+        linkLabel: 'Edit Profile',
+      })
+    }
+    if (!employer.about || !employer.linkedin_url || !employer.website_url) {
+      candidates.push({
+        key: 'incomplete-profile',
+        text: 'Complete your profile to build trust with candidates.',
+        linkTo: '/employer/profile/edit',
+        linkLabel: 'Edit Profile',
+      })
+    }
+    return candidates.find((c) => sessionStorage.getItem(`dismissed_nudge_${c.key}`) !== '1') || null
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employer, hasUnansweredMessage, nudgeVersion])
+
+  function dismissNudge(key) {
+    sessionStorage.setItem(`dismissed_nudge_${key}`, '1')
+    setNudgeVersion((v) => v + 1)
+  }
 
   if (loading) return null
 
@@ -91,11 +255,14 @@ export default function EmployerDashboard() {
 
   const pipeline = activeRoles.map((role) => {
     const roleApps = applications.filter((a) => a.role_id === role.id)
-    return {
-      role,
-      total: roleApps.length,
-      unviewed: roleApps.filter((a) => !a.viewed_at).length,
-    }
+    const total = roleApps.length
+    const unviewed = roleApps.filter((a) => !a.viewed_at).length
+    const shortlistedCount = roleApps.filter((a) => a.status === 'shortlisted').length
+    const views = role.view_count || 0
+    const conversion = views > 0 ? Math.round((total / views) * 100) : null
+    const daysOpen = daysSince(role.created_at)
+    const showTip = daysOpen > 14 && total < 5
+    return { role, total, unviewed, shortlistedCount, views, conversion, daysOpen, showTip }
   })
 
   const rejectedApplications = applications.filter((a) => a.status === 'rejected')
@@ -117,6 +284,60 @@ export default function EmployerDashboard() {
             </>
           )}
         </div>
+      </div>
+
+      {activeNudge && (
+        <div
+          className="card"
+          style={{
+            marginTop: 24,
+            padding: '16px 20px',
+            background: '#eef4ff',
+            border: 'none',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 16,
+            flexWrap: 'wrap',
+          }}
+        >
+          <p style={{ fontSize: 14, fontWeight: 600 }}>{activeNudge.text}</p>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
+            <Link to={activeNudge.linkTo} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: 13 }}>
+              {activeNudge.linkLabel}
+            </Link>
+            <button
+              type="button"
+              onClick={() => dismissNudge(activeNudge.key)}
+              aria-label="Dismiss"
+              style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--color-text-muted)', lineHeight: 1 }}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ marginTop: 28 }}>
+        <h3 style={{ fontSize: 18, marginBottom: 14 }}>What's new</h3>
+        {feedItems.length === 0 ? (
+          <p className="card" style={{ padding: 16, fontSize: 14, color: 'var(--color-text-muted)' }}>
+            You're all caught up — nothing new since your last visit.
+          </p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {feedItems.map((item) => (
+              <div
+                key={item.id}
+                className="card"
+                onClick={() => navigate(item.link)}
+                style={{ padding: '14px 18px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}
+              >
+                {item.text}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20, marginTop: 28 }}>
@@ -155,32 +376,40 @@ export default function EmployerDashboard() {
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {pipeline.map(({ role, total, unviewed }) => (
+            {pipeline.map(({ role, total, unviewed, shortlistedCount, views, conversion, daysOpen, showTip }) => (
               <div
                 key={role.id}
                 className="card"
                 onClick={() => navigate(`/employer/roles/${role.id}/applicants`)}
-                style={{ padding: 20, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}
+                style={{ padding: 20, cursor: 'pointer' }}
               >
-                <div>
-                  <p style={{ fontWeight: 700, fontSize: 16 }}>{role.title}</p>
-                  <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
-                    Posted {formatRelativeTime(role.created_at)}
-                  </p>
-                </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-                  {unviewed > 0 && (
-                    <span
-                      className="tag"
-                      style={{ fontWeight: 700, background: 'var(--color-primary)', color: '#fff' }}
-                    >
-                      New: {unviewed}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                  <div>
+                    <p style={{ fontWeight: 700, fontSize: 16 }}>{role.title}</p>
+                    <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
+                      Posted {formatRelativeTime(role.created_at)} · Open {daysOpen} day{daysOpen === 1 ? '' : 's'}
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                    {unviewed > 0 && (
+                      <span className="tag" style={{ fontWeight: 700, background: 'var(--color-primary)', color: '#fff' }}>
+                        New: {unviewed}
+                      </span>
+                    )}
+                    <span className="tag">
+                      {total} applicant{total === 1 ? '' : 's'}
                     </span>
-                  )}
-                  <span className="tag">
-                    {total} applicant{total === 1 ? '' : 's'}
-                  </span>
+                  </div>
                 </div>
+                <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 10 }}>
+                  {views} view{views === 1 ? '' : 's'} · {total} applied · {shortlistedCount} shortlisted
+                  {conversion !== null && ` · ${conversion}% view-to-apply`}
+                </p>
+                {showTip && (
+                  <p style={{ fontSize: 12, color: '#8a6100', background: '#fff6e0', borderRadius: 6, padding: '6px 10px', marginTop: 10, display: 'inline-block' }}>
+                    Consider updating your role description to attract more applicants
+                  </p>
+                )}
               </div>
             ))}
           </div>

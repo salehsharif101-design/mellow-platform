@@ -6,6 +6,7 @@ import { notify } from '../../lib/notify.js'
 import { formatRelativeTime } from '../../lib/roleFormat.js'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
+import QuickMessageModal from '../../components/QuickMessageModal.jsx'
 
 const STATUSES = ['applied', 'reviewing', 'shortlisted', 'rejected']
 const STATUS_LABELS = { applied: 'New', reviewing: 'Reviewing', shortlisted: 'Shortlisted', rejected: 'Rejected' }
@@ -28,6 +29,8 @@ export default function RoleApplicants() {
   const [updatingId, setUpdatingId] = useState(null)
   const [activeSkills, setActiveSkills] = useState(new Set())
   const [pendingRejectionId, setPendingRejectionId] = useState(null)
+  const [messagingApplication, setMessagingApplication] = useState(null)
+  const [messageSent, setMessageSent] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -35,7 +38,7 @@ export default function RoleApplicants() {
     async function load() {
       const { data: roleRow, error: roleError } = await supabase
         .from('roles')
-        .select('id, title, employer_id, employer_profiles!inner(user_id)')
+        .select('id, title, employer_id, view_count, employer_profiles!inner(user_id)')
         .eq('id', roleId)
         .eq('employer_profiles.user_id', user.id)
         .maybeSingle()
@@ -50,7 +53,7 @@ export default function RoleApplicants() {
       const { data: apps, error: appsError } = await supabase
         .from('applications')
         .select(
-          'id, status, applied_at, viewed_at, candidate_profiles(id, username, full_name, avatar_url, job_title, current_company, skills, years_of_experience, availability)',
+          'id, status, applied_at, viewed_at, candidate_profiles(id, user_id, username, full_name, avatar_url, job_title, current_company, skills, years_of_experience, availability)',
         )
         .eq('role_id', roleId)
         .order('applied_at', { ascending: false })
@@ -156,12 +159,24 @@ export default function RoleApplicants() {
     )
   }
 
+  const shortlistedCount = applications.filter((a) => a.status === 'shortlisted').length
+  const views = role.view_count || 0
+  const conversion = views > 0 ? Math.round((applications.length / views) * 100) : null
+
   return (
     <div className="section">
       <Link to="/employer/roles" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}>
         ← Manage roles
       </Link>
       <h1 style={{ fontSize: 28, marginTop: 8 }}>Applicants for {role.title}</h1>
+      <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 6 }}>
+        {views} view{views === 1 ? '' : 's'} · {applications.length} applied · {shortlistedCount} shortlisted
+        {conversion !== null && ` · ${conversion}% view-to-apply`}
+      </p>
+
+      {messageSent && (
+        <p style={{ marginTop: 12, fontSize: 14, fontWeight: 600, color: '#0f7a3d' }}>Message sent</p>
+      )}
 
       {applications.length === 0 ? (
         <EmptyState
@@ -261,6 +276,14 @@ export default function RoleApplicants() {
                         style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}
                         onClick={(e) => e.stopPropagation()}
                       >
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          style={{ padding: '8px 12px' }}
+                          onClick={() => setMessagingApplication(a)}
+                        >
+                          Message
+                        </button>
                         <select
                           className="input"
                           value={pendingRejectionId === a.id ? 'rejected' : a.status}
@@ -313,6 +336,18 @@ export default function RoleApplicants() {
             </div>
           )}
         </>
+      )}
+
+      {messagingApplication && (
+        <QuickMessageModal
+          recipientUserId={messagingApplication.candidate_profiles?.user_id}
+          recipientLabel={messagingApplication.candidate_profiles?.full_name}
+          onClose={() => setMessagingApplication(null)}
+          onSent={() => {
+            setMessageSent(true)
+            setTimeout(() => setMessageSent(false), 3000)
+          }}
+        />
       )}
     </div>
   )

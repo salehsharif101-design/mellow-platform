@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase.js'
+import { useAuth } from '../../context/AuthContext.jsx'
 import { formatDeadline, formatSalary, formatResponseRate } from '../../lib/roleFormat.js'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
@@ -8,6 +9,7 @@ import ShareButton from '../../components/ShareButton.jsx'
 
 export default function CompanyProfile() {
   const { slug } = useParams()
+  const { user, userType } = useAuth()
 
   const [company, setCompany] = useState(null)
   const [roles, setRoles] = useState([])
@@ -49,6 +51,13 @@ export default function CompanyProfile() {
     }
     load()
   }, [slug])
+
+  useEffect(() => {
+    // Only talent visits count toward "who viewed your company profile" —
+    // an employer previewing their own page (or another company's) shouldn't.
+    if (!company || !user || userType !== 'candidate') return
+    supabase.from('company_views').insert({ employer_id: company.id, viewer_id: user.id })
+  }, [company, user, userType])
 
   if (loading) return null
 

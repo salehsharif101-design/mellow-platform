@@ -28,6 +28,7 @@ import RoleApplicants from './pages/employer/RoleApplicants.jsx'
 import NewRole from './pages/employer/NewRole.jsx'
 import TalentFeed from './pages/employer/Talent.jsx'
 import Shortlist from './pages/employer/Shortlist.jsx'
+import ShortlistReview from './pages/employer/ShortlistReview.jsx'
 import Messages from './pages/employer/Messages.jsx'
 
 export default function App() {
@@ -160,6 +161,14 @@ export default function App() {
           element={
             <ProtectedRoute requireUserType="employer">
               <Shortlist />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employer/shortlist/review"
+          element={
+            <ProtectedRoute requireUserType="employer">
+              <ShortlistReview />
             </ProtectedRoute>
           }
         />

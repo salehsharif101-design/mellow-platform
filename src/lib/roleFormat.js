@@ -26,6 +26,11 @@ export function formatResponseRate(avgHours, responseCount) {
   return 'Usually responds within a few days'
 }
 
+export function daysSince(dateString) {
+  if (!dateString) return 0
+  return Math.floor((Date.now() - new Date(dateString).getTime()) / 86400000)
+}
+
 export function formatRelativeTime(dateString) {
   if (!dateString) return ''
   const diffMs = Date.now() - new Date(dateString).getTime()
