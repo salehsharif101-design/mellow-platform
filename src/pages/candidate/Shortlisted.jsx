@@ -63,7 +63,7 @@ export default function Shortlisted() {
       {entries.length === 0 ? (
         <EmptyState
           heading="No shortlists yet"
-          body="When an employer shortlists your profile from the talent feed, it'll show up here."
+          body="Keep your profile strong and employers will take notice."
           illustration="/Collaborate2.png"
         />
       ) : (

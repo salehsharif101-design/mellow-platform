@@ -387,7 +387,8 @@ export default function CandidateDashboard() {
         <h3 style={{ fontSize: 18, marginBottom: 14 }}>What's new</h3>
         {feedItems.length === 0 ? (
           <p className="card" style={{ padding: 16, fontSize: 14, color: 'var(--color-text-muted)' }}>
-            You're all caught up — nothing new since your last visit.
+            You're all caught up — nothing new since your last visit, including no profile views yet. Keep your
+            profile updated and complete to attract more employer attention.
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -411,10 +412,7 @@ export default function CandidateDashboard() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
           <Link to="/applications" className="card stat-card-link" style={{ padding: 20 }}>
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Applications sent</p>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-              <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{applications.length}</p>
-              <span className="stat-card-arrow" aria-hidden="true">→</span>
-            </div>
+            <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{applications.length}</p>
           </Link>
           <button
             type="button"
@@ -423,24 +421,15 @@ export default function CandidateDashboard() {
             onClick={() => document.getElementById('whats-new-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
           >
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Profile views this week</p>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-              <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{weeklyViewCount}</p>
-              <span className="stat-card-arrow" aria-hidden="true">→</span>
-            </div>
+            <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{weeklyViewCount}</p>
           </button>
           <Link to="/shortlisted" className="card stat-card-link" style={{ padding: 20 }}>
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Times shortlisted</p>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-              <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{shortlistCount ?? 0}</p>
-              <span className="stat-card-arrow" aria-hidden="true">→</span>
-            </div>
+            <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{shortlistCount ?? 0}</p>
           </Link>
           <Link to="/messages" className="card stat-card-link" style={{ padding: 20 }}>
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Messages received</p>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-              <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{messagesReceivedCount}</p>
-              <span className="stat-card-arrow" aria-hidden="true">→</span>
-            </div>
+            <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{messagesReceivedCount}</p>
           </Link>
         </div>
       </div>
@@ -450,9 +439,12 @@ export default function CandidateDashboard() {
           <h3>Browse Roles</h3>
           <p>See open roles matched to your skills and apply with one tap.</p>
         </div>
-        <span className="dashboard-hero-cta-arrow" aria-hidden="true">
-          →
-        </span>
+      </Link>
+      <Link
+        to="/roles?tab=saved"
+        style={{ display: 'inline-block', marginTop: 10, fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}
+      >
+        View saved roles
       </Link>
 
       <div className="card" style={{ marginTop: 32, padding: 24 }}>

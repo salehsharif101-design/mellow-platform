@@ -345,7 +345,7 @@ export default function EmployerDashboard() {
           <h3 style={{ fontSize: 16 }}>Active roles</h3>
           <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10 }}>{activeRoles.length}</p>
           <Link to="/employer/roles/new" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}>
-            Post a new role →
+            Post a new role
           </Link>
         </div>
         <div className="card" style={{ padding: 24 }}>
@@ -358,12 +358,15 @@ export default function EmployerDashboard() {
             )}
           </h3>
           <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10 }}>{applications.length}</p>
+          <Link to="/employer/applicants" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}>
+            View all applications
+          </Link>
         </div>
         <div className="card" style={{ padding: 24 }}>
           <h3 style={{ fontSize: 16 }}>Shortlisted talent</h3>
           <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10 }}>{shortlistCount}</p>
           <Link to="/employer/shortlist" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}>
-            View shortlist →
+            View shortlist
           </Link>
         </div>
       </div>
@@ -421,9 +424,6 @@ export default function EmployerDashboard() {
           <h3>Browse Talent</h3>
           <p>Discover candidates ready to work with you — watch intro videos and shortlist in one tap.</p>
         </div>
-        <span className="dashboard-hero-cta-arrow" aria-hidden="true">
-          →
-        </span>
       </Link>
 
       {rejectedApplications.length > 0 && (

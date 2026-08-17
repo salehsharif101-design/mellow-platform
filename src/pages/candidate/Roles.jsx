@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
@@ -14,13 +14,15 @@ const MAX_RECOMMENDATIONS = 5
 export default function BrowseRoles() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   const [candidateId, setCandidateId] = useState(null)
   const [candidateInfo, setCandidateInfo] = useState(null)
   const [roles, setRoles] = useState([])
   const [appliedRoleIds, setAppliedRoleIds] = useState(new Set())
   const [savedEntries, setSavedEntries] = useState([]) // saved_roles rows joined with roles()
-  const [tab, setTab] = useState('browse') // 'browse' | 'saved'
+  // Deep-linkable via /roles?tab=saved (e.g. from the dashboard's saved-roles link).
+  const [tab, setTab] = useState(searchParams.get('tab') === 'saved' ? 'saved' : 'browse')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [applyingId, setApplyingId] = useState(null)

@@ -26,6 +26,7 @@ import EmployerEditProfile from './pages/employer/EditProfile.jsx'
 import EmployerDashboard from './pages/employer/Dashboard.jsx'
 import EmployerRoles from './pages/employer/Roles.jsx'
 import RoleApplicants from './pages/employer/RoleApplicants.jsx'
+import AllApplicants from './pages/employer/AllApplicants.jsx'
 import NewRole from './pages/employer/NewRole.jsx'
 import TalentFeed from './pages/employer/Talent.jsx'
 import Shortlist from './pages/employer/Shortlist.jsx'
@@ -146,6 +147,14 @@ export default function App() {
           element={
             <ProtectedRoute requireUserType="employer">
               <RoleApplicants />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employer/applicants"
+          element={
+            <ProtectedRoute requireUserType="employer">
+              <AllApplicants />
             </ProtectedRoute>
           }
         />

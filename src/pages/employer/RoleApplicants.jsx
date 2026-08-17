@@ -182,6 +182,7 @@ export default function RoleApplicants() {
         <EmptyState
           heading="No applicants yet"
           body="Applications will show up here as talent applies to this role."
+          illustration="/Collaborate2.png"
         />
       ) : (
         <>

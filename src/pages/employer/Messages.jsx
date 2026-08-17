@@ -67,6 +67,7 @@ export default function EmployerMessages() {
         <EmptyState
           heading="No messages yet"
           body="Start a conversation by visiting a talent profile and clicking Contact."
+          illustration="/Collaborate2.png"
         />
       ) : (
         <div className="messages-layout" style={{ display: 'flex', gap: 32, marginTop: 28, alignItems: 'flex-start' }}>

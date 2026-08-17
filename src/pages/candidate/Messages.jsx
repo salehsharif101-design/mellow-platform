@@ -64,6 +64,7 @@ export default function CandidateMessages() {
         <EmptyState
           heading="No messages yet"
           body="When an employer reaches out, their message will appear here."
+          illustration="/Collaborate2.png"
         />
       ) : (
         <div className="messages-layout" style={{ display: 'flex', gap: 32, marginTop: 28, alignItems: 'flex-start' }}>

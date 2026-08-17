@@ -65,18 +65,6 @@
   border-color: var(--color-primary);
 }
 
-.stat-card-arrow {
-  color: var(--color-text-muted);
-  opacity: 0.5;
-  transition: opacity 0.15s ease, transform 0.15s ease, color 0.15s ease;
-}
-
-.stat-card-link:hover .stat-card-arrow {
-  opacity: 1;
-  color: var(--color-primary);
-  transform: translateX(2px);
-}
-
 /* Inputs */
 .field {
   display: flex;
@@ -338,12 +326,6 @@ textarea.input:focus {
   margin-top: 6px;
   font-size: 14px;
   color: rgba(255, 255, 255, 0.85);
-}
-
-.dashboard-hero-cta-arrow {
-  flex-shrink: 0;
-  font-size: 26px;
-  line-height: 1;
 }
 
 /* One-time "start here" nav hint — pulsing dot + tooltip shown until the
