@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
-import { formatDeadline, formatSalary, roleMatchesCandidate } from '../../lib/roleFormat.js'
+import { formatDeadline, formatSalary, scoreRoleForCandidate } from '../../lib/roleFormat.js'
 import EmptyState from '../../components/EmptyState.jsx'
 import Modal from '../../components/Modal.jsx'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
@@ -16,8 +16,7 @@ export default function BrowseRoles() {
   const navigate = useNavigate()
 
   const [candidateId, setCandidateId] = useState(null)
-  const [candidateSkills, setCandidateSkills] = useState([])
-  const [candidateJobTitle, setCandidateJobTitle] = useState('')
+  const [candidateInfo, setCandidateInfo] = useState(null)
   const [roles, setRoles] = useState([])
   const [appliedRoleIds, setAppliedRoleIds] = useState(new Set())
   const [savedEntries, setSavedEntries] = useState([]) // saved_roles rows joined with roles()
@@ -36,7 +35,7 @@ export default function BrowseRoles() {
     async function load() {
       const { data: candidate, error: candidateError } = await supabase
         .from('candidate_profiles')
-        .select('id, skills, job_title')
+        .select('id, skills, job_title, work_style, availability, location, years_of_experience')
         .eq('user_id', user.id)
         .maybeSingle()
 
@@ -51,15 +50,21 @@ export default function BrowseRoles() {
         return
       }
       setCandidateId(candidate.id)
-      setCandidateSkills(candidate.skills || [])
-      setCandidateJobTitle(candidate.job_title || '')
+      setCandidateInfo({
+        skills: candidate.skills || [],
+        jobTitle: candidate.job_title || '',
+        workStyle: candidate.work_style || [],
+        availability: candidate.availability || '',
+        location: candidate.location || '',
+        yearsOfExperience: candidate.years_of_experience || '',
+      })
 
       const [{ data: activeRoles, error: rolesError }, { data: applications, error: applicationsError }, { data: saved }] =
         await Promise.all([
           supabase
             .from('roles')
             .select(
-              'id, slug, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, employer_profiles!inner(company_name, company_slug, industry, company_size, culture_description, company_highlight, logo_url, intro_video_url, typical_roles, is_visible)',
+              'id, slug, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, created_at, work_style, is_urgent, employer_profiles!inner(company_name, company_slug, industry, company_size, culture_description, company_highlight, logo_url, intro_video_url, typical_roles, is_visible)',
             )
             .eq('is_active', true)
             .eq('employer_profiles.is_visible', true)
@@ -108,9 +113,14 @@ export default function BrowseRoles() {
   }, [roles, searchQuery])
 
   const recommended = useMemo(() => {
-    if (!candidateId) return []
-    return searchedRoles.filter((role) => roleMatchesCandidate(role, candidateSkills, candidateJobTitle)).slice(0, MAX_RECOMMENDATIONS)
-  }, [searchedRoles, candidateId, candidateSkills, candidateJobTitle])
+    if (!candidateId || !candidateInfo) return []
+    return searchedRoles
+      .map((role) => ({ role, score: scoreRoleForCandidate(role, candidateInfo, appliedRoleIds) }))
+      .filter((entry) => entry.score !== null)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, MAX_RECOMMENDATIONS)
+      .map((entry) => entry.role)
+  }, [searchedRoles, candidateId, candidateInfo, appliedRoleIds])
 
   async function toggleSave(role) {
     const existing = savedEntries.find((s) => s.role_id === role.id)

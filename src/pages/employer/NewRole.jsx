@@ -6,6 +6,7 @@ import { notify } from '../../lib/notify.js'
 
 const ROLE_TYPES = ['full-time', 'part-time', 'contract', 'freelance']
 const CURRENCIES = ['BHD', 'AED', 'SAR', 'USD']
+const WORK_STYLE_OPTIONS = ['Remote', 'Hybrid', 'On-site']
 
 export default function NewRole() {
   const { user } = useAuth()
@@ -25,6 +26,8 @@ export default function NewRole() {
   const [salaryMin, setSalaryMin] = useState('')
   const [salaryMax, setSalaryMax] = useState('')
   const [salaryCurrency, setSalaryCurrency] = useState(CURRENCIES[0])
+  const [workStyle, setWorkStyle] = useState('')
+  const [isUrgent, setIsUrgent] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -68,6 +71,8 @@ export default function NewRole() {
           salary_min: salaryMin ? Number(salaryMin) : null,
           salary_max: salaryMax ? Number(salaryMax) : null,
           salary_currency: salaryMin || salaryMax ? salaryCurrency : null,
+          work_style: workStyle || null,
+          is_urgent: isUrgent,
         })
         .select()
         .single()
@@ -140,6 +145,29 @@ export default function NewRole() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="field">
+              <label htmlFor="work_style">Work style (optional)</label>
+              <select id="work_style" className="input" value={workStyle} onChange={(e) => setWorkStyle(e.target.value)}>
+                <option value="">Not specified</option>
+                {WORK_STYLE_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <input
+                id="is_urgent"
+                type="checkbox"
+                checked={isUrgent}
+                onChange={(e) => setIsUrgent(e.target.checked)}
+                style={{ width: 'auto' }}
+              />
+              <label htmlFor="is_urgent" style={{ marginBottom: 0 }}>
+                Mark as urgent — we need to fill this quickly
+              </label>
             </div>
             <div className="field">
               <label htmlFor="description">What does the role involve?</label>

@@ -87,3 +87,66 @@ export function daysUntil(dateString) {
   const target = new Date(year, month - 1, day)
   return Math.ceil((target.getTime() - Date.now()) / 86400000)
 }
+
+const SENIOR_TITLE_KEYWORDS = ['senior', 'lead', 'head of', 'director']
+const JUNIOR_TITLE_KEYWORDS = ['junior', 'entry level', 'entry-level', 'intern', 'graduate']
+// candidate_profiles.years_of_experience is a free-choice string from a
+// fixed set of options (see YEARS_OF_EXPERIENCE_OPTIONS in EditProfileForm)
+// — "3-5 years" is deliberately excluded from both buckets since it doesn't
+// clearly satisfy "5+" or "under 3".
+const FIVE_PLUS_YEARS = new Set(['5-10 years', '10+ years'])
+const UNDER_THREE_YEARS = new Set(['Less than 1 year', '1-3 years'])
+
+// Ranks how well a role fits a candidate for the Browse Roles "Recommended
+// for you" section, layering several signals on top of the original
+// skills/title match:
+//   - Seniority: a senior-titled role (Senior/Lead/Head of/Director) is
+//     excluded for candidates with under 5 years of experience, and an
+//     entry-level/junior-titled role is excluded for candidates with 3+
+//     years — skipped entirely if the candidate hasn't set an experience
+//     level, so an unfilled optional field never hides roles.
+//   - Work style: a bonus if the role's work style matches one the
+//     candidate selected, or if the role didn't specify one (treated as
+//     open to everyone).
+//   - Availability: candidates who can start immediately get a bump for
+//     urgent or recently-posted roles; candidates on a 1-3 month timeline
+//     get a penalty for roles closing sooner than that.
+//   - Location: a bonus when the candidate's and role's location strings
+//     overlap (same city/country mentioned in either).
+// Returns null when the role shouldn't be recommended at all (no skills
+// match, already applied, or a seniority mismatch) — otherwise a numeric
+// score where higher means a better fit, for sorting/ranking.
+export function scoreRoleForCandidate(role, candidate, appliedRoleIds) {
+  if (appliedRoleIds?.has(role.id)) return null
+  if (!roleMatchesCandidate(role, candidate.skills, candidate.jobTitle)) return null
+
+  const title = (role.title || '').toLowerCase()
+  const isSenior = SENIOR_TITLE_KEYWORDS.some((k) => title.includes(k))
+  const isJunior = JUNIOR_TITLE_KEYWORDS.some((k) => title.includes(k))
+  if (candidate.yearsOfExperience) {
+    if (isSenior && !FIVE_PLUS_YEARS.has(candidate.yearsOfExperience)) return null
+    if (isJunior && !UNDER_THREE_YEARS.has(candidate.yearsOfExperience)) return null
+  }
+
+  let score = 1 // baseline credit for the required skills/title match
+
+  if (candidate.workStyle?.length > 0 && (!role.work_style || candidate.workStyle.includes(role.work_style))) {
+    score += 2
+  }
+
+  if (candidate.availability === 'Immediately') {
+    if (role.is_urgent) score += 2
+    if (role.created_at && daysSince(role.created_at) <= 7) score += 1
+  } else if (candidate.availability === '1 to 3 months') {
+    const remaining = daysUntil(role.deadline)
+    if (remaining !== null && remaining < 90) score -= 2
+  }
+
+  if (candidate.location && role.location) {
+    const candidateLocation = candidate.location.toLowerCase()
+    const roleLocation = role.location.toLowerCase()
+    if (candidateLocation.includes(roleLocation) || roleLocation.includes(candidateLocation)) score += 2
+  }
+
+  return score
+}
