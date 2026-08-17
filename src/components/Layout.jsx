@@ -1,6 +1,7 @@
 import { Link, Outlet } from 'react-router-dom'
 import Logo from './Logo.jsx'
 import UserMenu from './UserMenu.jsx'
+import NavHighlight, { NEW_USER_HINT_KEYS } from './NavHighlight.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotifications } from '../context/NotificationContext.jsx'
 
@@ -26,9 +27,13 @@ export default function Layout() {
                 </Link>
                 {userType === 'employer' ? (
                   <>
-                    <Link to="/employer/talent" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                    <NavHighlight
+                      to="/employer/talent"
+                      storageKey={NEW_USER_HINT_KEYS.employer}
+                      style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
+                    >
                       Talent Feed
-                    </Link>
+                    </NavHighlight>
                     <Link to="/employer/roles/new" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
                       Post a Role
                     </Link>
@@ -37,9 +42,13 @@ export default function Layout() {
                     </Link>
                   </>
                 ) : (
-                  <Link to="/roles" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                  <NavHighlight
+                    to="/roles"
+                    storageKey={NEW_USER_HINT_KEYS.candidate}
+                    style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
+                  >
                     Browse Roles
-                  </Link>
+                  </NavHighlight>
                 )}
                 <Link
                   to={messagesPath}

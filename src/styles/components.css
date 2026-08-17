@@ -276,3 +276,92 @@ textarea.input:focus {
   font-weight: 700;
   line-height: 1;
 }
+
+/* Dashboard hero CTA — the single most prominent action on a dashboard */
+.dashboard-hero-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100%;
+  background: var(--color-primary);
+  color: #ffffff;
+  border-radius: var(--radius-card);
+  padding: 28px 32px;
+  text-decoration: none;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.dashboard-hero-cta:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.dashboard-hero-cta h3 {
+  font-size: 22px;
+  color: #ffffff;
+}
+
+.dashboard-hero-cta p {
+  margin-top: 6px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.dashboard-hero-cta-arrow {
+  flex-shrink: 0;
+  font-size: 26px;
+  line-height: 1;
+}
+
+/* One-time "start here" nav hint — pulsing dot + tooltip shown until the
+   nav link is clicked for the first time (see NavHighlight.jsx). */
+@keyframes nav-hint-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 94, 245, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(0, 94, 245, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 94, 245, 0);
+  }
+}
+
+.nav-hint-pulse {
+  position: absolute;
+  top: -2px;
+  right: -10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  animation: nav-hint-pulse 1.6s ease-out infinite;
+}
+
+.nav-hint-tooltip {
+  position: absolute;
+  top: 130%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.nav-hint-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: var(--color-text);
+}

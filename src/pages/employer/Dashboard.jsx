@@ -416,6 +416,16 @@ export default function EmployerDashboard() {
         )}
       </div>
 
+      <Link to="/employer/talent" className="dashboard-hero-cta" style={{ marginTop: 36 }}>
+        <div>
+          <h3>Browse Talent</h3>
+          <p>Discover candidates ready to work with you — watch intro videos and shortlist in one tap.</p>
+        </div>
+        <span className="dashboard-hero-cta-arrow" aria-hidden="true">
+          →
+        </span>
+      </Link>
+
       {rejectedApplications.length > 0 && (
         <div style={{ marginTop: 36 }}>
           <h3 style={{ fontSize: 18, marginBottom: 14 }}>Rejected talent</h3>

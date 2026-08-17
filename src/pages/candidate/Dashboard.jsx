@@ -428,6 +428,16 @@ export default function CandidateDashboard() {
         </div>
       </div>
 
+      <Link to="/roles" className="dashboard-hero-cta" style={{ marginTop: 32 }}>
+        <div>
+          <h3>Browse Roles</h3>
+          <p>See open roles matched to your skills and apply with one tap.</p>
+        </div>
+        <span className="dashboard-hero-cta-arrow" aria-hidden="true">
+          →
+        </span>
+      </Link>
+
       <div className="card" style={{ marginTop: 32, padding: 24 }}>
         <h3 style={{ fontSize: 18 }}>Profile strength</h3>
         <div style={{ marginTop: 14, height: 8, borderRadius: 4, background: 'var(--color-bg-soft)' }}>

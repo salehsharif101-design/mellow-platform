@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { notify } from '../../lib/notify.js'
+import { NEW_USER_HINT_KEYS } from '../../components/NavHighlight.jsx'
 
 const PASSWORD_REQUIREMENT_MESSAGE = 'Password must be at least 8 characters and include a number or special character'
 
@@ -52,6 +53,11 @@ export default function Signup() {
       }
 
       const data = await signUp({ email, password, userType })
+      // Marks this as a brand new account so the nav's "start here" hint
+      // (see NavHighlight.jsx) shows for it — set unconditionally here,
+      // before the email-confirmation check below, since even an
+      // unconfirmed signup is still a genuinely new account.
+      localStorage.setItem(NEW_USER_HINT_KEYS[userType], '1')
       if (userType === 'candidate') {
         notify('signup-welcome', { userId: data.user.id })
       }
