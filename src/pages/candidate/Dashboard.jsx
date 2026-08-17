@@ -383,7 +383,7 @@ export default function CandidateDashboard() {
         </button>
       </div>
 
-      <div style={{ marginTop: 28 }}>
+      <div id="whats-new-section" style={{ marginTop: 28, scrollMarginTop: 20 }}>
         <h3 style={{ fontSize: 18, marginBottom: 14 }}>What's new</h3>
         {feedItems.length === 0 ? (
           <p className="card" style={{ padding: 16, fontSize: 14, color: 'var(--color-text-muted)' }}>
@@ -409,22 +409,39 @@ export default function CandidateDashboard() {
         <h3 style={{ fontSize: 18, marginBottom: 4 }}>Job search progress</h3>
         <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginBottom: 14 }}>{motivatingLine}</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
-          <div className="card" style={{ padding: 20 }}>
+          <Link to="/applications" className="card stat-card-link" style={{ padding: 20 }}>
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Applications sent</p>
-            <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{applications.length}</p>
-          </div>
-          <div className="card" style={{ padding: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+              <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{applications.length}</p>
+              <span className="stat-card-arrow" aria-hidden="true">→</span>
+            </div>
+          </Link>
+          <button
+            type="button"
+            className="card stat-card-link"
+            style={{ padding: 20, border: '1px solid var(--color-border)', background: 'var(--color-bg)' }}
+            onClick={() => document.getElementById('whats-new-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          >
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Profile views this week</p>
-            <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{weeklyViewCount}</p>
-          </div>
-          <div className="card" style={{ padding: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+              <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{weeklyViewCount}</p>
+              <span className="stat-card-arrow" aria-hidden="true">→</span>
+            </div>
+          </button>
+          <Link to="/shortlisted" className="card stat-card-link" style={{ padding: 20 }}>
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Times shortlisted</p>
-            <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{shortlistCount ?? 0}</p>
-          </div>
-          <div className="card" style={{ padding: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+              <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{shortlistCount ?? 0}</p>
+              <span className="stat-card-arrow" aria-hidden="true">→</span>
+            </div>
+          </Link>
+          <Link to="/messages" className="card stat-card-link" style={{ padding: 20 }}>
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Messages received</p>
-            <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{messagesReceivedCount}</p>
-          </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+              <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{messagesReceivedCount}</p>
+              <span className="stat-card-arrow" aria-hidden="true">→</span>
+            </div>
+          </Link>
         </div>
       </div>
 

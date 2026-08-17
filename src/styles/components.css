@@ -45,6 +45,38 @@
   background: var(--color-bg);
 }
 
+/* A .card that's also a link/button to somewhere else — lift + border tint
+   on hover, plus a small arrow that's always faintly visible so it reads as
+   clickable even before hovering. */
+.stat-card-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  text-decoration: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.stat-card-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  border-color: var(--color-primary);
+}
+
+.stat-card-arrow {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+  transition: opacity 0.15s ease, transform 0.15s ease, color 0.15s ease;
+}
+
+.stat-card-link:hover .stat-card-arrow {
+  opacity: 1;
+  color: var(--color-primary);
+  transform: translateX(2px);
+}
+
 /* Inputs */
 .field {
   display: flex;
