@@ -91,80 +91,81 @@ export default function CompanyProfile() {
             <ShareButton url={`https://beta.joinmellow.xyz/company/${slug}`} label="Share profile" />
           </div>
 
-          <div className="profile-hero-body">
-            <div className="profile-hero-info">
-              <div className="profile-hero-avatar-row">
-                {company.logo_url && (
-                  <img
-                    src={company.logo_url}
-                    alt=""
-                    style={{ width: 96, height: 96, objectFit: 'contain', borderRadius: 12, background: 'var(--color-bg-soft)', flexShrink: 0 }}
-                  />
-                )}
-                <div style={{ minWidth: 0 }}>
-                  <div className="profile-name-row">
-                    <h1 style={{ fontSize: 28 }}>{company.company_name}</h1>
-                    <CompanyLinkIcons
-                      linkedinUrl={company.linkedin_url}
-                      websiteUrl={company.website_url}
-                      label={company.company_name}
-                      size={19}
-                    />
-                  </div>
-                  {sizeLine && (
-                    <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>{sizeLine}</p>
-                  )}
-                  {responseLabel && (
-                    <div className="profile-tag-row" style={{ marginTop: 12 }}>
-                      <span className="tag" style={{ fontSize: 12, fontWeight: 600, background: '#e3f9e9', color: '#0f7a3d' }}>
-                        {responseLabel}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {company.intro_video_url && (
-              <div className="profile-hero-video">
-                <p style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>Meet the team</p>
-                <VideoPlayCard url={company.intro_video_url} format="horizontal" style={{ maxWidth: '100%' }} />
-              </div>
+          <div className="profile-hero-avatar-row">
+            {company.logo_url && (
+              <img
+                src={company.logo_url}
+                alt=""
+                style={{ width: 96, height: 96, objectFit: 'contain', borderRadius: 12, background: 'var(--color-bg-soft)', flexShrink: 0 }}
+              />
             )}
+            <div style={{ minWidth: 0 }}>
+              <div className="profile-name-row">
+                <h1 style={{ fontSize: 28 }}>{company.company_name}</h1>
+                <CompanyLinkIcons
+                  linkedinUrl={company.linkedin_url}
+                  websiteUrl={company.website_url}
+                  label={company.company_name}
+                  size={19}
+                />
+              </div>
+              {sizeLine && (
+                <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>{sizeLine}</p>
+              )}
+            </div>
           </div>
         </div>
 
-        {company.about && (
+        {company.intro_video_url && (
           <div className="profile-card">
-            <h2 style={SECTION_TITLE_STYLE}>About</h2>
-            <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--color-text)' }}>{company.about}</p>
+            <h2 style={SECTION_TITLE_STYLE}>Meet the team</h2>
+            <VideoPlayCard url={company.intro_video_url} format="horizontal" style={{ maxWidth: '100%' }} />
           </div>
         )}
 
-        {company.culture_description && (
+        {(company.about || company.culture_description || company.company_highlight || typicalRoles.length > 0 || responseLabel) && (
           <div className="profile-card">
-            <h2 style={SECTION_TITLE_STYLE}>Culture</h2>
-            <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--color-text)' }}>{company.culture_description}</p>
-          </div>
-        )}
+            {company.about && (
+              <div>
+                <h2 style={SECTION_TITLE_STYLE}>About</h2>
+                <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--color-text)' }}>{company.about}</p>
+              </div>
+            )}
 
-        {company.company_highlight && (
-          <div className="profile-card">
-            <h2 style={SECTION_TITLE_STYLE}>What it's like to work here</h2>
-            <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--color-text)' }}>{company.company_highlight}</p>
-          </div>
-        )}
+            {company.culture_description && (
+              <div style={{ marginTop: company.about ? 28 : 0 }}>
+                <h3 style={{ fontSize: 16, marginBottom: 8 }}>Culture</h3>
+                <p style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>{company.culture_description}</p>
+              </div>
+            )}
 
-        {typicalRoles.length > 0 && (
-          <div className="profile-card">
-            <h2 style={SECTION_TITLE_STYLE}>Typically hiring for</h2>
-            <div className="profile-tag-row">
-              {typicalRoles.map((r) => (
-                <span key={r} className="tag">
-                  {r}
+            {company.company_highlight && (
+              <div style={{ marginTop: 28 }}>
+                <h3 style={{ fontSize: 16, marginBottom: 8 }}>What it's like to work here</h3>
+                <p style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>{company.company_highlight}</p>
+              </div>
+            )}
+
+            {typicalRoles.length > 0 && (
+              <div style={{ marginTop: 28 }}>
+                <h3 style={{ fontSize: 16, marginBottom: 10 }}>Typically hiring for</h3>
+                <div className="profile-tag-row">
+                  {typicalRoles.map((r) => (
+                    <span key={r} className="tag">
+                      {r}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {responseLabel && (
+              <div style={{ marginTop: 28 }}>
+                <span className="tag" style={{ fontSize: 12, fontWeight: 600, background: '#e3f9e9', color: '#0f7a3d' }}>
+                  {responseLabel}
                 </span>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
         )}
 

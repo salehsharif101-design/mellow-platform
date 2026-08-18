@@ -602,31 +602,16 @@ textarea.input:focus {
   margin-top: 4px;
 }
 
-/* Public role page (/jobs/:slug) — main content + a sticky company/apply
-   sidebar on desktop, collapsing to a single column with a fixed
-   bottom apply bar on mobile. */
-.role-public-layout {
-  display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 24px;
-  align-items: start;
-}
-
-.role-public-sidebar {
-  position: sticky;
-  top: 24px;
-}
-
+/* Public role page (/jobs/:slug) — single-column on desktop with the
+   Apply button inline in the content; on mobile that same button is
+   hidden and replaced by a fixed bar pinned to the bottom of the
+   screen instead, so it's always reachable. */
 .role-public-apply-mobile {
   display: none;
 }
 
 @media (max-width: 768px) {
-  .role-public-layout {
-    display: block;
-  }
-
-  .role-public-sidebar {
+  .role-public-apply-desktop {
     display: none;
   }
 

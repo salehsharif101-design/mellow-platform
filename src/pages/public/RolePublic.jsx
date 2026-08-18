@@ -244,152 +244,131 @@ export default function RolePublic() {
 
   return (
     <div className="section">
-      <div style={{ maxWidth: 960, margin: '0 auto' }}>
-        <div className="role-public-layout">
-          <div className="profile-card role-public-content">
-            <div className="profile-hero-actions">
-              {userType === 'candidate' && candidateId && (
-                <SaveRoleButton saved={Boolean(savedEntryId)} onToggle={toggleSave} size={19} />
-              )}
-              <ShareButton url={`https://beta.joinmellow.xyz/jobs/${slug}`} label="Share role" />
-            </div>
+      <div style={{ maxWidth: 820, margin: '0 auto' }}>
+        <div className="profile-card role-public-content">
+          <div className="profile-hero-actions">
+            {userType === 'candidate' && candidateId && (
+              <SaveRoleButton saved={Boolean(savedEntryId)} onToggle={toggleSave} size={19} />
+            )}
+            <ShareButton url={`https://beta.joinmellow.xyz/jobs/${slug}`} label="Share role" />
+          </div>
 
-            <h1 style={{ fontSize: 28 }}>{role.title}</h1>
+          <h1 style={{ fontSize: 28 }}>{role.title}</h1>
 
-            {employer?.company_name && (
-              <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
-                {employer.logo_url && (
-                  employer.company_slug ? (
-                    <Link to={`/company/${employer.company_slug}`} style={{ flexShrink: 0 }}>
-                      <img
-                        src={employer.logo_url}
-                        alt=""
-                        style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
-                      />
-                    </Link>
-                  ) : (
+          {employer?.company_name && (
+            <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
+              {employer.logo_url && (
+                employer.company_slug ? (
+                  <Link to={`/company/${employer.company_slug}`} style={{ flexShrink: 0 }}>
                     <img
                       src={employer.logo_url}
                       alt=""
-                      style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)', flexShrink: 0 }}
+                      style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
                     />
-                  )
-                )}
-                <p style={{ fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {employer.company_slug ? (
-                    <Link to={`/company/${employer.company_slug}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-                      {employer.company_name}
-                    </Link>
-                  ) : (
-                    employer.company_name
-                  )}
-                  <CompanyLinkIcons
-                    linkedinUrl={employer.linkedin_url}
-                    websiteUrl={employer.website_url}
-                    label={employer.company_name}
-                    size={15}
+                  </Link>
+                ) : (
+                  <img
+                    src={employer.logo_url}
+                    alt=""
+                    style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)', flexShrink: 0 }}
                   />
-                </p>
-              </div>
-            )}
-
-            {applied && appliedStatus && (
-              <div
-                className="card"
-                style={{ marginTop: 20, padding: '12px 18px', background: '#EEF4FF', border: 'none' }}
-              >
-                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-primary)' }}>
-                  You applied to this role — Status: {getCandidateStatusLabel(appliedStatus)}
-                </p>
-              </div>
-            )}
-
-            <div className="profile-tag-row" style={{ marginTop: 20 }}>
-              {role.location && <span className="tag">{role.location}</span>}
-              <span className="tag">{roleTypeLabel}</span>
-              {role.work_style && <span className="tag">{role.work_style}</span>}
-              {salaryLabel && <span className="tag">{salaryLabel}</span>}
-              {deadlineLabel && <span className="tag">Apply by {deadlineLabel}</span>}
-              {statusLabel && <span className="tag">{statusLabel}</span>}
-            </div>
-
-            {employer?.intro_video_url && (
-              <div style={{ marginTop: 28 }}>
-                <h2 style={{ fontSize: 16, marginBottom: 12 }}>Meet the team</h2>
-                <VideoPlayCard url={employer.intro_video_url} format="horizontal" />
-              </div>
-            )}
-
-            {role.description && (
-              <div style={{ marginTop: 28 }}>
-                <h2 style={{ fontSize: 20, marginBottom: 12 }}>About this role</h2>
-                <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--color-text)' }}>{role.description}</p>
-              </div>
-            )}
-
-            {role.required_skills?.length > 0 && (
-              <div style={{ marginTop: 24 }}>
-                <h2 style={{ fontSize: 18, marginBottom: 12 }}>Skills required</h2>
-                <div className="profile-tag-row">
-                  {role.required_skills.map((skill) => (
-                    <span key={skill} className="tag">
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {role.what_matters && (
-              <p style={{ marginTop: 20, fontSize: 14, color: 'var(--color-text-muted)' }}>
-                <strong style={{ color: 'var(--color-text)' }}>What matters most: </strong>
-                {role.what_matters}
+                )
+              )}
+              <p style={{ fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                {employer.company_slug ? (
+                  <Link to={`/company/${employer.company_slug}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                    {employer.company_name}
+                  </Link>
+                ) : (
+                  employer.company_name
+                )}
+                <CompanyLinkIcons
+                  linkedinUrl={employer.linkedin_url}
+                  websiteUrl={employer.website_url}
+                  label={employer.company_name}
+                  size={15}
+                />
               </p>
-            )}
+            </div>
+          )}
 
-            {needsVideo && (
-              <div
-                className="card"
-                style={{ marginTop: 20, padding: '16px 20px', background: '#fff4e5', border: 'none' }}
-              >
-                <p style={{ fontSize: 14, fontWeight: 600 }}>
-                  Please add your profile video before applying. Employers want to meet you first.
-                </p>
-                <Link to="/profile/edit" className="btn btn-primary" style={{ marginTop: 12, display: 'inline-flex' }}>
-                  Add your profile video
-                </Link>
+          {responseLabel && (
+            <p style={{ marginTop: 8, fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}>{responseLabel}</p>
+          )}
+
+          {applied && appliedStatus && (
+            <div
+              className="card"
+              style={{ marginTop: 20, padding: '12px 18px', background: '#EEF4FF', border: 'none' }}
+            >
+              <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-primary)' }}>
+                You applied to this role — Status: {getCandidateStatusLabel(appliedStatus)}
+              </p>
+            </div>
+          )}
+
+          <div className="profile-tag-row" style={{ marginTop: 20 }}>
+            {role.location && <span className="tag">{role.location}</span>}
+            <span className="tag">{roleTypeLabel}</span>
+            {role.work_style && <span className="tag">{role.work_style}</span>}
+            {salaryLabel && <span className="tag">{salaryLabel}</span>}
+            {deadlineLabel && <span className="tag">Apply by {deadlineLabel}</span>}
+            {statusLabel && <span className="tag">{statusLabel}</span>}
+          </div>
+
+          <div className="role-public-apply-desktop" style={{ marginTop: 20 }}>
+            {applyButton}
+          </div>
+
+          {employer?.intro_video_url && (
+            <div style={{ marginTop: 28 }}>
+              <h2 style={{ fontSize: 16, marginBottom: 12 }}>Meet the team</h2>
+              <VideoPlayCard url={employer.intro_video_url} format="horizontal" />
+            </div>
+          )}
+
+          {role.description && (
+            <div style={{ marginTop: 28 }}>
+              <h2 style={{ fontSize: 20, marginBottom: 12 }}>About this role</h2>
+              <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--color-text)' }}>{role.description}</p>
+            </div>
+          )}
+
+          {role.required_skills?.length > 0 && (
+            <div style={{ marginTop: 24 }}>
+              <h2 style={{ fontSize: 18, marginBottom: 12 }}>Skills required</h2>
+              <div className="profile-tag-row">
+                {role.required_skills.map((skill) => (
+                  <span key={skill} className="tag">
+                    {skill}
+                  </span>
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {error && <p className="form-error" style={{ marginTop: 16 }}>{error}</p>}
-          </div>
+          {role.what_matters && (
+            <p style={{ marginTop: 20, fontSize: 14, color: 'var(--color-text-muted)' }}>
+              <strong style={{ color: 'var(--color-text)' }}>What matters most: </strong>
+              {role.what_matters}
+            </p>
+          )}
 
-          <div className="profile-card role-public-sidebar">
-            {employer?.logo_url && (
-              <img
-                src={employer.logo_url}
-                alt=""
-                style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 10, background: 'var(--color-bg-soft)' }}
-              />
-            )}
-            <h3 style={{ fontSize: 17, marginTop: 12 }}>{employer?.company_name}</h3>
-            {responseLabel && (
-              <p style={{ marginTop: 6, fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}>{responseLabel}</p>
-            )}
-            {employer?.about && (
-              <p style={{ marginTop: 12, fontSize: 14, lineHeight: 1.6, color: 'var(--color-text-muted)' }}>{employer.about}</p>
-            )}
-            {employer?.company_slug && (
-              <Link
-                to={`/company/${employer.company_slug}`}
-                className="btn btn-ghost"
-                style={{ marginTop: 16, width: '100%' }}
-              >
-                View full company profile
+          {needsVideo && (
+            <div
+              className="card"
+              style={{ marginTop: 20, padding: '16px 20px', background: '#fff4e5', border: 'none' }}
+            >
+              <p style={{ fontSize: 14, fontWeight: 600 }}>
+                Please add your profile video before applying. Employers want to meet you first.
+              </p>
+              <Link to="/profile/edit" className="btn btn-primary" style={{ marginTop: 12, display: 'inline-flex' }}>
+                Add your profile video
               </Link>
-            )}
-            <div style={{ marginTop: 16 }}>{applyButton}</div>
-          </div>
+            </div>
+          )}
+
+          {error && <p className="form-error" style={{ marginTop: 16 }}>{error}</p>}
         </div>
       </div>
 

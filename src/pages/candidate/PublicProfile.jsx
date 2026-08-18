@@ -141,9 +141,7 @@ export default function PublicProfile() {
                       label={profile.full_name}
                       size={19}
                     />
-                    {(isOwner || isEmployerViewer) && (
-                      <ShareButton url={`https://beta.joinmellow.xyz/profile/${profile.username || profile.id}`} label="Share profile" />
-                    )}
+                    <ShareButton url={`https://beta.joinmellow.xyz/profile/${profile.username || profile.id}`} label="Share profile" />
                   </div>
                   <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>
                     {profile.current_company ? `${profile.job_title} at ${profile.current_company}` : profile.job_title}
