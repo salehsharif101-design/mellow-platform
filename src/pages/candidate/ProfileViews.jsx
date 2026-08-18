@@ -91,30 +91,39 @@ export default function ProfileViews() {
             if (!employer) return null
             return (
               <div key={entry.id} className="card" style={{ padding: 20, display: 'flex', alignItems: 'center', gap: 16 }}>
-                {employer.logo_url ? (
-                  <img
-                    src={employer.logo_url}
-                    alt=""
-                    style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)', flexShrink: 0 }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 8,
-                      background: 'var(--color-bg-soft)',
-                      flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--color-primary)',
-                      fontWeight: 700,
-                    }}
-                  >
-                    {employer.company_name?.[0]?.toUpperCase() || '?'}
-                  </div>
-                )}
+                {(() => {
+                  const logo = employer.logo_url ? (
+                    <img
+                      src={employer.logo_url}
+                      alt=""
+                      style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)', flexShrink: 0 }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 8,
+                        background: 'var(--color-bg-soft)',
+                        flexShrink: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--color-primary)',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {employer.company_name?.[0]?.toUpperCase() || '?'}
+                    </div>
+                  )
+                  return employer.company_slug ? (
+                    <Link to={`/company/${employer.company_slug}`} style={{ flexShrink: 0, lineHeight: 0 }}>
+                      {logo}
+                    </Link>
+                  ) : (
+                    logo
+                  )
+                })()}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontWeight: 700, fontSize: 16 }}>{employer.company_name}</p>
                   <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>

@@ -87,10 +87,6 @@ export default function CompanyProfile() {
     <div className="section">
       <div style={{ maxWidth: 820, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
         <div className="profile-card">
-          <div className="profile-hero-actions">
-            <ShareButton url={`https://beta.joinmellow.xyz/company/${slug}`} label="Share profile" />
-          </div>
-
           <div className="profile-hero-avatar-row">
             {company.logo_url && (
               <img
@@ -108,66 +104,63 @@ export default function CompanyProfile() {
                   label={company.company_name}
                   size={19}
                 />
+                <ShareButton url={`https://beta.joinmellow.xyz/company/${slug}`} label="Share profile" />
               </div>
               {sizeLine && (
                 <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>{sizeLine}</p>
               )}
             </div>
           </div>
+
+          {company.intro_video_url && (
+            <div style={{ marginTop: 32 }}>
+              <h2 style={SECTION_TITLE_STYLE}>Meet the team</h2>
+              <VideoPlayCard url={company.intro_video_url} format="horizontal" style={{ maxWidth: '100%' }} />
+            </div>
+          )}
+
+          {company.about && (
+            <div style={{ marginTop: 32 }}>
+              <h2 style={SECTION_TITLE_STYLE}>About</h2>
+              <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--color-text)' }}>{company.about}</p>
+            </div>
+          )}
+
+          {company.culture_description && (
+            <div style={{ marginTop: 28 }}>
+              <h3 style={{ fontSize: 16, marginBottom: 8 }}>Culture</h3>
+              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>{company.culture_description}</p>
+            </div>
+          )}
+
+          {company.company_highlight && (
+            <div style={{ marginTop: 28 }}>
+              <h3 style={{ fontSize: 16, marginBottom: 8 }}>What it's like to work here</h3>
+              <p style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>{company.company_highlight}</p>
+            </div>
+          )}
+
+          {typicalRoles.length > 0 && (
+            <div style={{ marginTop: 28 }}>
+              <h3 style={{ fontSize: 16, marginBottom: 10 }}>Typically hiring for</h3>
+              <div className="profile-tag-row">
+                {typicalRoles.map((r) => (
+                  <span key={r} className="tag">
+                    {r}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {responseLabel && (
+            <div style={{ marginTop: 28 }}>
+              <span className="tag" style={{ fontSize: 12, fontWeight: 600, background: '#e3f9e9', color: '#0f7a3d' }}>
+                {responseLabel}
+              </span>
+            </div>
+          )}
         </div>
-
-        {company.intro_video_url && (
-          <div className="profile-card">
-            <h2 style={SECTION_TITLE_STYLE}>Meet the team</h2>
-            <VideoPlayCard url={company.intro_video_url} format="horizontal" style={{ maxWidth: '100%' }} />
-          </div>
-        )}
-
-        {(company.about || company.culture_description || company.company_highlight || typicalRoles.length > 0 || responseLabel) && (
-          <div className="profile-card">
-            {company.about && (
-              <div>
-                <h2 style={SECTION_TITLE_STYLE}>About</h2>
-                <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--color-text)' }}>{company.about}</p>
-              </div>
-            )}
-
-            {company.culture_description && (
-              <div style={{ marginTop: company.about ? 28 : 0 }}>
-                <h3 style={{ fontSize: 16, marginBottom: 8 }}>Culture</h3>
-                <p style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>{company.culture_description}</p>
-              </div>
-            )}
-
-            {company.company_highlight && (
-              <div style={{ marginTop: 28 }}>
-                <h3 style={{ fontSize: 16, marginBottom: 8 }}>What it's like to work here</h3>
-                <p style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>{company.company_highlight}</p>
-              </div>
-            )}
-
-            {typicalRoles.length > 0 && (
-              <div style={{ marginTop: 28 }}>
-                <h3 style={{ fontSize: 16, marginBottom: 10 }}>Typically hiring for</h3>
-                <div className="profile-tag-row">
-                  {typicalRoles.map((r) => (
-                    <span key={r} className="tag">
-                      {r}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {responseLabel && (
-              <div style={{ marginTop: 28 }}>
-                <span className="tag" style={{ fontSize: 12, fontWeight: 600, background: '#e3f9e9', color: '#0f7a3d' }}>
-                  {responseLabel}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
 
         <div className="profile-card">
           <h2 style={SECTION_TITLE_STYLE}>

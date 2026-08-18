@@ -316,10 +316,6 @@ export default function RolePublic() {
             {statusLabel && <span className="tag">{statusLabel}</span>}
           </div>
 
-          <div className="role-public-apply-desktop" style={{ marginTop: 20 }}>
-            {applyButton}
-          </div>
-
           {employer?.intro_video_url && (
             <div style={{ marginTop: 28 }}>
               <h2 style={{ fontSize: 16, marginBottom: 12 }}>Meet the team</h2>
@@ -369,6 +365,10 @@ export default function RolePublic() {
           )}
 
           {error && <p className="form-error" style={{ marginTop: 16 }}>{error}</p>}
+
+          <div className="role-public-apply-desktop" style={{ marginTop: 28 }}>
+            {applyButton}
+          </div>
         </div>
       </div>
 

@@ -529,7 +529,9 @@ export default function EmployerDashboard() {
               if (!c) return null
               return (
                 <div key={a.id} className="card" style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={40} />
+                  <Link to={`/profile/${c.username || c.id}`} style={{ flexShrink: 0, lineHeight: 0 }}>
+                    <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={40} />
+                  </Link>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontWeight: 600, fontSize: 14 }}>{c.full_name}</p>
                     {c.job_title && <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{c.job_title}</p>}

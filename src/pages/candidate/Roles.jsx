@@ -428,17 +428,43 @@ export default function BrowseRoles() {
         </div>
         <div className="role-card-header" style={{ display: 'flex', gap: 14 }}>
           {employer?.logo_url && (
-            <img
-              src={employer.logo_url}
-              alt=""
-              className="role-card-logo"
-              style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)', flexShrink: 0 }}
-            />
+            employer.company_slug ? (
+              <Link
+                to={`/company/${employer.company_slug}`}
+                style={{ flexShrink: 0 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <img
+                  src={employer.logo_url}
+                  alt=""
+                  className="role-card-logo"
+                  style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
+                />
+              </Link>
+            ) : (
+              <img
+                src={employer.logo_url}
+                alt=""
+                className="role-card-logo"
+                style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)', flexShrink: 0 }}
+              />
+            )
           )}
           <div style={{ minWidth: 0 }}>
             <h3 style={{ fontSize: 17 }}>{role.title}</h3>
             <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
-              {employer?.company_name} · {role.location}
+              {employer?.company_slug ? (
+                <Link
+                  to={`/company/${employer.company_slug}`}
+                  style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {employer?.company_name}
+                </Link>
+              ) : (
+                employer?.company_name
+              )}{' '}
+              · {role.location}
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
               {salaryLabel && <span className="tag" style={{ fontSize: 12 }}>{salaryLabel}</span>}

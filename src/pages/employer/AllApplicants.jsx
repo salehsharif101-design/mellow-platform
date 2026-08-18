@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { formatRelativeTime } from '../../lib/roleFormat.js'
@@ -103,7 +103,13 @@ export default function AllApplicants() {
                 onClick={() => navigate(`/employer/roles/${a.role_id}/applicants`)}
                 style={{ padding: 18, display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}
               >
-                <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={44} />
+                <Link
+                  to={`/profile/${c.username || c.id}`}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ flexShrink: 0, lineHeight: 0 }}
+                >
+                  <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={44} />
+                </Link>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <p style={{ fontWeight: 700, fontSize: 15 }}>{c.full_name}</p>

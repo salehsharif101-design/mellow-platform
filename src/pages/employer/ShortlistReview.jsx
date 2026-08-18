@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import QuickMessageModal from '../../components/QuickMessageModal.jsx'
+import CalendlyModal from '../../components/CalendlyModal.jsx'
+import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
+import ShareButton from '../../components/ShareButton.jsx'
 
 const STATUSES = ['reviewing', 'shortlisted', 'rejected']
 const STATUS_LABELS = { reviewing: 'Reviewing', shortlisted: 'Shortlisted', rejected: 'Rejected' }
+const SECTION_TITLE_STYLE = { fontSize: 20, marginBottom: 16 }
+
+const CANDIDATE_SELECT =
+  'id, user_id, username, full_name, job_title, current_company, location, bio, three_words, proud_of, skills, languages, availability, work_style, years_of_experience, intro_video_url, avatar_url, education_level, field_of_study, institution_name, graduation_year, linkedin_url, calendly_url, website_url'
 
 export default function ShortlistReview() {
   const { user } = useAuth()
@@ -22,6 +29,7 @@ export default function ShortlistReview() {
   const [updating, setUpdating] = useState(false)
   const [showMessage, setShowMessage] = useState(false)
   const [messageSent, setMessageSent] = useState(false)
+  const [showCalendly, setShowCalendly] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -46,9 +54,7 @@ export default function ShortlistReview() {
 
       const { data, error: shortlistError } = await supabase
         .from('shortlists')
-        .select(
-          'id, candidate_id, status, candidate_profiles(id, user_id, username, full_name, job_title, current_company, skills, availability, years_of_experience, intro_video_url, avatar_url, education_level, field_of_study, institution_name, graduation_year, linkedin_url, calendly_url, website_url)',
-        )
+        .select(`id, candidate_id, status, candidate_profiles(${CANDIDATE_SELECT})`)
         .eq('employer_id', employer.id)
         .order('created_at', { ascending: false })
 
@@ -118,154 +124,275 @@ export default function ShortlistReview() {
   const entry = entries[index]
   const c = entry.candidate_profiles
   const workVideos = workVideosByCandidate[entry.candidate_id] || []
-  const education = [c.education_level, c.field_of_study, c.institution_name, c.graduation_year]
+  const knownFor = (c.three_words || '')
+    .split(',')
+    .map((w) => w.trim())
     .filter(Boolean)
-    .join(' · ')
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#fff', zIndex: 900, overflowY: 'auto' }}>
-      <div style={{ maxWidth: 640, margin: '0 auto', padding: '32px 24px 80px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <p style={{ fontSize: 13, color: 'var(--color-text-muted)', fontWeight: 600 }}>
-            {index + 1} of {entries.length}
-          </p>
-          <button
-            type="button"
-            onClick={() => navigate('/employer/shortlist')}
-            aria-label="Exit review mode"
-            style={{ background: 'none', border: 'none', fontSize: 26, cursor: 'pointer', color: 'var(--color-text-muted)', lineHeight: 1 }}
-          >
-            ×
-          </button>
-        </div>
+      <div className="shortlist-review-topbar">
+        <p style={{ fontSize: 13, color: 'var(--color-text-muted)', fontWeight: 600 }}>
+          {index + 1} of {entries.length}
+        </p>
+        <button type="button" onClick={() => navigate('/employer/shortlist')} aria-label="Exit review mode" className="icon-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="2" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 20 }}>
-          <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={64} />
-          <div>
-            <h1 style={{ fontSize: 24 }}>{c.full_name}</h1>
-            <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 2 }}>
-              {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title}
-              {c.years_of_experience && ` · ${c.years_of_experience}`}
-            </p>
+      <div className="shortlist-review-content" style={{ maxWidth: 820, margin: '0 auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div className="profile-card">
+          <div className="profile-hero-actions">
+            {c.calendly_url && (
+              <button className="btn btn-primary" onClick={() => setShowCalendly(true)}>
+                Book a meeting
+              </button>
+            )}
+            <button className="btn btn-ghost" onClick={() => setShowMessage(true)}>
+              Message
+            </button>
+          </div>
+
+          <div className="profile-hero-body">
+            <div className="profile-hero-info">
+              <div className="profile-hero-avatar-row">
+                <Link to={`/profile/${c.username || c.id}`} style={{ flexShrink: 0 }}>
+                  <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={96} style={{ fontSize: 32 }} />
+                </Link>
+                <div style={{ minWidth: 0 }}>
+                  <div className="profile-name-row">
+                    <h1 style={{ fontSize: 28 }}>{c.full_name}</h1>
+                    <CompanyLinkIcons linkedinUrl={c.linkedin_url} websiteUrl={c.website_url} label={c.full_name} size={19} />
+                    <ShareButton url={`https://beta.joinmellow.xyz/profile/${c.username || c.id}`} label="Share profile" />
+                  </div>
+                  <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>
+                    {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title}
+                    {c.location && ` · ${c.location}`}
+                    {c.years_of_experience && ` · ${c.years_of_experience}`}
+                  </p>
+
+                  {(c.availability || c.work_style?.length > 0) && (
+                    <div className="profile-tag-row" style={{ marginTop: 12 }}>
+                      {c.availability && (
+                        <span className="tag" style={{ fontSize: 12, fontWeight: 600, background: '#e3f9e9', color: '#0f7a3d' }}>
+                          Available: {c.availability}
+                        </span>
+                      )}
+                      {c.work_style?.map((w) => (
+                        <span key={w} className="tag" style={{ fontSize: 12 }}>
+                          {w}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {knownFor.length > 0 && (
+                    <div style={{ marginTop: 16 }}>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                        Known for
+                      </p>
+                      <div className="profile-tag-row" style={{ marginTop: 8 }}>
+                        {knownFor.map((word) => (
+                          <span key={word} className="tag" style={{ background: 'var(--color-bg-soft)', color: 'var(--color-primary)', fontWeight: 700 }}>
+                            {word}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(c.skills?.length > 0 || c.languages?.length > 0) && (
+                    <div className="profile-hero-skills-languages">
+                      {c.skills?.length > 0 && (
+                        <div style={{ marginTop: 16 }}>
+                          <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                            Skills
+                          </p>
+                          <div className="profile-tag-row" style={{ marginTop: 8 }}>
+                            {c.skills.map((s) => (
+                              <span key={s} className="tag" style={{ fontSize: 12 }}>
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {c.languages?.length > 0 && (
+                        <div style={{ marginTop: 16 }}>
+                          <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                            Languages
+                          </p>
+                          <div className="profile-tag-row" style={{ marginTop: 8 }}>
+                            {c.languages.map((l) => (
+                              <span key={l.language} className="tag" style={{ fontSize: 12 }}>
+                                {l.language} · {l.proficiency}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="profile-hero-video">
+              {c.intro_video_url ? (
+                <VideoPlayCard url={c.intro_video_url} style={{ maxWidth: '100%' }} />
+              ) : (
+                <div
+                  style={{
+                    borderRadius: 10,
+                    background: 'var(--color-bg-soft)',
+                    aspectRatio: '9 / 16',
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--color-text-muted)',
+                    fontSize: 14,
+                    textAlign: 'center',
+                    padding: 16,
+                  }}
+                >
+                  No intro video yet
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {(c.skills?.length > 0 || c.availability) && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
-            {c.availability && (
-              <span className="tag" style={{ background: '#e3f9e9', color: '#0f7a3d' }}>
-                Available: {c.availability}
-              </span>
-            )}
-            {c.skills?.map((s) => (
-              <span key={s} className="tag">
-                {s}
-              </span>
-            ))}
+        {c.bio && (
+          <div className="profile-card">
+            <h2 style={SECTION_TITLE_STYLE}>About</h2>
+            <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--color-text)' }}>{c.bio}</p>
           </div>
         )}
 
-        {c.intro_video_url && (
-          <div style={{ marginTop: 24 }}>
-            <h3 style={{ fontSize: 16, marginBottom: 12 }}>Intro video</h3>
-            <VideoPlayCard url={c.intro_video_url} />
+        {c.proud_of && (
+          <div className="profile-card">
+            <h2 style={SECTION_TITLE_STYLE}>What I'm most proud of</h2>
+            <blockquote
+              style={{
+                margin: 0,
+                paddingLeft: 20,
+                borderLeft: '3px solid var(--color-primary)',
+                fontSize: 16,
+                lineHeight: 1.7,
+                fontStyle: 'italic',
+                color: 'var(--color-text)',
+              }}
+            >
+              “{c.proud_of}”
+            </blockquote>
+          </div>
+        )}
+
+        {c.skills?.length > 0 && (
+          <div className="profile-card profile-mobile-only">
+            <h2 style={SECTION_TITLE_STYLE}>Skills</h2>
+            <div className="profile-tag-row">
+              {c.skills.map((s) => (
+                <span key={s} className="tag">
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {c.languages?.length > 0 && (
+          <div className="profile-card profile-mobile-only">
+            <h2 style={SECTION_TITLE_STYLE}>Languages</h2>
+            <div className="profile-tag-row">
+              {c.languages.map((l) => (
+                <span key={l.language} className="tag">
+                  {l.language} · {l.proficiency}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {(c.education_level || c.field_of_study || c.institution_name || c.graduation_year) && (
+          <div className="profile-card">
+            <h2 style={SECTION_TITLE_STYLE}>Education</h2>
+            {(c.education_level || c.field_of_study) && (
+              <p style={{ fontSize: 16 }}>{[c.education_level, c.field_of_study].filter(Boolean).join(' in ')}</p>
+            )}
+            {(c.institution_name || c.graduation_year) && (
+              <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
+                {[c.institution_name, c.graduation_year].filter(Boolean).join(' · ')}
+              </p>
+            )}
           </div>
         )}
 
         {workVideos.length > 0 && (
-          <div style={{ marginTop: 24 }}>
-            <h3 style={{ fontSize: 16, marginBottom: 12 }}>Work videos</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16 }}>
+          <div className="profile-card">
+            <h2 style={SECTION_TITLE_STYLE}>How {c.full_name?.split(' ')[0]} actually works</h2>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: 16,
+                marginTop: 16,
+              }}
+            >
               {workVideos.map((v) => (
                 <div key={v.id}>
                   <VideoPlayCard url={v.video_url} format="horizontal" />
-                  <p style={{ marginTop: 6, fontSize: 13, fontWeight: 600 }}>{v.label}</p>
+                  <p style={{ marginTop: 8, fontSize: 13, fontWeight: 600 }}>{v.label}</p>
+                  {v.description && (
+                    <p style={{ marginTop: 2, fontSize: 12, color: 'var(--color-text-muted)' }}>{v.description}</p>
+                  )}
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {education && (
-          <div style={{ marginTop: 24 }}>
-            <h3 style={{ fontSize: 16, marginBottom: 8 }}>Education</h3>
-            <p style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>{education}</p>
-          </div>
-        )}
-
-        {(c.linkedin_url || c.calendly_url || c.website_url) && (
-          <div style={{ marginTop: 24 }}>
-            <h3 style={{ fontSize: 16, marginBottom: 8 }}>Links</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {c.linkedin_url && (
-                <a href={c.linkedin_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: 'var(--color-primary)' }}>
-                  LinkedIn →
-                </a>
-              )}
-              {c.calendly_url && (
-                <a href={c.calendly_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: 'var(--color-primary)' }}>
-                  Calendly →
-                </a>
-              )}
-              {c.website_url && (
-                <a href={c.website_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: 'var(--color-primary)' }}>
-                  Portfolio →
-                </a>
-              )}
-            </div>
-          </div>
-        )}
-
-        {messageSent && <p style={{ marginTop: 20, fontSize: 14, fontWeight: 600, color: '#0f7a3d' }}>Message sent</p>}
-
-        <div
-          style={{
-            marginTop: 32,
-            paddingTop: 20,
-            borderTop: '1px solid var(--color-border)',
-            display: 'flex',
-            gap: 12,
-            alignItems: 'center',
-            flexWrap: 'wrap',
-          }}
-        >
-          <select
-            className="input"
-            value={entry.status}
-            disabled={updating}
-            onChange={(e) => changeStatus(e.target.value)}
-            style={{ width: 'auto', padding: '8px 12px' }}
-          >
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_LABELS[s]}
-              </option>
-            ))}
-          </select>
-          <button type="button" className="btn btn-ghost" onClick={() => setShowMessage(true)}>
-            Message
-          </button>
-        </div>
-
-        <div style={{ marginTop: 24, display: 'flex', justifyContent: 'space-between' }}>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            disabled={index === 0}
-            onClick={() => setIndex((i) => Math.max(0, i - 1))}
-          >
-            ← Previous
-          </button>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            disabled={index === entries.length - 1}
-            onClick={() => setIndex((i) => Math.min(entries.length - 1, i + 1))}
-          >
-            Next →
-          </button>
-        </div>
+        {messageSent && <p style={{ fontSize: 14, fontWeight: 600, color: '#0f7a3d' }}>Message sent</p>}
       </div>
+
+      <div className="shortlist-review-bottombar">
+        <button
+          type="button"
+          className="btn btn-ghost"
+          disabled={index === 0}
+          onClick={() => setIndex((i) => Math.max(0, i - 1))}
+        >
+          ← Previous
+        </button>
+        <select
+          className="input"
+          value={entry.status}
+          disabled={updating}
+          onChange={(e) => changeStatus(e.target.value)}
+          style={{ width: 'auto', padding: '8px 12px' }}
+        >
+          {STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {STATUS_LABELS[s]}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          disabled={index === entries.length - 1}
+          onClick={() => setIndex((i) => Math.min(entries.length - 1, i + 1))}
+        >
+          Next →
+        </button>
+      </div>
+
+      {showCalendly && c.calendly_url && <CalendlyModal calendlyUrl={c.calendly_url} onClose={() => setShowCalendly(false)} />}
 
       {showMessage && (
         <QuickMessageModal
