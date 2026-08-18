@@ -352,3 +352,21 @@ textarea.input:focus {
   background: var(--color-primary);
   animation: nav-hint-pulse 1.6s ease-out infinite;
 }
+
+/* Dashboard loading skeleton */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+.skeleton-block {
+  border-radius: 6px;
+  background: var(--color-bg-soft);
+  background-image: linear-gradient(90deg, var(--color-bg-soft) 0px, rgba(255, 255, 255, 0.6) 40px, var(--color-bg-soft) 80px);
+  background-size: 400px 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}

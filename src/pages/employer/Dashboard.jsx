@@ -4,8 +4,10 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotifications } from '../../context/NotificationContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { formatRelativeTime, daysSince } from '../../lib/roleFormat.js'
+import { getCachedDashboard, setCachedDashboard } from '../../lib/dashboardCache.js'
 import ShareButton from '../../components/ShareButton.jsx'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
+import DashboardSkeleton from '../../components/DashboardSkeleton.jsx'
 
 // Matches NotificationContext's poll interval so the pipeline cards' New
 // counts stay current even if the employer leaves this tab open while
@@ -39,13 +41,20 @@ export default function EmployerDashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { newApplications, clearApplicationsBadge } = useNotifications()
-  const [employer, setEmployer] = useState(null)
-  const [roles, setRoles] = useState([])
-  const [applications, setApplications] = useState([])
-  const [shortlistCount, setShortlistCount] = useState(0)
-  const [feedItems, setFeedItems] = useState([])
-  const [hasUnansweredMessage, setHasUnansweredMessage] = useState(false)
-  const [loading, setLoading] = useState(true)
+
+  const cacheKey = user ? `employer:${user.id}` : null
+  const cached = cacheKey ? getCachedDashboard(cacheKey) : null
+
+  const [employer, setEmployer] = useState(cached?.employer ?? null)
+  const [roles, setRoles] = useState(cached?.roles ?? [])
+  const [applications, setApplications] = useState(cached?.applications ?? [])
+  const [shortlistCount, setShortlistCount] = useState(cached?.shortlistCount ?? 0)
+  const [feedItems, setFeedItems] = useState(cached?.feedItems ?? [])
+  const [hasUnansweredMessage, setHasUnansweredMessage] = useState(cached?.hasUnansweredMessage ?? false)
+  // Only a genuinely cold load (nothing cached yet from an earlier visit
+  // this session) shows the skeleton — a return visit renders the cached
+  // data immediately while load() quietly refreshes it in the background.
+  const [loading, setLoading] = useState(!cached)
   const [nudgeVersion, setNudgeVersion] = useState(0)
   // Captured once from the first load of this page visit, before our own
   // clearApplicationsBadge() call overwrites last_viewed_applications_at —
@@ -58,43 +67,40 @@ export default function EmployerDashboard() {
     if (!user) return
 
     async function load() {
-      const { data: emp } = await supabase
-        .from('employer_profiles')
-        .select(
-          'id, company_name, company_slug, logo_url, intro_video_url, about, culture_description, company_highlight, typical_roles, linkedin_url, website_url, last_viewed_applications_at',
-        )
-        .eq('user_id', user.id)
-        .maybeSingle()
+      // The employer profile and the full message thread don't depend on
+      // each other, so they're fetched together rather than one after
+      // another.
+      const [empResult, allMessagesResult] = await Promise.all([
+        supabase
+          .from('employer_profiles')
+          .select(
+            'id, company_name, company_slug, logo_url, intro_video_url, about, culture_description, company_highlight, typical_roles, linkedin_url, website_url, last_viewed_applications_at',
+          )
+          .eq('user_id', user.id)
+          .maybeSingle(),
+        supabase
+          .from('messages')
+          .select('id, sender_id, recipient_id, body, sent_at, read_at')
+          .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
+          .order('sent_at', { ascending: false }),
+      ])
 
+      const emp = empResult.data
       if (!emp) {
         setLoading(false)
         return
       }
-      setEmployer(emp)
 
-      const { data: myRoles } = await supabase
-        .from('roles')
-        .select('id, title, is_active, created_at, view_count')
-        .eq('employer_id', emp.id)
-        .order('created_at', { ascending: false })
-      setRoles(myRoles || [])
+      const allMessages = allMessagesResult.data || []
 
-      const roleIds = (myRoles || []).map((r) => r.id)
-      let apps = []
-      if (roleIds.length > 0) {
-        const { data } = await supabase
-          .from('applications')
-          .select('id, status, role_id, applied_at, viewed_at, candidate_profiles(id, username, full_name, avatar_url, job_title)')
-          .in('role_id', roleIds)
-        apps = data || []
-        setApplications(apps)
-      }
-
-      const { count } = await supabase
-        .from('shortlists')
-        .select('id', { count: 'exact', head: true })
-        .eq('employer_id', emp.id)
-      setShortlistCount(count || 0)
+      const messagesByOther = groupByOtherParty(allMessages, user.id)
+      let unanswered = false
+      messagesByOther.forEach((msgs) => {
+        const latest = msgs[0]
+        if (latest.sender_id !== user.id && Date.now() - new Date(latest.sent_at).getTime() > THREE_DAYS_MS) {
+          unanswered = true
+        }
+      })
 
       // "Since last visit," capped to the last 7 days regardless of how
       // long it's actually been. Frozen after the first load — see
@@ -107,23 +113,7 @@ export default function EmployerDashboard() {
       const sinceMs = sinceMsRef.current
       const sinceIso = new Date(sinceMs).toISOString()
 
-      const { data: allMessages } = await supabase
-        .from('messages')
-        .select('id, sender_id, recipient_id, body, sent_at, read_at')
-        .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
-        .order('sent_at', { ascending: false })
-
-      const messagesByOther = groupByOtherParty(allMessages || [], user.id)
-      let unanswered = false
-      messagesByOther.forEach((msgs) => {
-        const latest = msgs[0]
-        if (latest.sender_id !== user.id && Date.now() - new Date(latest.sent_at).getTime() > THREE_DAYS_MS) {
-          unanswered = true
-        }
-      })
-      setHasUnansweredMessage(unanswered)
-
-      const unreadSince = (allMessages || []).filter(
+      const unreadSince = allMessages.filter(
         (m) => m.recipient_id === user.id && !m.read_at && new Date(m.sent_at).getTime() > sinceMs,
       )
       const unreadBySender = new Map()
@@ -133,22 +123,31 @@ export default function EmployerDashboard() {
         if (m.sent_at > entry.latest) entry.latest = m.sent_at
         unreadBySender.set(m.sender_id, entry)
       })
-
       const senderIds = Array.from(unreadBySender.keys())
-      let namesBySenderId = {}
-      if (senderIds.length > 0) {
-        const { data: senderProfiles } = await supabase
-          .from('candidate_profiles')
-          .select('user_id, full_name')
-          .in('user_id', senderIds)
-        namesBySenderId = Object.fromEntries((senderProfiles || []).map((p) => [p.user_id, p.full_name]))
-      }
 
-      const { data: views } = await supabase
-        .from('company_views')
-        .select('viewed_at')
-        .eq('employer_id', emp.id)
-        .gt('viewed_at', sinceIso)
+      // Everything below only needs emp.id (or the sender ids just derived
+      // above) — none of it depends on any of the others' results, so it
+      // all goes out in one batch instead of one round trip at a time.
+      // Applications are filtered by employer via the embedded roles join
+      // rather than a separate "get my role ids first" query.
+      const [rolesResult, applicationsResult, shortlistResult, companyViewsResult, senderProfilesResult] = await Promise.all([
+        supabase.from('roles').select('id, title, is_active, created_at, view_count').eq('employer_id', emp.id).order('created_at', { ascending: false }),
+        supabase
+          .from('applications')
+          .select('id, status, role_id, applied_at, viewed_at, candidate_profiles(id, username, full_name, avatar_url, job_title), roles!inner(employer_id)')
+          .eq('roles.employer_id', emp.id),
+        supabase.from('shortlists').select('id', { count: 'exact', head: true }).eq('employer_id', emp.id),
+        supabase.from('company_views').select('viewed_at').eq('employer_id', emp.id).gt('viewed_at', sinceIso),
+        senderIds.length > 0
+          ? supabase.from('candidate_profiles').select('user_id, full_name').in('user_id', senderIds)
+          : Promise.resolve({ data: [] }),
+      ])
+
+      const myRoles = rolesResult.data || []
+      const apps = applicationsResult.data || []
+      const shortlistTotal = shortlistResult.count || 0
+      const views = companyViewsResult.data || []
+      const namesBySenderId = Object.fromEntries((senderProfilesResult.data || []).map((p) => [p.user_id, p.full_name]))
 
       const newApps = apps.filter((a) => a.applied_at && new Date(a.applied_at).getTime() > sinceMs)
       const newAppsByRole = new Map()
@@ -161,7 +160,7 @@ export default function EmployerDashboard() {
 
       const items = []
       newAppsByRole.forEach((entry, roleId) => {
-        const role = (myRoles || []).find((r) => r.id === roleId)
+        const role = myRoles.find((r) => r.id === roleId)
         if (!role) return
         items.push({
           id: `apps-${roleId}`,
@@ -179,7 +178,7 @@ export default function EmployerDashboard() {
           timestamp: entry.latest,
         })
       })
-      if (views && views.length > 0) {
+      if (views.length > 0) {
         const latestView = views.reduce((max, v) => (v.viewed_at > max ? v.viewed_at : max), views[0].viewed_at)
         items.push({
           id: 'company-views',
@@ -189,14 +188,31 @@ export default function EmployerDashboard() {
         })
       }
       items.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-      setFeedItems(items)
 
+      setEmployer(emp)
+      setRoles(myRoles)
+      setApplications(apps)
+      setShortlistCount(shortlistTotal)
+      setHasUnansweredMessage(unanswered)
+      setFeedItems(items)
       setLoading(false)
+
+      if (cacheKey) {
+        setCachedDashboard(cacheKey, {
+          employer: emp,
+          roles: myRoles,
+          applications: apps,
+          shortlistCount: shortlistTotal,
+          hasUnansweredMessage: unanswered,
+          feedItems: items,
+        })
+      }
     }
 
     load()
     const interval = setInterval(load, POLL_MS)
     return () => clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
   const hasClearedBadgeRef = useRef(false)
@@ -252,7 +268,7 @@ export default function EmployerDashboard() {
     setNudgeVersion((v) => v + 1)
   }
 
-  if (loading) return null
+  if (loading) return <DashboardSkeleton />
 
   if (!employer) {
     return (

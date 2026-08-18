@@ -4,7 +4,9 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotifications } from '../../context/NotificationContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { getCandidateStatusLabel, roleMatchesCandidate, daysUntil } from '../../lib/roleFormat.js'
+import { getCachedDashboard, setCachedDashboard } from '../../lib/dashboardCache.js'
 import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
+import DashboardSkeleton from '../../components/DashboardSkeleton.jsx'
 
 // Matches NotificationContext's poll interval so the pipeline cards' New
 // counts stay current even if the candidate leaves this tab open.
@@ -34,14 +36,21 @@ export default function CandidateDashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { clearDashboardBadges } = useNotifications()
-  const [profile, setProfile] = useState(null)
-  const [applications, setApplications] = useState([])
-  const [views, setViews] = useState(null) // null = unavailable, [] = none yet
-  const [shortlistCount, setShortlistCount] = useState(null) // null = unavailable
-  const [workVideoCount, setWorkVideoCount] = useState(null) // null = unknown yet
-  const [messagesReceivedCount, setMessagesReceivedCount] = useState(0)
-  const [feedItems, setFeedItems] = useState([])
-  const [loading, setLoading] = useState(true)
+
+  const cacheKey = user ? `candidate:${user.id}` : null
+  const cached = cacheKey ? getCachedDashboard(cacheKey) : null
+
+  const [profile, setProfile] = useState(cached?.profile ?? null)
+  const [applications, setApplications] = useState(cached?.applications ?? [])
+  const [views, setViews] = useState(cached?.views ?? null) // null = unavailable, [] = none yet
+  const [shortlistCount, setShortlistCount] = useState(cached?.shortlistCount ?? null) // null = unavailable
+  const [workVideoCount, setWorkVideoCount] = useState(cached?.workVideoCount ?? null) // null = unknown yet
+  const [messagesReceivedCount, setMessagesReceivedCount] = useState(cached?.messagesReceivedCount ?? 0)
+  const [feedItems, setFeedItems] = useState(cached?.feedItems ?? [])
+  // Only a genuinely cold load (nothing cached yet from an earlier visit
+  // this session) shows the skeleton — a return visit renders the cached
+  // data immediately while load() quietly refreshes it in the background.
+  const [loading, setLoading] = useState(!cached)
   const [togglingVisibility, setTogglingVisibility] = useState(false)
   const [showAddVideo, setShowAddVideo] = useState(false)
   // Frozen on first load — see the employer dashboard's identical pattern.
@@ -55,51 +64,22 @@ export default function CandidateDashboard() {
     if (!user) return
 
     async function load() {
-      const { data: candidate } = await supabase
-        .from('candidate_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle()
+      // The candidate profile and the received-messages list don't depend
+      // on each other, so they're fetched together rather than one after
+      // another.
+      const [candidateResult, allMessagesResult] = await Promise.all([
+        supabase.from('candidate_profiles').select('*').eq('user_id', user.id).maybeSingle(),
+        supabase.from('messages').select('id, sender_id, sent_at').eq('recipient_id', user.id).order('sent_at', { ascending: false }),
+      ])
 
+      const candidate = candidateResult.data
       if (!candidate) {
         setLoading(false)
         return
       }
-      setProfile(candidate)
 
-      const { data: apps } = await supabase
-        .from('applications')
-        .select(
-          'id, status, status_changed_at, applied_at, viewed_at, role_id, roles(id, slug, title, employer_id, employer_profiles(company_name, user_id))',
-        )
-        .eq('candidate_id', candidate.id)
-        .order('applied_at', { ascending: false })
-      setApplications(apps || [])
-
-      const { data: viewRows, error: viewsError } = await supabase
-        .from('profile_views')
-        .select('viewed_at, viewer_id')
-        .eq('candidate_id', candidate.id)
-        .order('viewed_at', { ascending: false })
-      if (!viewsError) setViews(viewRows)
-
-      const { count: videoCount } = await supabase
-        .from('candidate_videos')
-        .select('id', { count: 'exact', head: true })
-        .eq('candidate_id', candidate.id)
-      setWorkVideoCount(videoCount || 0)
-
-      const { count: shortlistTotal, error: shortlistError } = await supabase
-        .from('shortlists')
-        .select('id', { count: 'exact', head: true })
-        .eq('candidate_id', candidate.id)
-      if (!shortlistError) setShortlistCount(shortlistTotal || 0)
-
-      const { count: msgReceivedTotal } = await supabase
-        .from('messages')
-        .select('id', { count: 'exact', head: true })
-        .eq('recipient_id', user.id)
-      setMessagesReceivedCount(msgReceivedTotal || 0)
+      const allMessages = allMessagesResult.data || []
+      const messagesReceivedTotal = allMessages.length
 
       // "Since last visit," capped to the last 7 days regardless of how
       // long it's actually been. Frozen after the first load — see
@@ -112,10 +92,46 @@ export default function CandidateDashboard() {
       const sinceMs = sinceMsRef.current
       const sinceIso = new Date(sinceMs).toISOString()
 
+      // Everything below only needs candidate.id (or sinceIso, now known),
+      // not each other's results, so they all go out in one batch instead
+      // of one round trip at a time. The shortlist query fetches every row
+      // (rather than a separate head-count query) since the total count and
+      // the "since last visit" feed items both come out of the same set.
+      const [appsResult, viewsResult, videoCountResult, shortlistRowsResult, recentRolesResult, savedRowsResult] = await Promise.all([
+        supabase
+          .from('applications')
+          .select(
+            'id, status, status_changed_at, applied_at, viewed_at, role_id, roles(id, slug, title, employer_id, employer_profiles(company_name, user_id))',
+          )
+          .eq('candidate_id', candidate.id)
+          .order('applied_at', { ascending: false }),
+        supabase.from('profile_views').select('viewed_at, viewer_id').eq('candidate_id', candidate.id).order('viewed_at', { ascending: false }),
+        supabase.from('candidate_videos').select('id', { count: 'exact', head: true }).eq('candidate_id', candidate.id),
+        supabase
+          .from('shortlists')
+          .select('id, employer_id, created_at, employer_profiles(company_name)')
+          .eq('candidate_id', candidate.id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('roles')
+          .select('id, slug, title, created_at, employer_id, required_skills, employer_profiles(company_name, typical_roles)')
+          .eq('is_active', true)
+          .gt('created_at', sinceIso)
+          .order('created_at', { ascending: false }),
+        supabase.from('saved_roles').select('id, roles(id, slug, title, deadline, is_active)').eq('candidate_id', candidate.id),
+      ])
+
+      const apps = appsResult.data || []
+      const viewRows = viewsResult.data
+      const workVideoTotal = videoCountResult.count || 0
+      const shortlistRows = shortlistRowsResult.data || []
+      const recentRoles = recentRolesResult.data || []
+      const savedRows = savedRowsResult.data || []
+
       const items = []
 
       // Application status updates (moved to Reviewing or Shortlisted).
-      ;(apps || [])
+      apps
         .filter((a) => a.status_changed_at && new Date(a.status_changed_at).getTime() > sinceMs && ['reviewing', 'shortlisted'].includes(a.status))
         .forEach((a) => {
           items.push({
@@ -126,31 +142,42 @@ export default function CandidateDashboard() {
           })
         })
 
-      // Shortlist notifications (added to an employer's personal shortlist —
-      // independent of any specific application).
-      const { data: shortlistRows } = await supabase
-        .from('shortlists')
-        .select('id, employer_id, created_at, employer_profiles(company_name)')
-        .eq('candidate_id', candidate.id)
-        .gt('created_at', sinceIso)
-      ;(shortlistRows || []).forEach((s) => {
-        items.push({
-          id: `shortlist-${s.id}`,
-          text: `You were shortlisted by ${s.employer_profiles?.company_name || 'an employer'}`,
-          link: '/applications',
-          timestamp: s.created_at,
+      // Shortlist notifications since last visit — added to an employer's
+      // personal shortlist, independent of any specific application.
+      shortlistRows
+        .filter((s) => new Date(s.created_at).getTime() > sinceMs)
+        .forEach((s) => {
+          items.push({
+            id: `shortlist-${s.id}`,
+            text: `You were shortlisted by ${s.employer_profiles?.company_name || 'an employer'}`,
+            link: '/applications',
+            timestamp: s.created_at,
+          })
         })
-      })
 
       // Employers who viewed the profile since last visit.
       const newViews = (viewRows || []).filter((v) => v.viewer_id && new Date(v.viewed_at).getTime() > sinceMs)
       const viewerIds = [...new Set(newViews.map((v) => v.viewer_id))]
-      if (viewerIds.length > 0) {
-        const { data: viewerEmployers } = await supabase
+
+      // Messages received since last visit.
+      const newMessages = allMessages.filter((m) => new Date(m.sent_at).getTime() > sinceMs)
+      const bySender = groupBySender(newMessages)
+      const senderIds = [...bySender.keys()]
+
+      // Profile-viewer names and message-sender names both come from
+      // employer_profiles, keyed the same way — one combined lookup covers
+      // both instead of two separate ones.
+      const employerIdsToLookUp = [...new Set([...viewerIds, ...senderIds])]
+      let nameByEmployerUserId = {}
+      if (employerIdsToLookUp.length > 0) {
+        const { data: employerRows } = await supabase
           .from('employer_profiles')
           .select('user_id, company_name')
-          .in('user_id', viewerIds)
-        const nameByUserId = Object.fromEntries((viewerEmployers || []).map((e) => [e.user_id, e.company_name]))
+          .in('user_id', employerIdsToLookUp)
+        nameByEmployerUserId = Object.fromEntries((employerRows || []).map((e) => [e.user_id, e.company_name]))
+      }
+
+      if (viewerIds.length > 0) {
         const latestByViewer = new Map()
         newViews.forEach((v) => {
           const existing = latestByViewer.get(v.viewer_id)
@@ -159,34 +186,20 @@ export default function CandidateDashboard() {
         latestByViewer.forEach((timestamp, viewerId) => {
           items.push({
             id: `view-${viewerId}`,
-            text: `${nameByUserId[viewerId] || 'An employer'} viewed your profile`,
+            text: `${nameByEmployerUserId[viewerId] || 'An employer'} viewed your profile`,
             link: `/profile/${candidate.username || candidate.id}`,
             timestamp,
           })
         })
       }
 
-      // Messages received since last visit.
-      const { data: allMessages } = await supabase
-        .from('messages')
-        .select('id, sender_id, sent_at')
-        .eq('recipient_id', user.id)
-        .gt('sent_at', sinceIso)
-        .order('sent_at', { ascending: false })
-      const bySender = groupBySender(allMessages || [])
       if (bySender.size > 0) {
-        const senderIds = [...bySender.keys()]
-        const { data: senderEmployers } = await supabase
-          .from('employer_profiles')
-          .select('user_id, company_name')
-          .in('user_id', senderIds)
-        const nameByUserId = Object.fromEntries((senderEmployers || []).map((e) => [e.user_id, e.company_name]))
         bySender.forEach((msgs, senderId) => {
           items.push({
             id: `msg-${senderId}`,
             text: msgs.length === 1
-              ? `New message from ${nameByUserId[senderId] || 'an employer'}`
-              : `${msgs.length} new messages from ${nameByUserId[senderId] || 'an employer'}`,
+              ? `New message from ${nameByEmployerUserId[senderId] || 'an employer'}`
+              : `${msgs.length} new messages from ${nameByEmployerUserId[senderId] || 'an employer'}`,
             link: '/messages',
             timestamp: msgs[0].sent_at,
           })
@@ -197,14 +210,8 @@ export default function CandidateDashboard() {
       // candidate's skills/title, or from an employer they previously
       // applied to (the "one-tap reapply" nudge). A role that qualifies for
       // both gets the reapply phrasing, since that's the stronger signal.
-      const appliedEmployerIds = new Set((apps || []).map((a) => a.roles?.employer_id).filter(Boolean))
-      const { data: recentRoles } = await supabase
-        .from('roles')
-        .select('id, slug, title, created_at, employer_id, required_skills, employer_profiles(company_name, typical_roles)')
-        .eq('is_active', true)
-        .gt('created_at', sinceIso)
-        .order('created_at', { ascending: false })
-      ;(recentRoles || []).forEach((role) => {
+      const appliedEmployerIds = new Set(apps.map((a) => a.roles?.employer_id).filter(Boolean))
+      recentRoles.forEach((role) => {
         if (appliedEmployerIds.has(role.employer_id)) {
           items.push({
             id: `reapply-${role.id}`,
@@ -225,11 +232,7 @@ export default function CandidateDashboard() {
       // Saved roles with a deadline in the next 3 days — not gated by
       // "since last visit" since it's a forward-looking alert, not a log of
       // past activity.
-      const { data: savedRows } = await supabase
-        .from('saved_roles')
-        .select('id, roles(id, slug, title, deadline, is_active)')
-        .eq('candidate_id', candidate.id)
-      ;(savedRows || []).forEach((s) => {
+      savedRows.forEach((s) => {
         const role = s.roles
         if (!role || !role.is_active || !role.deadline) return
         const days = daysUntil(role.deadline)
@@ -244,14 +247,33 @@ export default function CandidateDashboard() {
       })
 
       items.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-      setFeedItems(items)
 
+      setProfile(candidate)
+      setApplications(apps)
+      if (!viewsResult.error) setViews(viewRows)
+      setWorkVideoCount(workVideoTotal)
+      if (!shortlistRowsResult.error) setShortlistCount(shortlistRows.length)
+      setMessagesReceivedCount(messagesReceivedTotal)
+      setFeedItems(items)
       setLoading(false)
+
+      if (cacheKey) {
+        setCachedDashboard(cacheKey, {
+          profile: candidate,
+          applications: apps,
+          views: viewsResult.error ? null : viewRows,
+          shortlistCount: shortlistRowsResult.error ? null : shortlistRows.length,
+          workVideoCount: workVideoTotal,
+          messagesReceivedCount: messagesReceivedTotal,
+          feedItems: items,
+        })
+      }
     }
 
     load()
     const interval = setInterval(load, POLL_MS)
     return () => clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
   useEffect(() => {
@@ -267,7 +289,7 @@ export default function CandidateDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, profile])
 
-  if (loading) return null
+  if (loading) return <DashboardSkeleton />
 
   if (!profile) {
     return (
