@@ -11,12 +11,7 @@ import ShareButton from '../../components/ShareButton.jsx'
 
 const STATUSES = ['reviewing', 'shortlisted', 'rejected']
 const STATUS_LABELS = { reviewing: 'Reviewing', shortlisted: 'Shortlisted', rejected: 'Rejected' }
-const SECTION_TITLE_STYLE = {
-  fontSize: 20,
-  marginBottom: 16,
-  paddingBottom: 12,
-  borderBottom: '1px solid var(--color-border)',
-}
+const SECTION_TITLE_STYLE = { fontSize: 20, marginBottom: 16 }
 
 const CANDIDATE_SELECT =
   'id, user_id, username, full_name, job_title, current_company, location, bio, three_words, proud_of, skills, languages, availability, work_style, years_of_experience, intro_video_url, avatar_url, education_level, field_of_study, institution_name, graduation_year, linkedin_url, calendly_url, website_url'

@@ -13,12 +13,7 @@ import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-const SECTION_TITLE_STYLE = {
-  fontSize: 20,
-  marginBottom: 16,
-  paddingBottom: 12,
-  borderBottom: '1px solid var(--color-border)',
-}
+const SECTION_TITLE_STYLE = { fontSize: 20, marginBottom: 16 }
 
 export default function PublicProfile() {
   const { username } = useParams()

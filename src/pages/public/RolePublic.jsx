@@ -366,7 +366,7 @@ export default function RolePublic() {
 
           {error && <p className="form-error" style={{ marginTop: 16 }}>{error}</p>}
 
-          <div style={{ marginTop: 28 }}>{applyButton}</div>
+          <div style={{ marginTop: 28, display: 'flex', justifyContent: 'center' }}>{applyButton}</div>
         </div>
       </div>
     </div>
