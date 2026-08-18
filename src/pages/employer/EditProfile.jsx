@@ -321,7 +321,7 @@ function LogoSection({ profile, onUpdated }) {
   }
 
   return (
-    <section>
+    <section id="logo-section">
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Company logo</h3>
       <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
         <div
@@ -431,7 +431,7 @@ function CompanyInfoSection({
 
 function AboutSection({ about, setAbout, errorField, fieldRefs }) {
   return (
-    <section>
+    <section id="about-section">
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>About your company</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
@@ -457,7 +457,7 @@ function AboutSection({ about, setAbout, errorField, fieldRefs }) {
 
 function CultureSection({ cultureDescription, setCultureDescription }) {
   return (
-    <section>
+    <section id="culture-section">
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Company culture</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
@@ -477,7 +477,7 @@ function CultureSection({ cultureDescription, setCultureDescription }) {
 
 function HighlightSection({ companyHighlight, setCompanyHighlight }) {
   return (
-    <section>
+    <section id="highlight-section">
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>What makes your company a great place to work?</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
@@ -500,7 +500,7 @@ function HighlightSection({ companyHighlight, setCompanyHighlight }) {
 
 function TypicalRolesSection({ typicalRoles, setTypicalRoles }) {
   return (
-    <section>
+    <section id="typical-roles-section">
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Typical roles</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
@@ -519,10 +519,10 @@ function TypicalRolesSection({ typicalRoles, setTypicalRoles }) {
 
 function LinksSection({ linkedinUrl, setLinkedinUrl, websiteUrl, setWebsiteUrl, errorField, fieldRefs }) {
   return (
-    <section>
+    <section id="links-section">
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Links</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
-        <div className="field">
+        <div className="field" id="linkedin-field">
           <label>LinkedIn company page (optional)</label>
           <input
             ref={fieldRefs.linkedinUrl}
@@ -534,7 +534,7 @@ function LinksSection({ linkedinUrl, setLinkedinUrl, websiteUrl, setWebsiteUrl, 
             style={fieldStyle(errorField === 'linkedinUrl')}
           />
         </div>
-        <div className="field">
+        <div className="field" id="website-field">
           <label>Company website (optional)</label>
           <input
             ref={fieldRefs.websiteUrl}
@@ -618,7 +618,7 @@ function IntroVideoSection({ introVideoUrl, setIntroVideoUrl }) {
   }
 
   return (
-    <section>
+    <section id="intro-video-section">
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Company intro video</h3>
       <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: -4, marginBottom: 12 }}>
         Optional — a 60-second video showing who your company is and why someone should join you. Shown

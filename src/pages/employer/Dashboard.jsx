@@ -14,6 +14,17 @@ const POLL_MS = 30000
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000
 
+const PROFILE_STRENGTH_CHECKS = [
+  { key: 'logo', label: 'Company logo uploaded', anchor: '#logo-section', tip: 'Add a company logo to look more credible to candidates.' },
+  { key: 'about', label: 'About your company filled in', anchor: '#about-section', tip: 'Add a short description of your company.' },
+  { key: 'culture', label: 'Company culture filled in', anchor: '#culture-section', tip: 'Describe what it is like to work at your company.' },
+  { key: 'highlight', label: 'Company highlight filled in', anchor: '#highlight-section', tip: 'Add a highlight that makes your company stand out.' },
+  { key: 'video', label: 'Company intro video uploaded', anchor: '#intro-video-section', tip: 'Add a company video to attract more applicants.' },
+  { key: 'linkedin', label: 'LinkedIn link added', anchor: '#linkedin-field', tip: 'Add your LinkedIn company page to build trust.' },
+  { key: 'website', label: 'Website added', anchor: '#website-field', tip: 'Add your company website.' },
+  { key: 'typicalRoles', label: 'Typical roles filled in', anchor: '#typical-roles-section', tip: 'Add the kinds of roles you typically hire for.' },
+]
+
 function groupByOtherParty(messages, myId) {
   const map = new Map()
   for (const m of messages) {
@@ -49,7 +60,9 @@ export default function EmployerDashboard() {
     async function load() {
       const { data: emp } = await supabase
         .from('employer_profiles')
-        .select('id, company_name, company_slug, intro_video_url, about, linkedin_url, website_url, last_viewed_applications_at')
+        .select(
+          'id, company_name, company_slug, logo_url, intro_video_url, about, culture_description, company_highlight, typical_roles, linkedin_url, website_url, last_viewed_applications_at',
+        )
         .eq('user_id', user.id)
         .maybeSingle()
 
@@ -251,6 +264,26 @@ export default function EmployerDashboard() {
     )
   }
 
+  const strengthChecks = PROFILE_STRENGTH_CHECKS.map((check) => {
+    let complete = false
+    if (check.key === 'logo') complete = Boolean(employer.logo_url)
+    else if (check.key === 'about') complete = Boolean(employer.about)
+    else if (check.key === 'culture') complete = Boolean(employer.culture_description)
+    else if (check.key === 'highlight') complete = Boolean(employer.company_highlight)
+    else if (check.key === 'video') complete = Boolean(employer.intro_video_url)
+    else if (check.key === 'linkedin') complete = Boolean(employer.linkedin_url)
+    else if (check.key === 'website') complete = Boolean(employer.website_url)
+    else if (check.key === 'typicalRoles') complete = Boolean(employer.typical_roles)
+    return { ...check, complete }
+  })
+  const strengthCompletedCount = strengthChecks.filter((c) => c.complete).length
+  const strengthPct = Math.round((strengthCompletedCount / strengthChecks.length) * 100)
+  const firstIncompleteStrengthCheck = strengthChecks.find((c) => !c.complete)
+  const strengthMessage =
+    strengthPct === 100
+      ? "Your profile is complete! You're set up to make a great impression."
+      : `Your profile is ${strengthPct}% complete. ${firstIncompleteStrengthCheck.tip}`
+
   const activeRoles = roles.filter((r) => r.is_active)
 
   const pipeline = activeRoles.map((role) => {
@@ -425,6 +458,53 @@ export default function EmployerDashboard() {
           <p>Discover candidates ready to work with you — watch intro videos and shortlist in one tap.</p>
         </div>
       </Link>
+
+      <div className="card" style={{ marginTop: 32, padding: 24 }}>
+        <h3 style={{ fontSize: 18 }}>Profile strength</h3>
+        <div style={{ marginTop: 14, height: 8, borderRadius: 4, background: 'var(--color-bg-soft)' }}>
+          <div
+            style={{
+              width: `${strengthPct}%`,
+              height: '100%',
+              borderRadius: 4,
+              background: 'var(--color-primary)',
+              transition: 'width 0.2s ease',
+            }}
+          />
+        </div>
+        <p style={{ marginTop: 10, fontSize: 14, color: 'var(--color-text-muted)' }}>{strengthMessage}</p>
+        <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {strengthChecks.map((check) => (
+            <div key={check.key} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: '50%',
+                  flexShrink: 0,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  background: check.complete ? '#e3f9e9' : 'var(--color-bg-soft)',
+                  color: check.complete ? '#0f7a3d' : 'var(--color-text-muted)',
+                }}
+              >
+                {check.complete ? '✓' : ''}
+              </span>
+              {check.complete ? (
+                <span style={{ color: 'var(--color-text-muted)' }}>{check.label}</span>
+              ) : (
+                <Link to={`/employer/profile/edit${check.anchor}`} style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
+                  {check.label} →
+                </Link>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
 
       {rejectedApplications.length > 0 && (
         <div style={{ marginTop: 36 }}>

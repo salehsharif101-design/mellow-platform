@@ -161,7 +161,7 @@ async function sendApplicationNotification(supabase, applicationId) {
       bodyText: `${candidate.full_name} applied to ${role.title}. View their profile to learn more.`,
       ctaLabel: 'View profile',
       ctaUrl: `${SITE_URL}/profile/${candidate.username || application.candidate_id}`,
-      illustration: 'thinking.png',
+      illustration: 'Flexible.PNG',
     }),
   })
 }
