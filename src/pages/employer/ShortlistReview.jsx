@@ -143,221 +143,245 @@ export default function ShortlistReview() {
         </button>
       </div>
 
-      <div className="shortlist-review-content" style={{ maxWidth: 820, margin: '0 auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-        <div className="profile-card">
-          <div className="profile-hero-actions">
-            {c.calendly_url && (
-              <button className="btn btn-primary" onClick={() => setShowCalendly(true)}>
-                Book a meeting
+      <div className="shortlist-review-layout">
+        {entries.length > 1 && (
+          <aside className="shortlist-review-sidebar">
+            {entries.map((e, i) => {
+              const ec = e.candidate_profiles
+              if (!ec) return null
+              return (
+                <button
+                  key={e.id}
+                  type="button"
+                  className={`shortlist-strip-item${i === index ? ' active' : ''}`}
+                  onClick={() => setIndex(i)}
+                >
+                  <CandidateAvatar avatarUrl={ec.avatar_url} fullName={ec.full_name} size={40} />
+                  <span>{ec.full_name}</span>
+                </button>
+              )
+            })}
+          </aside>
+        )}
+
+        <div className="shortlist-review-content">
+          <div className="profile-card">
+            <div className="profile-hero-actions">
+              {c.calendly_url && (
+                <button className="btn btn-primary" onClick={() => setShowCalendly(true)}>
+                  Book a meeting
+                </button>
+              )}
+              <button className="btn btn-ghost" onClick={() => setShowMessage(true)}>
+                Message
               </button>
-            )}
-            <button className="btn btn-ghost" onClick={() => setShowMessage(true)}>
-              Message
-            </button>
-          </div>
+            </div>
 
-          <div className="profile-hero-body">
-            <div className="profile-hero-info">
-              <div className="profile-hero-avatar-row">
-                <Link to={`/profile/${c.username || c.id}`} style={{ flexShrink: 0 }}>
-                  <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={96} style={{ fontSize: 32 }} />
-                </Link>
-                <div style={{ minWidth: 0 }}>
-                  <div className="profile-name-row">
-                    <h1 style={{ fontSize: 28 }}>{c.full_name}</h1>
-                    <CompanyLinkIcons linkedinUrl={c.linkedin_url} websiteUrl={c.website_url} label={c.full_name} size={19} />
-                    <ShareButton url={`https://beta.joinmellow.xyz/profile/${c.username || c.id}`} label="Share profile" />
-                  </div>
-                  <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>
-                    {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title}
-                    {c.location && ` · ${c.location}`}
-                    {c.years_of_experience && ` · ${c.years_of_experience}`}
-                  </p>
-
-                  {(c.availability || c.work_style?.length > 0) && (
-                    <div className="profile-tag-row" style={{ marginTop: 12 }}>
-                      {c.availability && (
-                        <span className="tag" style={{ fontSize: 12, fontWeight: 600, background: '#e3f9e9', color: '#0f7a3d' }}>
-                          Available: {c.availability}
-                        </span>
-                      )}
-                      {c.work_style?.map((w) => (
-                        <span key={w} className="tag" style={{ fontSize: 12 }}>
-                          {w}
-                        </span>
-                      ))}
+            <div className="profile-hero-body">
+              <div className="profile-hero-info">
+                <div className="profile-hero-avatar-row">
+                  <Link to={`/profile/${c.username || c.id}`} style={{ flexShrink: 0 }}>
+                    <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={96} style={{ fontSize: 32 }} />
+                  </Link>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="profile-name-row">
+                      <h1 style={{ fontSize: 28 }}>{c.full_name}</h1>
+                      <CompanyLinkIcons linkedinUrl={c.linkedin_url} websiteUrl={c.website_url} label={c.full_name} size={19} />
+                      <ShareButton url={`https://beta.joinmellow.xyz/profile/${c.username || c.id}`} label="Share profile" />
                     </div>
-                  )}
+                    <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>
+                      {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title}
+                      {c.location && ` · ${c.location}`}
+                      {c.years_of_experience && ` · ${c.years_of_experience}`}
+                    </p>
 
-                  {knownFor.length > 0 && (
-                    <div style={{ marginTop: 16 }}>
-                      <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                        Known for
-                      </p>
-                      <div className="profile-tag-row" style={{ marginTop: 8 }}>
-                        {knownFor.map((word) => (
-                          <span key={word} className="tag" style={{ background: 'var(--color-bg-soft)', color: 'var(--color-primary)', fontWeight: 700 }}>
-                            {word}
+                    {(c.availability || c.work_style?.length > 0) && (
+                      <div className="profile-tag-row" style={{ marginTop: 12 }}>
+                        {c.availability && (
+                          <span className="tag" style={{ fontSize: 12, fontWeight: 600, background: '#e3f9e9', color: '#0f7a3d' }}>
+                            Available: {c.availability}
+                          </span>
+                        )}
+                        {c.work_style?.map((w) => (
+                          <span key={w} className="tag" style={{ fontSize: 12 }}>
+                            {w}
                           </span>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {(c.skills?.length > 0 || c.languages?.length > 0) && (
-                    <div className="profile-hero-skills-languages">
-                      {c.skills?.length > 0 && (
-                        <div style={{ marginTop: 16 }}>
-                          <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                            Skills
-                          </p>
-                          <div className="profile-tag-row" style={{ marginTop: 8 }}>
-                            {c.skills.map((s) => (
-                              <span key={s} className="tag" style={{ fontSize: 12 }}>
-                                {s}
-                              </span>
-                            ))}
-                          </div>
+                    {knownFor.length > 0 && (
+                      <div style={{ marginTop: 16 }}>
+                        <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                          Known for
+                        </p>
+                        <div className="profile-tag-row" style={{ marginTop: 8 }}>
+                          {knownFor.map((word) => (
+                            <span key={word} className="tag" style={{ background: 'var(--color-bg-soft)', color: 'var(--color-primary)', fontWeight: 700 }}>
+                              {word}
+                            </span>
+                          ))}
                         </div>
-                      )}
+                      </div>
+                    )}
 
-                      {c.languages?.length > 0 && (
-                        <div style={{ marginTop: 16 }}>
-                          <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                            Languages
-                          </p>
-                          <div className="profile-tag-row" style={{ marginTop: 8 }}>
-                            {c.languages.map((l) => (
-                              <span key={l.language} className="tag" style={{ fontSize: 12 }}>
-                                {l.language} · {l.proficiency}
-                              </span>
-                            ))}
+                    {(c.skills?.length > 0 || c.languages?.length > 0) && (
+                      <div className="profile-hero-skills-languages">
+                        {c.skills?.length > 0 && (
+                          <div style={{ marginTop: 16 }}>
+                            <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                              Skills
+                            </p>
+                            <div className="profile-tag-row" style={{ marginTop: 8 }}>
+                              {c.skills.map((s) => (
+                                <span key={s} className="tag" style={{ fontSize: 12 }}>
+                                  {s}
+                                </span>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                        )}
+
+                        {c.languages?.length > 0 && (
+                          <div style={{ marginTop: 16 }}>
+                            <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                              Languages
+                            </p>
+                            <div className="profile-tag-row" style={{ marginTop: 8 }}>
+                              {c.languages.map((l) => (
+                                <span key={l.language} className="tag" style={{ fontSize: 12 }}>
+                                  {l.language} · {l.proficiency}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="profile-hero-video">
-              {c.intro_video_url ? (
-                <VideoPlayCard url={c.intro_video_url} style={{ maxWidth: '100%' }} />
-              ) : (
-                <div
-                  style={{
-                    borderRadius: 10,
-                    background: 'var(--color-bg-soft)',
-                    aspectRatio: '9 / 16',
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--color-text-muted)',
-                    fontSize: 14,
-                    textAlign: 'center',
-                    padding: 16,
-                  }}
-                >
-                  No intro video yet
-                </div>
+            <div style={{ marginTop: 32, display: 'flex', justifyContent: 'center' }}>
+              <div style={{ width: '100%', maxWidth: 320 }}>
+                {c.intro_video_url ? (
+                  <VideoPlayCard url={c.intro_video_url} style={{ width: '100%' }} />
+                ) : (
+                  <div
+                    style={{
+                      borderRadius: 10,
+                      background: 'var(--color-bg-soft)',
+                      aspectRatio: '9 / 16',
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--color-text-muted)',
+                      fontSize: 14,
+                      textAlign: 'center',
+                      padding: 16,
+                    }}
+                  >
+                    No intro video yet
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {c.bio && (
+              <div style={{ marginTop: 32 }}>
+                <h2 style={SECTION_TITLE_STYLE}>About</h2>
+                <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--color-text)' }}>{c.bio}</p>
+              </div>
+            )}
+          </div>
+
+          {c.proud_of && (
+            <div className="profile-card">
+              <h2 style={SECTION_TITLE_STYLE}>What I'm most proud of</h2>
+              <blockquote
+                style={{
+                  margin: 0,
+                  paddingLeft: 20,
+                  borderLeft: '3px solid var(--color-primary)',
+                  fontSize: 16,
+                  lineHeight: 1.7,
+                  fontStyle: 'italic',
+                  color: 'var(--color-text)',
+                }}
+              >
+                “{c.proud_of}”
+              </blockquote>
+            </div>
+          )}
+
+          {c.skills?.length > 0 && (
+            <div className="profile-card profile-mobile-only">
+              <h2 style={SECTION_TITLE_STYLE}>Skills</h2>
+              <div className="profile-tag-row">
+                {c.skills.map((s) => (
+                  <span key={s} className="tag">
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {c.languages?.length > 0 && (
+            <div className="profile-card profile-mobile-only">
+              <h2 style={SECTION_TITLE_STYLE}>Languages</h2>
+              <div className="profile-tag-row">
+                {c.languages.map((l) => (
+                  <span key={l.language} className="tag">
+                    {l.language} · {l.proficiency}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {(c.education_level || c.field_of_study || c.institution_name || c.graduation_year) && (
+            <div className="profile-card">
+              <h2 style={SECTION_TITLE_STYLE}>Education</h2>
+              {(c.education_level || c.field_of_study) && (
+                <p style={{ fontSize: 16 }}>{[c.education_level, c.field_of_study].filter(Boolean).join(' in ')}</p>
+              )}
+              {(c.institution_name || c.graduation_year) && (
+                <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
+                  {[c.institution_name, c.graduation_year].filter(Boolean).join(' · ')}
+                </p>
               )}
             </div>
-          </div>
+          )}
+
+          {workVideos.length > 0 && (
+            <div className="profile-card">
+              <h2 style={SECTION_TITLE_STYLE}>How {c.full_name?.split(' ')[0]} actually works</h2>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                  gap: 16,
+                  marginTop: 16,
+                }}
+              >
+                {workVideos.map((v) => (
+                  <div key={v.id}>
+                    <VideoPlayCard url={v.video_url} format="horizontal" />
+                    <p style={{ marginTop: 8, fontSize: 13, fontWeight: 600 }}>{v.label}</p>
+                    {v.description && (
+                      <p style={{ marginTop: 2, fontSize: 12, color: 'var(--color-text-muted)' }}>{v.description}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {messageSent && <p style={{ fontSize: 14, fontWeight: 600, color: '#0f7a3d' }}>Message sent</p>}
         </div>
-
-        {c.bio && (
-          <div className="profile-card">
-            <h2 style={SECTION_TITLE_STYLE}>About</h2>
-            <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--color-text)' }}>{c.bio}</p>
-          </div>
-        )}
-
-        {c.proud_of && (
-          <div className="profile-card">
-            <h2 style={SECTION_TITLE_STYLE}>What I'm most proud of</h2>
-            <blockquote
-              style={{
-                margin: 0,
-                paddingLeft: 20,
-                borderLeft: '3px solid var(--color-primary)',
-                fontSize: 16,
-                lineHeight: 1.7,
-                fontStyle: 'italic',
-                color: 'var(--color-text)',
-              }}
-            >
-              “{c.proud_of}”
-            </blockquote>
-          </div>
-        )}
-
-        {c.skills?.length > 0 && (
-          <div className="profile-card profile-mobile-only">
-            <h2 style={SECTION_TITLE_STYLE}>Skills</h2>
-            <div className="profile-tag-row">
-              {c.skills.map((s) => (
-                <span key={s} className="tag">
-                  {s}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {c.languages?.length > 0 && (
-          <div className="profile-card profile-mobile-only">
-            <h2 style={SECTION_TITLE_STYLE}>Languages</h2>
-            <div className="profile-tag-row">
-              {c.languages.map((l) => (
-                <span key={l.language} className="tag">
-                  {l.language} · {l.proficiency}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {(c.education_level || c.field_of_study || c.institution_name || c.graduation_year) && (
-          <div className="profile-card">
-            <h2 style={SECTION_TITLE_STYLE}>Education</h2>
-            {(c.education_level || c.field_of_study) && (
-              <p style={{ fontSize: 16 }}>{[c.education_level, c.field_of_study].filter(Boolean).join(' in ')}</p>
-            )}
-            {(c.institution_name || c.graduation_year) && (
-              <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
-                {[c.institution_name, c.graduation_year].filter(Boolean).join(' · ')}
-              </p>
-            )}
-          </div>
-        )}
-
-        {workVideos.length > 0 && (
-          <div className="profile-card">
-            <h2 style={SECTION_TITLE_STYLE}>How {c.full_name?.split(' ')[0]} actually works</h2>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                gap: 16,
-                marginTop: 16,
-              }}
-            >
-              {workVideos.map((v) => (
-                <div key={v.id}>
-                  <VideoPlayCard url={v.video_url} format="horizontal" />
-                  <p style={{ marginTop: 8, fontSize: 13, fontWeight: 600 }}>{v.label}</p>
-                  {v.description && (
-                    <p style={{ marginTop: 2, fontSize: 12, color: 'var(--color-text-muted)' }}>{v.description}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {messageSent && <p style={{ fontSize: 14, fontWeight: 600, color: '#0f7a3d' }}>Message sent</p>}
       </div>
 
       <div className="shortlist-review-bottombar">

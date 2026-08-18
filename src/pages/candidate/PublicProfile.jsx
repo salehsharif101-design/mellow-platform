@@ -215,10 +215,12 @@ export default function PublicProfile() {
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className="profile-hero-video">
+          <div style={{ marginTop: 32, display: 'flex', justifyContent: 'center' }}>
+            <div style={{ width: '100%', maxWidth: 320 }}>
               {profile.intro_video_url ? (
-                <VideoPlayCard url={profile.intro_video_url} style={{ maxWidth: '100%' }} />
+                <VideoPlayCard url={profile.intro_video_url} style={{ width: '100%' }} />
               ) : (
                 <div
                   style={{
@@ -240,14 +242,14 @@ export default function PublicProfile() {
               )}
             </div>
           </div>
-        </div>
 
-        {profile.bio && (
-          <div id="about-section" className="profile-card">
-            <h2 style={SECTION_TITLE_STYLE}>About</h2>
-            <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--color-text)' }}>{profile.bio}</p>
-          </div>
-        )}
+          {profile.bio && (
+            <div id="about-section" style={{ marginTop: 32 }}>
+              <h2 style={SECTION_TITLE_STYLE}>About</h2>
+              <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--color-text)' }}>{profile.bio}</p>
+            </div>
+          )}
+        </div>
 
         {profile.proud_of && (
           <div className="profile-card">

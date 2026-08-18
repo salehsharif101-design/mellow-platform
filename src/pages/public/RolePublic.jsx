@@ -245,13 +245,12 @@ export default function RolePublic() {
   return (
     <div className="section">
       <div style={{ maxWidth: 820, margin: '0 auto' }}>
-        <div className="profile-card role-public-content">
-          <div className="profile-hero-actions">
-            {userType === 'candidate' && candidateId && (
+        <div className="profile-card">
+          {userType === 'candidate' && candidateId && (
+            <div className="profile-hero-actions">
               <SaveRoleButton saved={Boolean(savedEntryId)} onToggle={toggleSave} size={19} />
-            )}
-            <ShareButton url={`https://beta.joinmellow.xyz/jobs/${slug}`} label="Share role" />
-          </div>
+            </div>
+          )}
 
           <h1 style={{ fontSize: 28 }}>{role.title}</h1>
 
@@ -274,7 +273,7 @@ export default function RolePublic() {
                   />
                 )
               )}
-              <p style={{ fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <p style={{ fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                 {employer.company_slug ? (
                   <Link to={`/company/${employer.company_slug}`} style={{ color: 'inherit', textDecoration: 'none' }}>
                     {employer.company_name}
@@ -288,6 +287,7 @@ export default function RolePublic() {
                   label={employer.company_name}
                   size={15}
                 />
+                <ShareButton url={`https://beta.joinmellow.xyz/jobs/${slug}`} label="Share role" />
               </p>
             </div>
           )}
@@ -366,13 +366,9 @@ export default function RolePublic() {
 
           {error && <p className="form-error" style={{ marginTop: 16 }}>{error}</p>}
 
-          <div className="role-public-apply-desktop" style={{ marginTop: 28 }}>
-            {applyButton}
-          </div>
+          <div style={{ marginTop: 28 }}>{applyButton}</div>
         </div>
       </div>
-
-      <div className="role-public-apply-mobile">{applyButton}</div>
     </div>
   )
 }
