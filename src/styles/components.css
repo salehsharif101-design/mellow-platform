@@ -594,6 +594,20 @@ textarea.input:focus {
   gap: 8px;
 }
 
+/* Short About preview shown in the hero's left column on desktop only —
+   fills the empty space next to the video and deep-links down to the
+   full About card. */
+.profile-hero-about-preview {
+  margin-top: 16px;
+}
+
+.profile-hero-about-preview p {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 @media (max-width: 768px) {
   .profile-card {
     padding: 20px;
@@ -624,5 +638,9 @@ textarea.input:focus {
     flex: none;
     width: 100%;
     max-width: 320px;
+  }
+
+  .profile-hero-about-preview {
+    display: none;
   }
 }

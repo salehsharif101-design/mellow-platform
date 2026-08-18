@@ -173,6 +173,19 @@ export default function PublicProfile() {
                       </div>
                     </div>
                   )}
+
+                  {profile.bio && (
+                    <div className="profile-hero-about-preview">
+                      <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--color-text-muted)' }}>{profile.bio}</p>
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('about-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                        style={{ marginTop: 4, background: 'none', border: 'none', padding: 0, color: 'var(--color-primary)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+                      >
+                        Read more
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -204,31 +217,28 @@ export default function PublicProfile() {
         </div>
 
         {profile.bio && (
-          <div className="profile-card">
+          <div id="about-section" className="profile-card">
             <h2 style={SECTION_TITLE_STYLE}>About</h2>
             <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--color-text)' }}>{profile.bio}</p>
           </div>
         )}
 
         {profile.proud_of && (
-          <div className="profile-card" style={{ position: 'relative' }}>
+          <div className="profile-card">
             <h2 style={SECTION_TITLE_STYLE}>What I'm most proud of</h2>
-            <span
+            <blockquote
               style={{
-                position: 'absolute',
-                top: 44,
-                left: 28,
-                fontSize: 40,
-                fontFamily: 'Georgia, serif',
-                color: 'var(--color-primary)',
-                opacity: 0.3,
-                lineHeight: 1,
+                margin: 0,
+                paddingLeft: 20,
+                borderLeft: '3px solid var(--color-primary)',
+                fontSize: 16,
+                lineHeight: 1.7,
+                fontStyle: 'italic',
+                color: 'var(--color-text)',
               }}
-              aria-hidden="true"
             >
-              "
-            </span>
-            <p style={{ fontSize: 16, lineHeight: 1.7, fontStyle: 'italic', padding: '0 24px' }}>{profile.proud_of}</p>
+              “{profile.proud_of}”
+            </blockquote>
           </div>
         )}
 
