@@ -525,13 +525,18 @@ export default function CandidateDashboard() {
           <h3 style={{ fontSize: 18, marginBottom: 14 }}>Recent applications</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {applications.slice(0, 5).map((a) => (
-              <div key={a.id} className="card" style={{ padding: 16, display: 'flex', justifyContent: 'space-between' }}>
+              <Link
+                key={a.id}
+                to="/applications"
+                className="card stat-card-link"
+                style={{ padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
                 <div>
                   <p style={{ fontWeight: 600, fontSize: 14 }}>{a.roles?.title}</p>
                   <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{a.roles?.employer_profiles?.company_name}</p>
                 </div>
                 <span className="tag">{getCandidateStatusLabel(a.status)}</span>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
