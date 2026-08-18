@@ -206,122 +206,122 @@ export default function BrowseRoles() {
     return (
       <div
         key={role.id}
-        className="card"
+        className="card role-card"
         style={{ padding: 24, cursor: 'pointer' }}
         onClick={() => navigate(`/jobs/${role.slug}`)}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 14 }}>
-            {employer?.logo_url && (
-              employer.company_slug ? (
-                <Link
-                  to={`/company/${employer.company_slug}`}
-                  style={{ flexShrink: 0 }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <img
-                    src={employer.logo_url}
-                    alt=""
-                    style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
-                  />
-                </Link>
-              ) : (
+        <div className="role-card-actions">
+          <SaveRoleButton saved={savedRoleIds.has(role.id)} onToggle={() => toggleSave(role)} />
+          <button
+            type="button"
+            className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
+            disabled={applied || applyingId === role.id}
+            onClick={(e) => {
+              e.stopPropagation()
+              apply(role.id)
+            }}
+            style={{ whiteSpace: 'nowrap' }}
+          >
+            {applied ? 'Applied' : applyingId === role.id ? 'Applying…' : 'Apply'}
+          </button>
+        </div>
+        <div className="role-card-header" style={{ display: 'flex', gap: 14 }}>
+          {employer?.logo_url && (
+            employer.company_slug ? (
+              <Link
+                to={`/company/${employer.company_slug}`}
+                style={{ flexShrink: 0 }}
+                onClick={(e) => e.stopPropagation()}
+              >
                 <img
                   src={employer.logo_url}
                   alt=""
-                  style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)', flexShrink: 0 }}
+                  className="role-card-logo"
+                  style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
                 />
-              )
-            )}
-            <div>
-              <h3 style={{ fontSize: 19 }}>{role.title}</h3>
-              <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
-                {employer?.company_slug ? (
-                  <Link
-                    to={`/company/${employer.company_slug}`}
-                    style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {employer?.company_name}
-                  </Link>
-                ) : (
-                  employer?.company_name
-                )}{' '}
-                · {role.location} ·{' '}
-                {role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')}
+              </Link>
+            ) : (
+              <img
+                src={employer.logo_url}
+                alt=""
+                className="role-card-logo"
+                style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)', flexShrink: 0 }}
+              />
+            )
+          )}
+          <div style={{ minWidth: 0 }}>
+            <h3 style={{ fontSize: 19 }}>{role.title}</h3>
+            <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
+              {employer?.company_slug ? (
+                <Link
+                  to={`/company/${employer.company_slug}`}
+                  style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {employer?.company_name}
+                </Link>
+              ) : (
+                employer?.company_name
+              )}{' '}
+              · {role.location} ·{' '}
+              {role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')}
+            </p>
+            {(employer?.industry || employer?.company_size) && (
+              <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
+                {[employer?.industry, employer?.company_size && `${employer.company_size} employees`]
+                  .filter(Boolean)
+                  .join(' · ')}
               </p>
-              {(employer?.industry || employer?.company_size) && (
-                <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
-                  {[employer?.industry, employer?.company_size && `${employer.company_size} employees`]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </p>
+            )}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+              {employer?.company_highlight && (
+                <span className="tag" style={{ fontSize: 12 }}>
+                  {employer.company_highlight}
+                </span>
               )}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                {employer?.company_highlight && (
-                  <span className="tag" style={{ fontSize: 12 }}>
-                    {employer.company_highlight}
-                  </span>
-                )}
-                {salaryLabel && (
-                  <span className="tag" style={{ fontSize: 12 }}>
-                    {salaryLabel}
-                  </span>
-                )}
-                {deadlineLabel && (
-                  <span className="tag" style={{ fontSize: 12 }}>
-                    Apply by {deadlineLabel}
-                  </span>
-                )}
-                {employer?.intro_video_url && (
-                  <button
-                    type="button"
-                    className="tag"
-                    style={{ fontSize: 12, border: 'none', cursor: 'pointer', background: '#005ef5', color: '#ffffff' }}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setVideoModalEmployer(employer)
-                    }}
-                  >
-                    <span style={{ fontSize: 9 }} aria-hidden="true">▶</span>
-                    See the team
-                  </button>
-                )}
-              </div>
-              {role.required_skills?.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                  {role.required_skills.slice(0, 3).map((skill) => (
-                    <span
-                      key={skill}
-                      className="tag"
-                      style={{ fontSize: 12, background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                </div>
+              {salaryLabel && (
+                <span className="tag" style={{ fontSize: 12 }}>
+                  {salaryLabel}
+                </span>
               )}
-              {cultureShort && (
-                <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4, fontStyle: 'italic' }}>
-                  “{cultureShort}”
-                </p>
+              {deadlineLabel && (
+                <span className="tag" style={{ fontSize: 12 }}>
+                  Apply by {deadlineLabel}
+                </span>
+              )}
+              {employer?.intro_video_url && (
+                <button
+                  type="button"
+                  className="tag"
+                  style={{ fontSize: 12, border: 'none', cursor: 'pointer', background: '#005ef5', color: '#ffffff' }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setVideoModalEmployer(employer)
+                  }}
+                >
+                  <span style={{ fontSize: 9 }} aria-hidden="true">▶</span>
+                  See the team
+                </button>
               )}
             </div>
-          </div>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', height: 'fit-content' }}>
-            <SaveRoleButton saved={savedRoleIds.has(role.id)} onToggle={() => toggleSave(role)} />
-            <button
-              type="button"
-              className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
-              disabled={applied || applyingId === role.id}
-              onClick={(e) => {
-                e.stopPropagation()
-                apply(role.id)
-              }}
-              style={{ whiteSpace: 'nowrap' }}
-            >
-              {applied ? 'Applied' : applyingId === role.id ? 'Applying…' : 'Apply'}
-            </button>
+            {role.required_skills?.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                {role.required_skills.slice(0, 3).map((skill) => (
+                  <span
+                    key={skill}
+                    className="tag"
+                    style={{ fontSize: 12, background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            )}
+            {cultureShort && (
+              <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4, fontStyle: 'italic' }}>
+                “{cultureShort}”
+              </p>
+            )}
           </div>
         </div>
         {!compact && role.description && (
@@ -399,21 +399,21 @@ export default function BrowseRoles() {
     const expired = !role || !role.is_active
     if (expired) {
       return (
-        <div key={entry.id} className="card" style={{ padding: 20, opacity: 0.75 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-            <div>
-              <h3 style={{ fontSize: 17 }}>{entry.role_title}</h3>
-              <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>{entry.company_name}</p>
-              <span className="tag" style={{ marginTop: 8, display: 'inline-block', fontSize: 12 }}>
-                Expired
-              </span>
-              <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 6 }}>
-                This role is no longer accepting applications.
-              </p>
-            </div>
-            <button type="button" className="btn btn-ghost" onClick={() => removeSaved(entry.id)} style={{ height: 'fit-content' }}>
+        <div key={entry.id} className="card role-card" style={{ padding: 20, opacity: 0.75 }}>
+          <div className="role-card-actions">
+            <button type="button" className="btn btn-ghost" onClick={() => removeSaved(entry.id)} style={{ whiteSpace: 'nowrap' }}>
               Remove
             </button>
+          </div>
+          <div className="role-card-header">
+            <h3 style={{ fontSize: 17 }}>{entry.role_title}</h3>
+            <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>{entry.company_name}</p>
+            <span className="tag" style={{ marginTop: 8, display: 'inline-block', fontSize: 12 }}>
+              Expired
+            </span>
+            <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 6 }}>
+              This role is no longer accepting applications.
+            </p>
           </div>
         </div>
       )
@@ -422,28 +422,29 @@ export default function BrowseRoles() {
     const deadlineLabel = formatDeadline(role.deadline)
     const salaryLabel = formatSalary(role)
     return (
-      <div key={entry.id} className="card" style={{ padding: 20, cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 14 }}>
-            {employer?.logo_url && (
-              <img
-                src={employer.logo_url}
-                alt=""
-                style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)', flexShrink: 0 }}
-              />
-            )}
-            <div>
-              <h3 style={{ fontSize: 17 }}>{role.title}</h3>
-              <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
-                {employer?.company_name} · {role.location}
-              </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                {salaryLabel && <span className="tag" style={{ fontSize: 12 }}>{salaryLabel}</span>}
-                {deadlineLabel && <span className="tag" style={{ fontSize: 12 }}>Apply by {deadlineLabel}</span>}
-              </div>
+      <div key={entry.id} className="card role-card" style={{ padding: 20, cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
+        <div className="role-card-actions">
+          <SaveRoleButton saved onToggle={() => removeSaved(entry.id)} />
+        </div>
+        <div className="role-card-header" style={{ display: 'flex', gap: 14 }}>
+          {employer?.logo_url && (
+            <img
+              src={employer.logo_url}
+              alt=""
+              className="role-card-logo"
+              style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)', flexShrink: 0 }}
+            />
+          )}
+          <div style={{ minWidth: 0 }}>
+            <h3 style={{ fontSize: 17 }}>{role.title}</h3>
+            <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
+              {employer?.company_name} · {role.location}
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+              {salaryLabel && <span className="tag" style={{ fontSize: 12 }}>{salaryLabel}</span>}
+              {deadlineLabel && <span className="tag" style={{ fontSize: 12 }}>Apply by {deadlineLabel}</span>}
             </div>
           </div>
-          <SaveRoleButton saved onToggle={() => removeSaved(entry.id)} />
         </div>
       </div>
     )

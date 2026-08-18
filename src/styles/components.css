@@ -94,6 +94,28 @@
   background: #fdecea;
 }
 
+/* Candidate-facing role cards (Browse Roles, Recommended for you, Saved
+   roles) — the Save/Apply actions are pinned to the card's top-right
+   corner via absolute positioning so their position never depends on
+   header content length or how many tags wrap. .role-card-header reserves
+   room on its right edge so title/company text never runs underneath. */
+.role-card {
+  position: relative;
+}
+
+.role-card-header {
+  padding-right: 132px;
+}
+
+.role-card-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 /* Inputs */
 .field {
   display: flex;
@@ -294,6 +316,30 @@ textarea.input:focus {
 
   .decorative-aside p {
     padding: 0 8px;
+  }
+
+  .role-card {
+    padding: 16px !important;
+  }
+
+  .role-card-header {
+    padding-right: 84px;
+  }
+
+  .role-card-header .role-card-logo {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .role-card-actions {
+    top: 0;
+    right: 0;
+    gap: 6px;
+  }
+
+  .role-card-actions .btn {
+    padding: 6px 10px;
+    font-size: 12px;
   }
 
   .footer-grid {
