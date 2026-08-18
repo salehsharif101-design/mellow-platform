@@ -9,8 +9,11 @@ import MessageThread from '../../components/MessageThread.jsx'
 import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
 import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
 import ShareButton from '../../components/ShareButton.jsx'
+import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+const SECTION_TITLE_STYLE = { fontSize: 20, marginBottom: 16 }
 
 export default function PublicProfile() {
   const { username } = useParams()
@@ -88,178 +91,151 @@ export default function PublicProfile() {
   }
 
   const isEmployerViewer = userType === 'employer' && !isOwner
+  const knownFor = (profile.three_words || '')
+    .split(',')
+    .map((w) => w.trim())
+    .filter(Boolean)
+  const hasActions = isOwner || profile.calendly_url || isEmployerViewer
 
   return (
     <div className="section">
-      <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: '50%',
-                background: 'var(--color-bg-soft)',
-                backgroundImage: profile.avatar_url ? `url(${profile.avatar_url})` : 'none',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--color-primary)',
-                fontWeight: 700,
-                fontSize: 22,
-                flexShrink: 0,
-              }}
-            >
-              {!profile.avatar_url && (profile.full_name?.[0]?.toUpperCase() || '?')}
+      <div style={{ maxWidth: 820, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div className="profile-card">
+          {hasActions && (
+            <div className="profile-hero-actions">
+              {isOwner && (
+                <Link to="/profile/edit" className="btn btn-primary">
+                  Edit profile
+                </Link>
+              )}
+              {profile.calendly_url && (
+                <button className="btn btn-primary" onClick={() => setShowCalendly(true)}>
+                  Book a meeting
+                </button>
+              )}
+              {isEmployerViewer && (
+                <button className="btn btn-ghost" onClick={() => setShowContact(true)}>
+                  Contact
+                </button>
+              )}
             </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                <h1 style={{ fontSize: 30, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {profile.full_name}
-                  <CompanyLinkIcons
-                    linkedinUrl={profile.linkedin_url}
-                    websiteUrl={profile.website_url}
-                    label={profile.full_name}
-                    size={17}
-                  />
-                  {(isOwner || isEmployerViewer) && (
-                    <ShareButton url={`https://beta.joinmellow.xyz/profile/${profile.username || profile.id}`} label="Share profile" />
+          )}
+
+          <div className="profile-hero-body">
+            <div className="profile-hero-info">
+              <div className="profile-hero-avatar-row">
+                <CandidateAvatar avatarUrl={profile.avatar_url} fullName={profile.full_name} size={96} style={{ fontSize: 32 }} />
+                <div style={{ minWidth: 0 }}>
+                  <div className="profile-name-row">
+                    <h1 style={{ fontSize: 28 }}>{profile.full_name}</h1>
+                    <CompanyLinkIcons
+                      linkedinUrl={profile.linkedin_url}
+                      websiteUrl={profile.website_url}
+                      label={profile.full_name}
+                      size={19}
+                    />
+                    {(isOwner || isEmployerViewer) && (
+                      <ShareButton url={`https://beta.joinmellow.xyz/profile/${profile.username || profile.id}`} label="Share profile" />
+                    )}
+                  </div>
+                  <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>
+                    {profile.current_company ? `${profile.job_title} at ${profile.current_company}` : profile.job_title}
+                    {profile.location && ` · ${profile.location}`}
+                    {profile.years_of_experience && ` · ${profile.years_of_experience}`}
+                  </p>
+
+                  {(profile.availability || profile.work_style?.length > 0) && (
+                    <div className="profile-tag-row" style={{ marginTop: 12 }}>
+                      {profile.availability && (
+                        <span className="tag" style={{ fontSize: 12, fontWeight: 600, background: '#e3f9e9', color: '#0f7a3d' }}>
+                          Available: {profile.availability}
+                        </span>
+                      )}
+                      {profile.work_style?.map((w) => (
+                        <span key={w} className="tag" style={{ fontSize: 12 }}>
+                          {w}
+                        </span>
+                      ))}
+                    </div>
                   )}
-                </h1>
-              </div>
-              <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>
-                {profile.current_company ? `${profile.job_title} at ${profile.current_company}` : profile.job_title} · {profile.location}
-                {profile.years_of_experience && ` · ${profile.years_of_experience}`}
-              </p>
-              {profile.availability && (
-                <div style={{ marginTop: 8 }}>
-                  <span
-                    className="tag"
-                    style={{ fontSize: 12, fontWeight: 600, background: '#e3f9e9', color: '#0f7a3d' }}
-                  >
-                    Available: {profile.availability}
-                  </span>
+
+                  {knownFor.length > 0 && (
+                    <div style={{ marginTop: 16 }}>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                        Known for
+                      </p>
+                      <div className="profile-tag-row" style={{ marginTop: 8 }}>
+                        {knownFor.map((word) => (
+                          <span key={word} className="tag" style={{ background: 'var(--color-bg-soft)', color: 'var(--color-primary)', fontWeight: 700 }}>
+                            {word}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-              {profile.work_style?.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-                  {profile.work_style.map((w) => (
-                    <span key={w} className="tag" style={{ fontSize: 12 }}>
-                      {w}
-                    </span>
-                  ))}
+              </div>
+            </div>
+
+            <div className="profile-hero-video">
+              {profile.intro_video_url ? (
+                <VideoPlayCard url={profile.intro_video_url} style={{ maxWidth: '100%' }} />
+              ) : (
+                <div
+                  style={{
+                    borderRadius: 10,
+                    background: 'var(--color-bg-soft)',
+                    aspectRatio: '9 / 16',
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--color-text-muted)',
+                    fontSize: 14,
+                    textAlign: 'center',
+                    padding: 16,
+                  }}
+                >
+                  No intro video yet
                 </div>
               )}
             </div>
-          </div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {isOwner && (
-              <Link to="/profile/edit" className="btn btn-primary">
-                Edit profile
-              </Link>
-            )}
-            {profile.calendly_url && (
-              <button className="btn btn-primary" onClick={() => setShowCalendly(true)}>
-                Book a meeting
-              </button>
-            )}
-            {isEmployerViewer && (
-              <button className="btn btn-ghost" onClick={() => setShowContact(true)}>
-                Contact
-              </button>
-            )}
           </div>
         </div>
 
-        {profile.intro_video_url ? (
-          <VideoPlayCard url={profile.intro_video_url} style={{ marginTop: 28 }} />
-        ) : (
-          <div
-            className="card"
-            style={{
-              marginTop: 28,
-              maxWidth: 400,
-              margin: '28px auto 0',
-              aspectRatio: '9 / 16',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--color-text-muted)',
-              fontSize: 14,
-            }}
-          >
-            No intro video yet
-          </div>
-        )}
-
-        {profile.bio && <p style={{ marginTop: 24, fontSize: 16, lineHeight: 1.6 }}>{profile.bio}</p>}
-
-        {profile.three_words && (
-          <div style={{ marginTop: 20 }}>
-            <h4 style={{ fontSize: 14, color: 'var(--color-text-muted)', marginBottom: 10 }}>Known for</h4>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {profile.three_words
-                .split(',')
-                .map((w) => w.trim())
-                .filter(Boolean)
-                .map((word) => (
-                  <span key={word} className="tag">
-                    {word}
-                  </span>
-                ))}
-            </div>
+        {profile.bio && (
+          <div className="profile-card">
+            <h2 style={SECTION_TITLE_STYLE}>About</h2>
+            <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--color-text)' }}>{profile.bio}</p>
           </div>
         )}
 
         {profile.proud_of && (
-          <div
-            className="card"
-            style={{
-              marginTop: 20,
-              padding: '20px 24px',
-              background: 'var(--color-bg-soft)',
-              border: 'none',
-              position: 'relative',
-            }}
-          >
+          <div className="profile-card" style={{ position: 'relative' }}>
+            <h2 style={SECTION_TITLE_STYLE}>What I'm most proud of</h2>
             <span
               style={{
                 position: 'absolute',
-                top: 6,
-                left: 16,
+                top: 44,
+                left: 28,
                 fontSize: 40,
                 fontFamily: 'Georgia, serif',
                 color: 'var(--color-primary)',
-                opacity: 0.35,
+                opacity: 0.3,
                 lineHeight: 1,
               }}
+              aria-hidden="true"
             >
               "
             </span>
-            <p style={{ fontSize: 15, lineHeight: 1.6, fontStyle: 'italic', padding: '0 20px' }}>{profile.proud_of}</p>
-            <span
-              style={{
-                position: 'absolute',
-                bottom: 6,
-                right: 16,
-                fontSize: 40,
-                fontFamily: 'Georgia, serif',
-                color: 'var(--color-primary)',
-                opacity: 0.35,
-                lineHeight: 1,
-              }}
-            >
-              "
-            </span>
+            <p style={{ fontSize: 16, lineHeight: 1.7, fontStyle: 'italic', padding: '0 24px' }}>{profile.proud_of}</p>
           </div>
         )}
 
         {profile.skills?.length > 0 && (
-          <div style={{ marginTop: 24 }}>
-            <h4 style={{ fontSize: 14, color: 'var(--color-text-muted)', marginBottom: 10 }}>Skills</h4>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <div className="profile-card">
+            <h2 style={SECTION_TITLE_STYLE}>Skills</h2>
+            <div className="profile-tag-row">
               {profile.skills.map((s) => (
                 <span key={s} className="tag">
                   {s}
@@ -270,9 +246,9 @@ export default function PublicProfile() {
         )}
 
         {profile.languages?.length > 0 && (
-          <div style={{ marginTop: 24 }}>
-            <h4 style={{ fontSize: 14, color: 'var(--color-text-muted)', marginBottom: 10 }}>Languages</h4>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <div className="profile-card">
+            <h2 style={SECTION_TITLE_STYLE}>Languages</h2>
+            <div className="profile-tag-row">
               {profile.languages.map((l) => (
                 <span key={l.language} className="tag">
                   {l.language} · {l.proficiency}
@@ -283,15 +259,15 @@ export default function PublicProfile() {
         )}
 
         {(profile.education_level || profile.field_of_study || profile.institution_name || profile.graduation_year) && (
-          <div style={{ marginTop: 24 }}>
-            <h4 style={{ fontSize: 14, color: 'var(--color-text-muted)', marginBottom: 10 }}>Education</h4>
+          <div className="profile-card">
+            <h2 style={SECTION_TITLE_STYLE}>Education</h2>
             {(profile.education_level || profile.field_of_study) && (
-              <p style={{ fontSize: 15 }}>
+              <p style={{ fontSize: 16 }}>
                 {[profile.education_level, profile.field_of_study].filter(Boolean).join(' in ')}
               </p>
             )}
             {(profile.institution_name || profile.graduation_year) && (
-              <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 2 }}>
+              <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
                 {[profile.institution_name, profile.graduation_year].filter(Boolean).join(' · ')}
               </p>
             )}
@@ -299,59 +275,59 @@ export default function PublicProfile() {
         )}
 
         {(isOwner || videos.length > 0) && (
-        <div style={{ marginTop: 36 }}>
-          {!isOwner && videos.length > 0 && (
-            <>
-              <h4 style={{ fontSize: 18 }}>How {profile.full_name?.split(' ')[0]} actually works</h4>
-              <p style={{ marginTop: 6, fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
-                These videos show how this person thinks, operates, and approaches real work, not just how they
-                present themselves.
-              </p>
-            </>
-          )}
+          <div className="profile-card">
+            {!isOwner && videos.length > 0 && (
+              <>
+                <h2 style={SECTION_TITLE_STYLE}>How {profile.full_name?.split(' ')[0]} actually works</h2>
+                <p style={{ marginTop: -8, marginBottom: 16, fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+                  These videos show how this person thinks, operates, and approaches real work, not just how they
+                  present themselves.
+                </p>
+              </>
+            )}
 
-          {isOwner && videos.length === 0 && (
-            <div>
-              <h4 style={{ fontSize: 18 }}>Work videos</h4>
-              <p style={{ marginTop: 6, fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
-                Add videos to show employers how you think and operate. This is your biggest differentiator.
-              </p>
-              <button type="button" className="btn btn-primary" onClick={() => setShowAddVideo(true)} style={{ marginTop: 12 }}>
-                Add a work video
-              </button>
-            </div>
-          )}
+            {isOwner && videos.length === 0 && (
+              <div>
+                <h2 style={SECTION_TITLE_STYLE}>Work videos</h2>
+                <p style={{ marginTop: -8, fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+                  Add videos to show employers how you think and operate. This is your biggest differentiator.
+                </p>
+                <button type="button" className="btn btn-primary" onClick={() => setShowAddVideo(true)} style={{ marginTop: 16 }}>
+                  Add a work video
+                </button>
+              </div>
+            )}
 
-          {isOwner && videos.length > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h4 style={{ fontSize: 18 }}>Work videos</h4>
-              <button className="btn btn-ghost" style={{ fontSize: 13, padding: '6px 14px' }} onClick={() => setShowAddVideo(true)}>
-                + Add work video
-              </button>
-            </div>
-          )}
+            {isOwner && videos.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                <h2 style={{ ...SECTION_TITLE_STYLE, marginBottom: 0 }}>Work videos</h2>
+                <button className="btn btn-ghost" style={{ fontSize: 13, padding: '6px 14px' }} onClick={() => setShowAddVideo(true)}>
+                  + Add work video
+                </button>
+              </div>
+            )}
 
-          {videos.length > 0 && (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                gap: 16,
-                marginTop: 14,
-              }}
-            >
-              {videos.map((v) => (
-                <div key={v.id}>
-                  <VideoPlayCard url={v.video_url} format="horizontal" />
-                  <p style={{ marginTop: 8, fontSize: 13, fontWeight: 600 }}>{v.label}</p>
-                  {v.description && (
-                    <p style={{ marginTop: 2, fontSize: 12, color: 'var(--color-text-muted)' }}>{v.description}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+            {videos.length > 0 && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                  gap: 16,
+                  marginTop: 16,
+                }}
+              >
+                {videos.map((v) => (
+                  <div key={v.id}>
+                    <VideoPlayCard url={v.video_url} format="horizontal" />
+                    <p style={{ marginTop: 8, fontSize: 13, fontWeight: 600 }}>{v.label}</p>
+                    {v.description && (
+                      <p style={{ marginTop: 2, fontSize: 12, color: 'var(--color-text-muted)' }}>{v.description}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
 

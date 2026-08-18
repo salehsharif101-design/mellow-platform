@@ -542,3 +542,87 @@ textarea.input:focus {
   background-size: 400px 100%;
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
 }
+
+/* Candidate public profile — white cards with a subtle shadow instead of
+   a hard border, so sections read as separated without heavy dividers. */
+.profile-card {
+  background: var(--color-bg);
+  border-radius: var(--radius-card);
+  box-shadow: 0 1px 2px rgba(10, 10, 10, 0.04), 0 4px 16px rgba(10, 10, 10, 0.05);
+  padding: 32px;
+}
+
+.profile-hero-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.profile-hero-body {
+  display: flex;
+  gap: 36px;
+  align-items: flex-start;
+}
+
+.profile-hero-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-hero-avatar-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.profile-hero-video {
+  flex: 0 0 260px;
+}
+
+.profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.profile-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .profile-card {
+    padding: 20px;
+  }
+
+  .profile-hero-actions {
+    justify-content: center;
+  }
+
+  .profile-hero-body {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .profile-hero-avatar-row {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .profile-name-row,
+  .profile-tag-row {
+    justify-content: center;
+  }
+
+  .profile-hero-video {
+    flex: none;
+    width: 100%;
+    max-width: 320px;
+  }
+}
