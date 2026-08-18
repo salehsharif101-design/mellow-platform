@@ -8,6 +8,9 @@
   --color-border-input: rgba(0, 94, 245, 0.3);
   --color-focus-ring: rgba(0, 94, 245, 0.12);
 
+  /* Not applied to any heading anymore — kept only for the Mellow
+     wordmark, if it's ever set in text rather than as the current logo
+     image. */
   --font-heading: 'Clash Display', 'Inter', sans-serif;
   --font-body: 'Inter', sans-serif;
 
@@ -37,8 +40,8 @@ body {
 }
 
 h1 {
-  font-family: var(--font-heading);
-  font-weight: 700;
+  font-family: var(--font-body);
+  font-weight: 800;
   letter-spacing: -0.02em;
   margin: 0;
 }

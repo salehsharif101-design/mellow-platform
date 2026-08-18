@@ -389,14 +389,11 @@ export default function EmployerDashboard() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20, marginTop: 28 }}>
-        <div className="card" style={{ padding: 24 }}>
+        <Link to="/employer/roles" className="card stat-card-link" style={{ padding: 24 }}>
           <h3 style={{ fontSize: 16 }}>Active roles</h3>
           <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10 }}>{activeRoles.length}</p>
-          <Link to="/employer/roles/new" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}>
-            Post a new role
-          </Link>
-        </div>
-        <div className="card" style={{ padding: 24 }}>
+        </Link>
+        <Link to="/employer/applicants" className="card stat-card-link" style={{ padding: 24 }}>
           <h3 style={{ fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
             Applications received
             {newApplications > 0 && (
@@ -406,17 +403,17 @@ export default function EmployerDashboard() {
             )}
           </h3>
           <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10 }}>{applications.length}</p>
-          <Link to="/employer/applicants" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}>
-            View all applications
-          </Link>
-        </div>
-        <div className="card" style={{ padding: 24 }}>
+        </Link>
+        <Link to="/employer/shortlist" className="card stat-card-link" style={{ padding: 24 }}>
           <h3 style={{ fontSize: 16 }}>Shortlisted talent</h3>
           <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10 }}>{shortlistCount}</p>
-          <Link to="/employer/shortlist" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}>
-            View shortlist
-          </Link>
-        </div>
+        </Link>
+        <Link to="/employer/roles/new" className="card stat-card-link" style={{ padding: 24 }}>
+          <h3 style={{ fontSize: 16 }}>Post a new role</h3>
+          <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 10 }}>
+            Create a role and start receiving applications.
+          </p>
+        </Link>
       </div>
 
       <div style={{ marginTop: 36 }}>
