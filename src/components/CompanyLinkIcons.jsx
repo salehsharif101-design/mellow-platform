@@ -1,8 +1,12 @@
 // Shared LinkedIn + website icon pair for company and candidate profile
 // pages, so the icon markup only lives in one place.
 export default function CompanyLinkIcons({ linkedinUrl, websiteUrl, label, size = 17 }) {
+  if (!linkedinUrl && !websiteUrl) return null
   return (
-    <>
+    // A single flex wrapper so the two icons wrap together as one unit in a
+    // wrapping flex row (e.g. a centered mobile hero), instead of each
+    // wrapping onto its own line independently.
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
       {linkedinUrl && (
         <a
           href={linkedinUrl}
@@ -31,6 +35,6 @@ export default function CompanyLinkIcons({ linkedinUrl, websiteUrl, label, size 
           </svg>
         </a>
       )}
-    </>
+    </span>
   )
 }
