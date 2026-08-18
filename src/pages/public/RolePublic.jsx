@@ -3,7 +3,7 @@ import { useParams, useNavigate, Navigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
-import { formatDeadline, formatSalary, formatResponseRate } from '../../lib/roleFormat.js'
+import { formatDeadline, formatSalary, formatResponseRate, getCandidateStatusLabel } from '../../lib/roleFormat.js'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
 import ShareButton from '../../components/ShareButton.jsx'
@@ -27,6 +27,7 @@ export default function RolePublic() {
   const [needsVideo, setNeedsVideo] = useState(false)
   const [checkingVideo, setCheckingVideo] = useState(false)
   const [applied, setApplied] = useState(false)
+  const [appliedStatus, setAppliedStatus] = useState(null)
   const [applying, setApplying] = useState(false)
   const [error, setError] = useState('')
   const [responseLabel, setResponseLabel] = useState(null)
@@ -78,12 +79,15 @@ export default function RolePublic() {
 
       const { data: existing } = await supabase
         .from('applications')
-        .select('id')
+        .select('id, status')
         .eq('candidate_id', candidate.id)
         .eq('role_id', role.id)
         .maybeSingle()
 
-      if (existing) setApplied(true)
+      if (existing) {
+        setApplied(true)
+        setAppliedStatus(existing.status)
+      }
 
       const { data: savedRow } = await supabase
         .from('saved_roles')
@@ -147,6 +151,7 @@ export default function RolePublic() {
       setError(insertError.message)
     } else {
       setApplied(true)
+      setAppliedStatus(data.status)
       notify('application-notification', { applicationId: data.id })
     }
     setApplying(false)
@@ -272,6 +277,17 @@ export default function RolePublic() {
             <ShareButton url={`https://beta.joinmellow.xyz/jobs/${slug}`} label="Share role" />
           </div>
         </div>
+
+        {applied && appliedStatus && (
+          <div
+            className="card"
+            style={{ marginTop: 16, padding: '12px 18px', background: '#EEF4FF', border: 'none' }}
+          >
+            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-primary)' }}>
+              You applied to this role — Status: {getCandidateStatusLabel(appliedStatus)}
+            </p>
+          </div>
+        )}
 
         {employer?.about && (
           <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.6, color: 'var(--color-text-muted)' }}>{employer.about}</p>

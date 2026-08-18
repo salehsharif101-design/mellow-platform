@@ -70,7 +70,7 @@ export default function CandidateDashboard() {
       const { data: apps } = await supabase
         .from('applications')
         .select(
-          'id, status, status_changed_at, applied_at, viewed_at, role_id, roles(id, title, employer_id, employer_profiles(company_name, user_id))',
+          'id, status, status_changed_at, applied_at, viewed_at, role_id, roles(id, slug, title, employer_id, employer_profiles(company_name, user_id))',
         )
         .eq('candidate_id', candidate.id)
         .order('applied_at', { ascending: false })
@@ -524,10 +524,10 @@ export default function CandidateDashboard() {
         <div style={{ marginTop: 32 }}>
           <h3 style={{ fontSize: 18, marginBottom: 14 }}>Recent applications</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {applications.slice(0, 5).map((a) => (
+            {applications.slice(0, 3).map((a) => (
               <Link
                 key={a.id}
-                to="/applications"
+                to={`/jobs/${a.roles?.slug}`}
                 className="card stat-card-link"
                 style={{ padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
               >
@@ -539,6 +539,12 @@ export default function CandidateDashboard() {
               </Link>
             ))}
           </div>
+          <Link
+            to="/applications"
+            style={{ display: 'inline-block', marginTop: 12, fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}
+          >
+            View all applications
+          </Link>
         </div>
       )}
     </div>
