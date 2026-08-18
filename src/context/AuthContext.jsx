@@ -53,6 +53,15 @@ export function AuthProvider({ children }) {
     return data
   }
 
+  async function resendConfirmation(email) {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: 'https://beta.joinmellow.xyz/login?confirmed=1' },
+    })
+    if (error) throw error
+  }
+
   async function signOut() {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
@@ -67,6 +76,7 @@ export function AuthProvider({ children }) {
     signUp,
     signIn,
     signOut,
+    resendConfirmation,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

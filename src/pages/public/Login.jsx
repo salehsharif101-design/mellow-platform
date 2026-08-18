@@ -16,19 +16,34 @@ export default function Login() {
   const [showConfirmed, setShowConfirmed] = useState(false)
   const [checkingConfirmation, setCheckingConfirmation] = useState(confirmedParam)
   const [checkingSession, setCheckingSession] = useState(!confirmedParam)
+  const [needsResend, setNeedsResend] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [resendSent, setResendSent] = useState(false)
+  const [invalidLink, setInvalidLink] = useState(false)
 
-  const { signIn } = useAuth()
+  const { signIn, resendConfirmation } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
     if (!confirmedParam) return
+    // A failed/expired/already-used confirmation link redirects here too,
+    // with the failure encoded in the URL hash rather than a query param —
+    // Supabase doesn't fail closed to an error page, it lands back on our
+    // redirect target either way. Without checking for this, that failure
+    // was previously silent: the user just saw a plain login form with no
+    // indication their email was never actually confirmed.
+    if (window.location.hash.includes('error')) {
+      setInvalidLink(true)
+      setCheckingConfirmation(false)
+      return
+    }
     setShowConfirmed(true)
     const timer = setTimeout(() => setShowConfirmed(false), 5000)
     return () => clearTimeout(timer)
   }, [confirmedParam])
 
   useEffect(() => {
-    if (!confirmedParam) return
+    if (!confirmedParam || invalidLink) return
     // The confirmation link signs the user in automatically — if that
     // session is already here, skip the manual login and drop them
     // straight into onboarding. Anything short of a confirmed session +
@@ -86,6 +101,8 @@ export default function Login() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    setNeedsResend(false)
+    setResendSent(false)
     setLoading(true)
     try {
       const { user } = await signIn({ email, password })
@@ -111,8 +128,31 @@ export default function Login() {
       navigate(row?.user_type === 'employer' ? '/employer/dashboard' : '/dashboard')
     } catch (err) {
       setError(err.message)
+      // Supabase's message for this case is literally "Email not confirmed" —
+      // previously this was a dead end: no resend option existed anywhere,
+      // and re-signing up with the same email just says "already registered,
+      // sign in instead," which loops right back here.
+      if (err.message === 'Email not confirmed') setNeedsResend(true)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleResend() {
+    setError('')
+    setResending(true)
+    try {
+      await resendConfirmation(email)
+      setResendSent(true)
+    } catch (err) {
+      // supabase-js's AuthRetryableFetchError (thrown for 5xx responses,
+      // e.g. when Supabase's own mailer is down or rate-limited) surfaces
+      // the raw response body as .message instead of anything readable —
+      // "{}" is a common case. Fall back to a plain message rather than
+      // showing that.
+      setError(/^\s*\{.*\}\s*$/.test(err.message) ? 'Could not send the email right now. Please try again in a moment.' : err.message)
+    } finally {
+      setResending(false)
     }
   }
 
@@ -140,6 +180,11 @@ export default function Login() {
           }}
         >
           Your email is confirmed. Sign in to get started.
+        </p>
+      )}
+      {invalidLink && !resendSent && (
+        <p className="form-error" style={{ marginTop: 16 }}>
+          That confirmation link is invalid or has already been used. Enter your email below and resend it.
         </p>
       )}
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 24 }}>
@@ -173,6 +218,24 @@ export default function Login() {
           {loading ? 'Logging in…' : 'Log in'}
         </button>
       </form>
+
+      {resendSent ? (
+        <p style={{ marginTop: 16, fontSize: 14, color: 'var(--color-primary)', fontWeight: 600 }}>
+          Confirmation email sent — check your inbox.
+        </p>
+      ) : (
+        (needsResend || invalidLink) && (
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={handleResend}
+            disabled={resending || !email}
+            style={{ marginTop: 16 }}
+          >
+            {resending ? 'Sending…' : 'Resend confirmation email'}
+          </button>
+        )
+      )}
 
       <Link
         to={`/login?type=${type === 'employer' ? 'candidate' : 'employer'}`}
