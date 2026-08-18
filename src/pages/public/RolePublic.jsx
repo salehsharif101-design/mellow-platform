@@ -228,15 +228,14 @@ export default function RolePublic() {
       ? 'Applying…'
       : applied
         ? 'Applied'
-        : 'Apply with your Mellow video'
+        : 'Apply with Mellow video'
 
   const applyButton = (
     <button
       type="button"
-      className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
+      className={`btn ${applied ? 'btn-ghost' : 'btn-primary'} role-public-apply-btn`}
       disabled={applied || applying || checkingVideo}
       onClick={handleCta}
-      style={{ padding: '12px 40px', fontSize: 15 }}
     >
       {ctaLabel}
     </button>

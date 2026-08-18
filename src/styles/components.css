@@ -38,6 +38,20 @@
   background: var(--color-bg-soft);
 }
 
+/* Public role page Apply CTA — narrower padding by default so the label
+   fits on one line on mobile; roomier once there's enough width to spare. */
+.role-public-apply-btn {
+  padding: 12px 24px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+@media (min-width: 769px) {
+  .role-public-apply-btn {
+    padding: 12px 40px;
+  }
+}
+
 /* Cards */
 .card {
   border-radius: var(--radius-card);
