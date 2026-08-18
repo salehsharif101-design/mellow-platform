@@ -577,10 +577,6 @@ textarea.input:focus {
   gap: 20px;
 }
 
-.profile-hero-video {
-  flex: 0 0 260px;
-}
-
 .profile-name-row {
   display: flex;
   align-items: center;
@@ -592,18 +588,6 @@ textarea.input:focus {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-}
-
-/* Skills/languages shown inline in the hero's left column on desktop
-   only, filling the space next to the video. On mobile they stay in
-   their own cards below the hero instead (.profile-mobile-only) —
-   shown in exactly one place per breakpoint, never both. */
-.profile-hero-skills-languages {
-  margin-top: 4px;
-}
-
-.profile-mobile-only {
-  display: none;
 }
 
 @media (max-width: 768px) {
@@ -630,20 +614,6 @@ textarea.input:focus {
   .profile-name-row,
   .profile-tag-row {
     justify-content: center;
-  }
-
-  .profile-hero-video {
-    flex: none;
-    width: 100%;
-    max-width: 320px;
-  }
-
-  .profile-hero-skills-languages {
-    display: none;
-  }
-
-  .profile-mobile-only {
-    display: block;
   }
 }
 
@@ -739,9 +709,6 @@ textarea.input:focus {
 .shortlist-review-content {
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
 }
 
 @media (max-width: 768px) {

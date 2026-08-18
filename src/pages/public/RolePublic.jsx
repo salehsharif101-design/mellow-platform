@@ -236,7 +236,7 @@ export default function RolePublic() {
       className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
       disabled={applied || applying || checkingVideo}
       onClick={handleCta}
-      style={{ width: '100%' }}
+      style={{ padding: '12px 40px', fontSize: 15 }}
     >
       {ctaLabel}
     </button>
