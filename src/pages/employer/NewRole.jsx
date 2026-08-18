@@ -263,7 +263,7 @@ export default function NewRole() {
         >
           <img src="/Your_Requested_Is_Posted.png" alt="" style={{ width: '100%', maxWidth: 220 }} />
           <p style={{ marginTop: 16, fontSize: 14, color: 'var(--color-text-muted)' }}>
-            Once posted, your role goes straight into the talent feed.
+            Once posted, your role goes live and talents can start applying immediately.
           </p>
         </div>
       </div>
