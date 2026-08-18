@@ -181,6 +181,7 @@ export default function EmployerOnboarding() {
   return (
     <div className="section">
       <div
+        className="form-with-aside"
         style={{
           display: 'flex',
           gap: 48,

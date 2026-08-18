@@ -153,8 +153,9 @@ textarea.input:focus {
   display: block;
 }
 
-/* Purely decorative side panels (e.g. "take your time" illustrations) —
-   hidden on mobile so the functional form isn't pushed below a large image. */
+/* Decorative side panels (e.g. "take your time" illustrations) that pair
+   with a form via .form-with-aside — side-by-side on desktop, stacked
+   above the form (smaller, condensed) on mobile. */
 .decorative-aside {
   flex: 0 0 280px;
 }
@@ -204,8 +205,28 @@ textarea.input:focus {
     object-fit: contain;
   }
 
+  .form-with-aside {
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+
   .decorative-aside {
-    display: none !important;
+    order: -1;
+    flex: 0 0 auto !important;
+    width: 100%;
+    padding: 16px 20px !important;
+  }
+
+  .decorative-aside img {
+    width: auto !important;
+    max-width: 160px !important;
+    height: 130px !important;
+    object-fit: contain;
+    margin: 0 auto;
+  }
+
+  .decorative-aside p {
+    padding: 0 8px;
   }
 
   .footer-grid {

@@ -97,6 +97,7 @@ export default function NewRole() {
   return (
     <div className="section">
       <div
+        className="form-with-aside"
         style={{
           display: 'flex',
           gap: 48,
