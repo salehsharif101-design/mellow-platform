@@ -324,7 +324,7 @@ export default function EmployerOnboarding() {
             padding: 32,
           }}
         >
-          <img src="/Client_to_creative.png" alt="" style={{ width: '100%', maxWidth: 220 }} />
+          <img src="/Boringstuff.PNG" alt="" style={{ width: '100%', maxWidth: 220 }} />
           <p style={{ marginTop: 16, fontSize: 14, color: 'var(--color-text-muted)' }}>
             Next up: post your first role and start meeting talent on video.
           </p>
