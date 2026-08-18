@@ -14,7 +14,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const STATUS_LABELS = { open: 'Open', paused: 'Paused', closed: 'Closed' }
 
 const ROLE_SELECT =
-  'id, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, required_skills, work_style, status, employer_profiles(company_name, company_slug, logo_url, linkedin_url, website_url, about, intro_video_url, user_id, is_visible)'
+  'id, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, required_skills, work_style, status, employer_profiles(company_name, company_slug, logo_url, headline, linkedin_url, website_url, about, intro_video_url, user_id, is_visible)'
 
 export default function RolePublic() {
   const { slug } = useParams()
@@ -289,6 +289,12 @@ export default function RolePublic() {
                 <ShareButton url={`https://beta.joinmellow.xyz/jobs/${slug}`} label="Share role" />
               </p>
             </div>
+          )}
+
+          {employer?.headline && (
+            <p style={{ marginTop: 12, fontSize: 18, fontWeight: 600, color: 'var(--color-text)', lineHeight: 1.5 }}>
+              {employer.headline}
+            </p>
           )}
 
           {responseLabel && (

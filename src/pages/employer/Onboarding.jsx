@@ -28,6 +28,7 @@ export default function EmployerOnboarding() {
   const [companyName, setCompanyName] = useState('')
   const [industry, setIndustry] = useState('')
   const [companySize, setCompanySize] = useState(COMPANY_SIZES[0])
+  const [headline, setHeadline] = useState('')
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [cultureDescription, setCultureDescription] = useState('')
   const [typicalRoles, setTypicalRoles] = useState('')
@@ -74,6 +75,7 @@ export default function EmployerOnboarding() {
         setCompanyName(profile.company_name || '')
         setIndustry(profile.industry || '')
         setCompanySize(profile.company_size || COMPANY_SIZES[0])
+        setHeadline(profile.headline || '')
         setWebsiteUrl(profile.website_url || '')
         setCultureDescription(profile.culture_description || '')
         setTypicalRoles(profile.typical_roles || '')
@@ -132,6 +134,7 @@ export default function EmployerOnboarding() {
         company_name: companyName.trim(),
         industry: industry.trim(),
         company_size: companySize,
+        headline: headline.trim() || null,
         website_url: websiteUrl.trim() || null,
         culture_description: cultureDescription.trim(),
         typical_roles: typicalRoles.trim() || null,
@@ -233,6 +236,17 @@ export default function EmployerOnboarding() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="field">
+              <label htmlFor="headline">Company headline (optional)</label>
+              <input
+                id="headline"
+                className="input"
+                value={headline}
+                onChange={(e) => setHeadline(e.target.value)}
+                placeholder="e.g. We're building the future of hiring"
+                maxLength={100}
+              />
             </div>
             <div className="field">
               <label htmlFor="website_url">Website URL (optional)</label>

@@ -79,6 +79,7 @@ function EditProfileFormBody({ profile, onUpdated }) {
   const [companyName, setCompanyName] = useState(profile.company_name || '')
   const [industry, setIndustry] = useState(profile.industry || '')
   const [companySize, setCompanySize] = useState(profile.company_size || COMPANY_SIZES[0])
+  const [headline, setHeadline] = useState(profile.headline || '')
   const [about, setAbout] = useState(profile.about || '')
   const [cultureDescription, setCultureDescription] = useState(profile.culture_description || '')
   const [companyHighlight, setCompanyHighlight] = useState(profile.company_highlight || '')
@@ -139,6 +140,7 @@ function EditProfileFormBody({ profile, onUpdated }) {
         company_name: companyName.trim(),
         industry: industry.trim(),
         company_size: companySize,
+        headline: headline.trim() || null,
         about: about.trim() || null,
         culture_description: cultureDescription.trim() || null,
         company_highlight: companyHighlight.trim() || null,
@@ -173,6 +175,8 @@ function EditProfileFormBody({ profile, onUpdated }) {
         setIndustry={setIndustry}
         companySize={companySize}
         setCompanySize={setCompanySize}
+        headline={headline}
+        setHeadline={setHeadline}
         errorField={errorField}
         fieldRefs={fieldRefs}
       />
@@ -387,6 +391,8 @@ function CompanyInfoSection({
   setIndustry,
   companySize,
   setCompanySize,
+  headline,
+  setHeadline,
   errorField,
   fieldRefs,
 }) {
@@ -423,6 +429,16 @@ function CompanyInfoSection({
               </option>
             ))}
           </select>
+        </div>
+        <div className="field">
+          <label>Company headline (optional)</label>
+          <input
+            className="input"
+            value={headline}
+            onChange={(e) => setHeadline(e.target.value)}
+            placeholder="e.g. We're building the future of hiring"
+            maxLength={100}
+          />
         </div>
       </div>
     </section>
