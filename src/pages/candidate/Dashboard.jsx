@@ -307,10 +307,9 @@ export default function CandidateDashboard() {
   const completedCount = strengthChecks.filter((c) => c.complete).length
   const strengthPct = Math.round((completedCount / strengthChecks.length) * 100)
   const firstIncomplete = strengthChecks.find((c) => !c.complete)
-  const strengthMessage =
-    strengthPct === 100
-      ? "Your profile is complete! You're set up to make a great impression."
-      : `Your profile is ${strengthPct}% complete. ${firstIncomplete.tip}`
+  // Only ever read while strengthPct < 100 — the section that renders this
+  // is hidden entirely once the profile is complete.
+  const strengthMessage = `Your profile is ${strengthPct}% complete. ${firstIncomplete?.tip}`
 
   const weeklyViewCount = views ? views.filter((v) => Date.now() - new Date(v.viewed_at).getTime() < SEVEN_DAYS_MS).length : 0
   const motivatingLine =
@@ -442,52 +441,54 @@ export default function CandidateDashboard() {
         View saved roles
       </Link>
 
-      <div className="card" style={{ marginTop: 32, padding: 24 }}>
-        <h3 style={{ fontSize: 18 }}>Profile strength</h3>
-        <div style={{ marginTop: 14, height: 8, borderRadius: 4, background: 'var(--color-bg-soft)' }}>
-          <div
-            style={{
-              width: `${strengthPct}%`,
-              height: '100%',
-              borderRadius: 4,
-              background: 'var(--color-primary)',
-              transition: 'width 0.2s ease',
-            }}
-          />
+      {strengthPct < 100 && (
+        <div className="card" style={{ marginTop: 32, padding: 24 }}>
+          <h3 style={{ fontSize: 18 }}>Profile strength</h3>
+          <div style={{ marginTop: 14, height: 8, borderRadius: 4, background: 'var(--color-bg-soft)' }}>
+            <div
+              style={{
+                width: `${strengthPct}%`,
+                height: '100%',
+                borderRadius: 4,
+                background: 'var(--color-primary)',
+                transition: 'width 0.2s ease',
+              }}
+            />
+          </div>
+          <p style={{ marginTop: 10, fontSize: 14, color: 'var(--color-text-muted)' }}>{strengthMessage}</p>
+          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {strengthChecks.map((check) => (
+              <div key={check.key} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: '50%',
+                    flexShrink: 0,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    background: check.complete ? '#e3f9e9' : 'var(--color-bg-soft)',
+                    color: check.complete ? '#0f7a3d' : 'var(--color-text-muted)',
+                  }}
+                >
+                  {check.complete ? '✓' : ''}
+                </span>
+                {check.complete ? (
+                  <span style={{ color: 'var(--color-text-muted)' }}>{check.label}</span>
+                ) : (
+                  <Link to={`/profile/edit${check.anchor}`} style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
+                    {check.label} →
+                  </Link>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-        <p style={{ marginTop: 10, fontSize: 14, color: 'var(--color-text-muted)' }}>{strengthMessage}</p>
-        <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {strengthChecks.map((check) => (
-            <div key={check.key} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
-              <span
-                aria-hidden="true"
-                style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: '50%',
-                  flexShrink: 0,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  background: check.complete ? '#e3f9e9' : 'var(--color-bg-soft)',
-                  color: check.complete ? '#0f7a3d' : 'var(--color-text-muted)',
-                }}
-              >
-                {check.complete ? '✓' : ''}
-              </span>
-              {check.complete ? (
-                <span style={{ color: 'var(--color-text-muted)' }}>{check.label}</span>
-              ) : (
-                <Link to={`/profile/edit${check.anchor}`} style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
-                  {check.label} →
-                </Link>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
 
       {workVideoCount === 0 && (
         <div
