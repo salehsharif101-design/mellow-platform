@@ -4,7 +4,7 @@ import { useState } from 'react'
 // (candidate/company profiles, role pages, employer dashboard/roles list).
 // Matches the size and stroke style of the LinkedIn/website icons in
 // CompanyLinkIcons so it can sit inline with them.
-export default function ShareButton({ url, label = 'Share', size = 17 }) {
+export default function ShareButton({ url, label = 'Share', size = 17, bordered = false }) {
   const [copied, setCopied] = useState(false)
 
   async function handleClick(e) {
@@ -38,7 +38,8 @@ export default function ShareButton({ url, label = 'Share', size = 17 }) {
         onClick={handleClick}
         aria-label={label}
         title={label}
-        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', lineHeight: 0 }}
+        className={bordered ? 'icon-btn' : undefined}
+        style={bordered ? undefined : { background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', lineHeight: 0 }}
       >
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />

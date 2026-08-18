@@ -6,6 +6,7 @@ import EditRoleModal from '../../components/EditRoleModal.jsx'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
 import ShareButton from '../../components/ShareButton.jsx'
+import IconButton from '../../components/IconButton.jsx'
 
 const STATUSES = ['open', 'paused', 'closed']
 const STATUS_LABELS = { open: 'Open', paused: 'Paused', closed: 'Closed' }
@@ -181,10 +182,17 @@ export default function EmployerRoles() {
                 </div>
 
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                  <ShareButton url={`https://beta.joinmellow.xyz/jobs/${role.slug}`} label="Share role" />
-                  <a href={`/jobs/${role.slug}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost">
-                    View role
-                  </a>
+                  <ShareButton url={`https://beta.joinmellow.xyz/jobs/${role.slug}`} label="Share role" bordered />
+                  <IconButton
+                    href={`/jobs/${role.slug}`}
+                    label="View role"
+                    icon={
+                      <>
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </>
+                    }
+                  />
                   <select
                     className="input"
                     value={role.status}
@@ -198,17 +206,30 @@ export default function EmployerRoles() {
                       </option>
                     ))}
                   </select>
-                  <button type="button" className="btn btn-ghost" onClick={() => setEditingRole(role)}>
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    style={{ color: '#d92d20', borderColor: '#d92d20' }}
+                  <IconButton
+                    label="Edit role"
+                    onClick={() => setEditingRole(role)}
+                    icon={
+                      <>
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </>
+                    }
+                  />
+                  <IconButton
+                    label="Delete role"
+                    variant="danger"
                     onClick={() => setDeletingRole(role)}
-                  >
-                    Delete
-                  </button>
+                    icon={
+                      <>
+                        <path d="M3 6h18" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
+                      </>
+                    }
+                  />
                 </div>
               </div>
             </div>

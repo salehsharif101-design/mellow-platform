@@ -250,16 +250,13 @@ export default function NewRole() {
         </div>
 
         <div
-          className="card decorative-aside"
+          className="decorative-aside"
           style={{
-            flex: '0 0 280px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             textAlign: 'center',
             padding: 32,
-            background: 'var(--color-bg-soft)',
-            border: 'none',
           }}
         >
           <img src="/Your_Requested_Is_Posted.png" alt="" style={{ width: '100%', maxWidth: 220 }} />

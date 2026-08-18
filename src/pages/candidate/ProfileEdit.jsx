@@ -180,15 +180,13 @@ export default function ProfileEdit() {
         </div>
 
         <div
-          className="section-soft card decorative-aside"
+          className="decorative-aside"
           style={{
-            flex: '0 0 280px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             textAlign: 'center',
             padding: 32,
-            border: 'none',
           }}
         >
           <img src="/Easy_stuff.png" alt="" style={{ width: '100%', maxWidth: 220 }} />
