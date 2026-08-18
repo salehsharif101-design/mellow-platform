@@ -12,7 +12,7 @@ export default function Step1Basics({ initial, onContinue, saving }) {
   const [yearsOfExperience, setYearsOfExperience] = useState(initial.years_of_experience || '')
   const [location, setLocation] = useState(initial.location || '')
   const [bio, setBio] = useState(initial.bio || '')
-  const [threeWords, setThreeWords] = useState(initial.three_words || '')
+  const [headline, setHeadline] = useState(initial.headline || '')
   const [proudOf, setProudOf] = useState(initial.proud_of || '')
   const [availability, setAvailability] = useState(initial.availability || '')
   const [workStyle, setWorkStyle] = useState(initial.work_style || [])
@@ -37,7 +37,7 @@ export default function Step1Basics({ initial, onContinue, saving }) {
       years_of_experience: yearsOfExperience || null,
       location: location.trim(),
       bio: bio.trim(),
-      three_words: threeWords.trim() || null,
+      headline: headline.trim() || null,
       proud_of: proudOf.trim() || null,
       availability,
       work_style: workStyle,
@@ -122,13 +122,14 @@ export default function Step1Basics({ initial, onContinue, saving }) {
         />
       </div>
       <div className="field">
-        <label htmlFor="three_words">How would your closest colleague describe you in three words? (optional)</label>
+        <label htmlFor="headline">Your headline (optional)</label>
         <input
-          id="three_words"
+          id="headline"
           className="input"
-          value={threeWords}
-          onChange={(e) => setThreeWords(e.target.value)}
-          placeholder="e.g. curious, reliable, creative"
+          value={headline}
+          onChange={(e) => setHeadline(e.target.value)}
+          placeholder="e.g. I turn messy briefs into campaigns people remember"
+          maxLength={100}
         />
       </div>
       <div className="field">

@@ -25,7 +25,7 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
   const [availability, setAvailability] = useState(profile.availability || '')
   const [location, setLocation] = useState(profile.location || '')
   const [bio, setBio] = useState(profile.bio || '')
-  const [threeWords, setThreeWords] = useState(profile.three_words || '')
+  const [headline, setHeadline] = useState(profile.headline || '')
   const [proudOf, setProudOf] = useState(profile.proud_of || '')
   const [educationLevel, setEducationLevel] = useState(profile.education_level || '')
   const [fieldOfStudy, setFieldOfStudy] = useState(profile.field_of_study || '')
@@ -107,7 +107,7 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
         availability: availability || null,
         location: location.trim(),
         bio: bio.trim(),
-        three_words: threeWords.trim() || null,
+        headline: headline.trim() || null,
         proud_of: proudOf.trim() || null,
         education_level: educationLevel || null,
         field_of_study: fieldOfStudy.trim() || null,
@@ -155,8 +155,8 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
         setLocation={setLocation}
         bio={bio}
         setBio={setBio}
-        threeWords={threeWords}
-        setThreeWords={setThreeWords}
+        headline={headline}
+        setHeadline={setHeadline}
         proudOf={proudOf}
         setProudOf={setProudOf}
         errorField={errorField}
@@ -450,8 +450,8 @@ function BasicsSection({
   setLocation,
   bio,
   setBio,
-  threeWords,
-  setThreeWords,
+  headline,
+  setHeadline,
   proudOf,
   setProudOf,
   errorField,
@@ -540,12 +540,13 @@ function BasicsSection({
           />
         </div>
         <div className="field">
-          <label>Known for (optional)</label>
+          <label>Your headline (optional)</label>
           <input
             className="input"
-            value={threeWords}
-            onChange={(e) => setThreeWords(e.target.value)}
-            placeholder="e.g. curious, reliable, creative"
+            value={headline}
+            onChange={(e) => setHeadline(e.target.value)}
+            placeholder="e.g. I turn messy briefs into campaigns people remember"
+            maxLength={100}
           />
         </div>
         <div className="field">
@@ -966,7 +967,7 @@ function WorkVideosSection({ profile, userId }) {
   return (
     <section id="work-videos-section">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <h3 style={{ fontSize: 16 }}>Work videos</h3>
+        <h3 style={{ fontSize: 16 }}>Watch me work</h3>
         <button type="button" className="btn btn-ghost" style={{ fontSize: 13, padding: '6px 14px' }} onClick={() => setShowAddVideo(true)}>
           + Add work video
         </button>

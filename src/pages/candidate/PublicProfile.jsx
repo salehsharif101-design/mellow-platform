@@ -91,10 +91,6 @@ export default function PublicProfile() {
   }
 
   const isEmployerViewer = userType === 'employer' && !isOwner
-  const knownFor = (profile.three_words || '')
-    .split(',')
-    .map((w) => w.trim())
-    .filter(Boolean)
   const canBookMeeting = user && !isOwner && profile.calendly_url
   const showSignupCta = !user
   const hasActions = isOwner || canBookMeeting || isEmployerViewer || showSignupCta
@@ -148,6 +144,12 @@ export default function PublicProfile() {
                   {profile.years_of_experience && ` · ${profile.years_of_experience}`}
                 </p>
 
+                {profile.headline && (
+                  <p style={{ marginTop: 12, fontSize: 18, fontWeight: 600, color: 'var(--color-text)', lineHeight: 1.5 }}>
+                    {profile.headline}
+                  </p>
+                )}
+
                 {(profile.availability || profile.work_style?.length > 0) && (
                   <div className="profile-tag-row" style={{ marginTop: 12 }}>
                     {profile.availability && (
@@ -160,21 +162,6 @@ export default function PublicProfile() {
                         {w}
                       </span>
                     ))}
-                  </div>
-                )}
-
-                {knownFor.length > 0 && (
-                  <div style={{ marginTop: 16 }}>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                      Known for
-                    </p>
-                    <div className="profile-tag-row" style={{ marginTop: 8 }}>
-                      {knownFor.map((word) => (
-                        <span key={word} className="tag" style={{ background: 'var(--color-bg-soft)', color: 'var(--color-primary)', fontWeight: 700 }}>
-                          {word}
-                        </span>
-                      ))}
-                    </div>
                   </div>
                 )}
               </div>
@@ -207,6 +194,71 @@ export default function PublicProfile() {
             )}
           </div>
         </div>
+
+        {(isOwner || videos.length > 0) && (
+          <div style={{ marginTop: 48 }}>
+            {!isOwner && videos.length > 0 && (
+              <>
+                <h2 style={SECTION_TITLE_STYLE}>Watch me work</h2>
+                <p style={{ marginTop: -8, marginBottom: 16, fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+                  These videos show how this person thinks, operates, and approaches real work, not just how they
+                  present themselves.
+                </p>
+              </>
+            )}
+
+            {isOwner && videos.length === 0 && (
+              <div>
+                <h2 style={SECTION_TITLE_STYLE}>Watch me work</h2>
+                <p style={{ marginTop: -8, fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+                  Add videos to show employers how you think and operate. This is your biggest differentiator.
+                </p>
+                <button type="button" className="btn btn-primary" onClick={() => setShowAddVideo(true)} style={{ marginTop: 16 }}>
+                  Add a work video
+                </button>
+              </div>
+            )}
+
+            {isOwner && videos.length > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 12,
+                  ...SECTION_TITLE_STYLE,
+                }}
+              >
+                <h2 style={{ fontSize: 20 }}>Watch me work</h2>
+                <button className="btn btn-ghost" style={{ fontSize: 13, padding: '6px 14px' }} onClick={() => setShowAddVideo(true)}>
+                  + Add work video
+                </button>
+              </div>
+            )}
+
+            {videos.length > 0 && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                  gap: 16,
+                  marginTop: 16,
+                }}
+              >
+                {videos.map((v) => (
+                  <div key={v.id}>
+                    <VideoPlayCard url={v.video_url} format="horizontal" />
+                    <p style={{ marginTop: 8, fontSize: 13, fontWeight: 600 }}>{v.label}</p>
+                    {v.description && (
+                      <p style={{ marginTop: 2, fontSize: 12, color: 'var(--color-text-muted)' }}>{v.description}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {profile.bio && (
           <div id="about-section" style={{ marginTop: 48 }}>
@@ -272,71 +324,6 @@ export default function PublicProfile() {
               <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
                 {[profile.institution_name, profile.graduation_year].filter(Boolean).join(' · ')}
               </p>
-            )}
-          </div>
-        )}
-
-        {(isOwner || videos.length > 0) && (
-          <div style={{ marginTop: 48 }}>
-            {!isOwner && videos.length > 0 && (
-              <>
-                <h2 style={SECTION_TITLE_STYLE}>How {profile.full_name?.split(' ')[0]} actually works</h2>
-                <p style={{ marginTop: -8, marginBottom: 16, fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
-                  These videos show how this person thinks, operates, and approaches real work, not just how they
-                  present themselves.
-                </p>
-              </>
-            )}
-
-            {isOwner && videos.length === 0 && (
-              <div>
-                <h2 style={SECTION_TITLE_STYLE}>Work videos</h2>
-                <p style={{ marginTop: -8, fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
-                  Add videos to show employers how you think and operate. This is your biggest differentiator.
-                </p>
-                <button type="button" className="btn btn-primary" onClick={() => setShowAddVideo(true)} style={{ marginTop: 16 }}>
-                  Add a work video
-                </button>
-              </div>
-            )}
-
-            {isOwner && videos.length > 0 && (
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 12,
-                  ...SECTION_TITLE_STYLE,
-                }}
-              >
-                <h2 style={{ fontSize: 20 }}>Work videos</h2>
-                <button className="btn btn-ghost" style={{ fontSize: 13, padding: '6px 14px' }} onClick={() => setShowAddVideo(true)}>
-                  + Add work video
-                </button>
-              </div>
-            )}
-
-            {videos.length > 0 && (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                  gap: 16,
-                  marginTop: 16,
-                }}
-              >
-                {videos.map((v) => (
-                  <div key={v.id}>
-                    <VideoPlayCard url={v.video_url} format="horizontal" />
-                    <p style={{ marginTop: 8, fontSize: 13, fontWeight: 600 }}>{v.label}</p>
-                    {v.description && (
-                      <p style={{ marginTop: 2, fontSize: 12, color: 'var(--color-text-muted)' }}>{v.description}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
             )}
           </div>
         )}

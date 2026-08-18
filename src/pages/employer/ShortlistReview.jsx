@@ -14,7 +14,7 @@ const STATUS_LABELS = { reviewing: 'Reviewing', shortlisted: 'Shortlisted', reje
 const SECTION_TITLE_STYLE = { fontSize: 20, marginBottom: 16 }
 
 const CANDIDATE_SELECT =
-  'id, user_id, username, full_name, job_title, current_company, location, bio, three_words, proud_of, skills, languages, availability, work_style, years_of_experience, intro_video_url, avatar_url, education_level, field_of_study, institution_name, graduation_year, linkedin_url, calendly_url, website_url'
+  'id, user_id, username, full_name, job_title, current_company, location, bio, headline, proud_of, skills, languages, availability, work_style, years_of_experience, intro_video_url, avatar_url, education_level, field_of_study, institution_name, graduation_year, linkedin_url, calendly_url, website_url'
 
 export default function ShortlistReview() {
   const { user } = useAuth()
@@ -124,10 +124,6 @@ export default function ShortlistReview() {
   const entry = entries[index]
   const c = entry.candidate_profiles
   const workVideos = workVideosByCandidate[entry.candidate_id] || []
-  const knownFor = (c.three_words || '')
-    .split(',')
-    .map((w) => w.trim())
-    .filter(Boolean)
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#fff', zIndex: 900, overflowY: 'auto' }}>
@@ -194,6 +190,12 @@ export default function ShortlistReview() {
                     {c.years_of_experience && ` · ${c.years_of_experience}`}
                   </p>
 
+                  {c.headline && (
+                    <p style={{ marginTop: 12, fontSize: 18, fontWeight: 600, color: 'var(--color-text)', lineHeight: 1.5 }}>
+                      {c.headline}
+                    </p>
+                  )}
+
                   {(c.availability || c.work_style?.length > 0) && (
                     <div className="profile-tag-row" style={{ marginTop: 12 }}>
                       {c.availability && (
@@ -206,21 +208,6 @@ export default function ShortlistReview() {
                           {w}
                         </span>
                       ))}
-                    </div>
-                  )}
-
-                  {knownFor.length > 0 && (
-                    <div style={{ marginTop: 16 }}>
-                      <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                        Known for
-                      </p>
-                      <div className="profile-tag-row" style={{ marginTop: 8 }}>
-                        {knownFor.map((word) => (
-                          <span key={word} className="tag" style={{ background: 'var(--color-bg-soft)', color: 'var(--color-primary)', fontWeight: 700 }}>
-                            {word}
-                          </span>
-                        ))}
-                      </div>
                     </div>
                   )}
                 </div>
@@ -253,6 +240,30 @@ export default function ShortlistReview() {
               )}
             </div>
           </div>
+
+          {workVideos.length > 0 && (
+            <div style={{ marginTop: 48 }}>
+              <h2 style={SECTION_TITLE_STYLE}>Watch me work</h2>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                  gap: 16,
+                  marginTop: 16,
+                }}
+              >
+                {workVideos.map((v) => (
+                  <div key={v.id}>
+                    <VideoPlayCard url={v.video_url} format="horizontal" />
+                    <p style={{ marginTop: 8, fontSize: 13, fontWeight: 600 }}>{v.label}</p>
+                    {v.description && (
+                      <p style={{ marginTop: 2, fontSize: 12, color: 'var(--color-text-muted)' }}>{v.description}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {c.bio && (
             <div style={{ marginTop: 48 }}>
@@ -317,30 +328,6 @@ export default function ShortlistReview() {
                   {[c.institution_name, c.graduation_year].filter(Boolean).join(' · ')}
                 </p>
               )}
-            </div>
-          )}
-
-          {workVideos.length > 0 && (
-            <div style={{ marginTop: 48 }}>
-              <h2 style={SECTION_TITLE_STYLE}>How {c.full_name?.split(' ')[0]} actually works</h2>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                  gap: 16,
-                  marginTop: 16,
-                }}
-              >
-                {workVideos.map((v) => (
-                  <div key={v.id}>
-                    <VideoPlayCard url={v.video_url} format="horizontal" />
-                    <p style={{ marginTop: 8, fontSize: 13, fontWeight: 600 }}>{v.label}</p>
-                    {v.description && (
-                      <p style={{ marginTop: 2, fontSize: 12, color: 'var(--color-text-muted)' }}>{v.description}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
             </div>
           )}
 
