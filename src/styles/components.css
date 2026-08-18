@@ -594,18 +594,16 @@ textarea.input:focus {
   gap: 8px;
 }
 
-/* Short About preview shown in the hero's left column on desktop only —
-   fills the empty space next to the video and deep-links down to the
-   full About card. */
-.profile-hero-about-preview {
-  margin-top: 16px;
+/* Skills/languages shown inline in the hero's left column on desktop
+   only, filling the space next to the video. On mobile they stay in
+   their own cards below the hero instead (.profile-mobile-only) —
+   shown in exactly one place per breakpoint, never both. */
+.profile-hero-skills-languages {
+  margin-top: 4px;
 }
 
-.profile-hero-about-preview p {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.profile-mobile-only {
+  display: none;
 }
 
 @media (max-width: 768px) {
@@ -640,7 +638,11 @@ textarea.input:focus {
     max-width: 320px;
   }
 
-  .profile-hero-about-preview {
+  .profile-hero-skills-languages {
     display: none;
+  }
+
+  .profile-mobile-only {
+    display: block;
   }
 }

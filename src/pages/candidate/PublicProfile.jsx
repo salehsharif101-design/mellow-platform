@@ -95,7 +95,9 @@ export default function PublicProfile() {
     .split(',')
     .map((w) => w.trim())
     .filter(Boolean)
-  const hasActions = isOwner || profile.calendly_url || isEmployerViewer
+  const canBookMeeting = user && !isOwner && profile.calendly_url
+  const showSignupCta = !user
+  const hasActions = isOwner || canBookMeeting || isEmployerViewer || showSignupCta
 
   return (
     <div className="section">
@@ -108,7 +110,7 @@ export default function PublicProfile() {
                   Edit profile
                 </Link>
               )}
-              {profile.calendly_url && (
+              {canBookMeeting && (
                 <button className="btn btn-primary" onClick={() => setShowCalendly(true)}>
                   Book a meeting
                 </button>
@@ -117,6 +119,11 @@ export default function PublicProfile() {
                 <button className="btn btn-ghost" onClick={() => setShowContact(true)}>
                   Contact
                 </button>
+              )}
+              {showSignupCta && (
+                <Link to="/signup" className="btn btn-primary">
+                  Sign up to connect
+                </Link>
               )}
             </div>
           )}
@@ -174,16 +181,37 @@ export default function PublicProfile() {
                     </div>
                   )}
 
-                  {profile.bio && (
-                    <div className="profile-hero-about-preview">
-                      <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--color-text-muted)' }}>{profile.bio}</p>
-                      <button
-                        type="button"
-                        onClick={() => document.getElementById('about-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                        style={{ marginTop: 4, background: 'none', border: 'none', padding: 0, color: 'var(--color-primary)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
-                      >
-                        Read more
-                      </button>
+                  {(profile.skills?.length > 0 || profile.languages?.length > 0) && (
+                    <div className="profile-hero-skills-languages">
+                      {profile.skills?.length > 0 && (
+                        <div style={{ marginTop: 16 }}>
+                          <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                            Skills
+                          </p>
+                          <div className="profile-tag-row" style={{ marginTop: 8 }}>
+                            {profile.skills.map((s) => (
+                              <span key={s} className="tag" style={{ fontSize: 12 }}>
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {profile.languages?.length > 0 && (
+                        <div style={{ marginTop: 16 }}>
+                          <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                            Languages
+                          </p>
+                          <div className="profile-tag-row" style={{ marginTop: 8 }}>
+                            {profile.languages.map((l) => (
+                              <span key={l.language} className="tag" style={{ fontSize: 12 }}>
+                                {l.language} · {l.proficiency}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -243,7 +271,7 @@ export default function PublicProfile() {
         )}
 
         {profile.skills?.length > 0 && (
-          <div className="profile-card">
+          <div className="profile-card profile-mobile-only">
             <h2 style={SECTION_TITLE_STYLE}>Skills</h2>
             <div className="profile-tag-row">
               {profile.skills.map((s) => (
@@ -256,7 +284,7 @@ export default function PublicProfile() {
         )}
 
         {profile.languages?.length > 0 && (
-          <div className="profile-card">
+          <div className="profile-card profile-mobile-only">
             <h2 style={SECTION_TITLE_STYLE}>Languages</h2>
             <div className="profile-tag-row">
               {profile.languages.map((l) => (
