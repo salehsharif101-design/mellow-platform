@@ -308,8 +308,8 @@ textarea.input:focus {
 
   .decorative-aside img {
     width: auto !important;
-    max-width: 160px !important;
-    height: 130px !important;
+    max-width: 220px !important;
+    height: 190px !important;
     object-fit: contain;
     margin: 0 auto;
   }
