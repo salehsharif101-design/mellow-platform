@@ -1,71 +1,106 @@
 import { Link, Outlet } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
 import Logo from './Logo.jsx'
 import UserMenu from './UserMenu.jsx'
 import NavHighlight, { NEW_USER_HINT_KEYS } from './NavHighlight.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotifications } from '../context/NotificationContext.jsx'
 
+const NAV_LINK_STYLE = { textDecoration: 'none', fontWeight: 600, fontSize: 14 }
+
 export default function Layout() {
   const { session, userType } = useAuth()
   const { unreadMessages } = useNotifications()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const headerRef = useRef(null)
 
   const dashboardPath = userType === 'employer' ? '/employer/dashboard' : '/dashboard'
   const messagesPath = userType === 'employer' ? '/employer/messages' : '/messages'
+  const closeMobileMenu = () => setMobileMenuOpen(false)
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+    function handleClickOutside(e) {
+      if (headerRef.current && !headerRef.current.contains(e.target)) closeMobileMenu()
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [mobileMenuOpen])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <header className="app-header">
+      <header className="app-header" ref={headerRef}>
         <div className="app-header-inner">
-          <Link to={session ? dashboardPath : '/'} style={{ textDecoration: 'none' }}>
-            <Logo />
-          </Link>
+          <div className="app-header-left">
+            <Link to={session ? dashboardPath : '/'} style={{ textDecoration: 'none' }} onClick={closeMobileMenu}>
+              <Logo />
+            </Link>
+            {session && (
+              <button
+                type="button"
+                className="mobile-menu-toggle"
+                aria-label="Toggle navigation menu"
+                aria-expanded={mobileMenuOpen}
+                onClick={() => setMobileMenuOpen((o) => !o)}
+              >
+                <span className="hamburger-line" />
+                <span className="hamburger-line" />
+                <span className="hamburger-line" />
+              </button>
+            )}
+          </div>
           <nav className="app-nav">
             {session ? (
               <>
-                <Link to={dashboardPath} style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
-                  Dashboard
-                </Link>
-                {userType === 'employer' ? (
-                  <>
+                <div className={`app-nav-links${mobileMenuOpen ? ' mobile-open' : ''}`}>
+                  <Link to={dashboardPath} style={NAV_LINK_STYLE} onClick={closeMobileMenu}>
+                    Dashboard
+                  </Link>
+                  {userType === 'employer' ? (
+                    <>
+                      <NavHighlight
+                        to="/employer/talent"
+                        storageKey={NEW_USER_HINT_KEYS.employer}
+                        style={NAV_LINK_STYLE}
+                        onClick={closeMobileMenu}
+                      >
+                        Talent Feed
+                      </NavHighlight>
+                      <Link to="/employer/roles/new" style={NAV_LINK_STYLE} onClick={closeMobileMenu}>
+                        Post a Role
+                      </Link>
+                      <Link to="/employer/roles" style={NAV_LINK_STYLE} onClick={closeMobileMenu}>
+                        Manage roles
+                      </Link>
+                    </>
+                  ) : (
                     <NavHighlight
-                      to="/employer/talent"
-                      storageKey={NEW_USER_HINT_KEYS.employer}
-                      style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
+                      to="/roles"
+                      storageKey={NEW_USER_HINT_KEYS.candidate}
+                      style={NAV_LINK_STYLE}
+                      onClick={closeMobileMenu}
                     >
-                      Talent Feed
+                      Browse Roles
                     </NavHighlight>
-                    <Link to="/employer/roles/new" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
-                      Post a Role
-                    </Link>
-                    <Link to="/employer/roles" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
-                      Manage roles
-                    </Link>
-                  </>
-                ) : (
-                  <NavHighlight
-                    to="/roles"
-                    storageKey={NEW_USER_HINT_KEYS.candidate}
-                    style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
-                  >
-                    Browse Roles
-                  </NavHighlight>
-                )}
-                <Link
-                  to={messagesPath}
-                  style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                >
-                  Messages
-                  {unreadMessages > 0 && (
-                    <span className="notif-badge" aria-label={`${unreadMessages} unread messages`}>
-                      {unreadMessages > 9 ? '9+' : unreadMessages}
-                    </span>
                   )}
-                </Link>
+                  <Link
+                    to={messagesPath}
+                    style={{ ...NAV_LINK_STYLE, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    onClick={closeMobileMenu}
+                  >
+                    Messages
+                    {unreadMessages > 0 && (
+                      <span className="notif-badge" aria-label={`${unreadMessages} unread messages`}>
+                        {unreadMessages > 9 ? '9+' : unreadMessages}
+                      </span>
+                    )}
+                  </Link>
+                </div>
                 <UserMenu />
               </>
             ) : (
               <>
-                <Link to="/login" style={{ textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
+                <Link to="/login" style={NAV_LINK_STYLE}>
                   Log in
                 </Link>
                 <Link to="/signup" className="btn btn-primary">

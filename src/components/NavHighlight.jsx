@@ -15,13 +15,15 @@ export const NEW_USER_HINT_KEYS = {
 // new browser, a cleared cache) never get it. It then persists across
 // visits until the link is actually clicked, at which point it's cleared
 // for good.
-export default function NavHighlight({ to, storageKey, children, style }) {
+export default function NavHighlight({ to, storageKey, children, style, onClick }) {
   const [show, setShow] = useState(() => localStorage.getItem(storageKey) === '1')
 
   function handleClick() {
-    if (!show) return
-    localStorage.removeItem(storageKey)
-    setShow(false)
+    if (show) {
+      localStorage.removeItem(storageKey)
+      setShow(false)
+    }
+    onClick?.()
   }
 
   return (

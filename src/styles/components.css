@@ -168,6 +168,7 @@ textarea.input:focus {
 
 .app-header {
   padding: 20px 64px;
+  position: relative;
 }
 
 .app-header-inner {
@@ -180,12 +181,49 @@ textarea.input:focus {
   gap: 16px;
 }
 
+.app-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .app-nav {
   display: flex;
   align-items: center;
   gap: 28px;
   flex-wrap: wrap;
   white-space: nowrap;
+}
+
+.app-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+/* Hamburger toggle — hidden on desktop, shown next to the logo on mobile. */
+.mobile-menu-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.mobile-menu-toggle .hamburger-line {
+  display: block;
+  width: 20px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-text);
 }
 
 @media (max-width: 768px) {
@@ -240,6 +278,44 @@ textarea.input:focus {
 
   .app-nav {
     gap: 16px;
+  }
+
+  .mobile-menu-toggle {
+    display: flex;
+  }
+
+  /* Nav links collapse into a dropdown panel under the header, toggled by
+     the hamburger. The user avatar (UserMenu, the .app-nav sibling of
+     .app-nav-links) stays put in the header, out of this panel. */
+  .app-nav-links {
+    display: none;
+  }
+
+  .app-nav-links.mobile-open {
+    display: flex;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    background: var(--color-bg);
+    padding: 12px 20px 20px;
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    z-index: 20;
+  }
+
+  .app-nav-links.mobile-open a {
+    padding: 10px 0;
+    width: 100%;
+  }
+
+  /* NavHighlight (Talent Feed / Browse Roles) wraps its Link in a span —
+     stretch that too so its tap target matches the plain Links. */
+  .app-nav-links.mobile-open > span {
+    width: 100%;
   }
 
   .welcome-page {
