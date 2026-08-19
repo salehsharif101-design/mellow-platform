@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../../../lib/supabase.js'
+import { useHideChrome } from '../../../../components/Layout.jsx'
 import VideoRecorderModal from '../../../../components/VideoRecorderModal.jsx'
 
 const MAX_DURATION_SECONDS = 60
@@ -14,6 +15,7 @@ const PROMPTS = [
 ]
 
 function TipsScreen({ onContinue }) {
+  useHideChrome()
   return (
     <div style={{ background: '#fff', padding: '48px 24px', textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
       <img src="/Floating girl.PNG" alt="" style={{ width: '100%', maxWidth: 260, margin: '0 auto', display: 'block' }} />
