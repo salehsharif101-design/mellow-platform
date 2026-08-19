@@ -349,10 +349,13 @@ function LogoSection({ profile, onUpdated }) {
         >
           {!profile.logo_url && (profile.company_name?.[0]?.toUpperCase() || '?')}
         </div>
-        <div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
-              {uploading ? 'Uploading…' : 'Change logo'}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <label className="icon-btn" style={{ cursor: uploading ? 'default' : 'pointer' }} aria-label="Change logo" title="Change logo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
               <input
                 type="file"
                 accept={LOGO_TYPES.join(',')}
@@ -361,19 +364,19 @@ function LogoSection({ profile, onUpdated }) {
                 style={{ display: 'none' }}
               />
             </label>
-            {profile.logo_url && (
-              <button
-                type="button"
-                className="btn btn-ghost"
-                style={{ color: '#d92d20', borderColor: '#d92d20' }}
-                onClick={handleRemove}
-                disabled={removing}
-              >
-                {removing ? 'Removing…' : 'Remove'}
-              </button>
-            )}
+            {uploading && <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Uploading…</span>}
           </div>
-          {error && <p className="form-error" style={{ marginTop: 8 }}>{error}</p>}
+          {profile.logo_url && (
+            <button
+              type="button"
+              onClick={handleRemove}
+              disabled={removing}
+              style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#d92d20', cursor: 'pointer', width: 'fit-content' }}
+            >
+              {removing ? 'Removing…' : 'Remove logo'}
+            </button>
+          )}
+          {error && <p className="form-error" style={{ marginTop: 4 }}>{error}</p>}
         </div>
       </div>
     </section>
@@ -568,7 +571,6 @@ function LinksSection({ linkedinUrl, setLinkedinUrl, websiteUrl, setWebsiteUrl, 
 }
 
 function IntroVideoSection({ introVideoUrl, setIntroVideoUrl }) {
-  const [file, setFile] = useState(null)
   const [localPreviewUrl, setLocalPreviewUrl] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -596,14 +598,13 @@ function IntroVideoSection({ introVideoUrl, setIntroVideoUrl }) {
         URL.revokeObjectURL(objectUrl)
         return
       }
-      setFile(selected)
       setLocalPreviewUrl(objectUrl)
+      handleUpload(selected)
     }
     probe.src = objectUrl
   }
 
-  async function handleUpload() {
-    if (!file) return
+  async function handleUpload(file) {
     setUploading(true)
     setError('')
     try {
@@ -618,7 +619,6 @@ function IntroVideoSection({ introVideoUrl, setIntroVideoUrl }) {
       if (uploadError) throw uploadError
       const { data } = supabase.storage.from('company-videos').getPublicUrl(path)
       setIntroVideoUrl(`${data.publicUrl}?t=${Date.now()}`)
-      setFile(null)
       setLocalPreviewUrl(null)
     } catch (err) {
       setError(err.message)
@@ -629,7 +629,6 @@ function IntroVideoSection({ introVideoUrl, setIntroVideoUrl }) {
 
   function handleRemove() {
     setIntroVideoUrl(null)
-    setFile(null)
     setLocalPreviewUrl(null)
   }
 
@@ -640,43 +639,52 @@ function IntroVideoSection({ introVideoUrl, setIntroVideoUrl }) {
         Optional — a 60-second video showing who your company is and why someone should join you. Shown
         prominently on your public role pages.
       </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 320 }}>
         {previewUrl && (
           <video
             src={previewUrl}
             controls
             style={{
               width: '100%',
-              maxWidth: 400,
               aspectRatio: '16 / 9',
               objectFit: 'contain',
-              borderRadius: 12,
+              borderRadius: 10,
               background: '#000',
               display: 'block',
             }}
           />
         )}
-        <div className="field">
-          <label>{previewUrl ? 'Replace video' : 'Upload video'} (mp4, mov, or webm — up to 50MB, 60s max)</label>
-          <input type="file" accept={VIDEO_TYPES.join(',')} onChange={handleFileChange} />
-        </div>
-        {error && <p className="form-error">{error}</p>}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-primary" type="button" onClick={handleUpload} disabled={!file || uploading} style={{ alignSelf: 'flex-start' }}>
-            {uploading ? 'Uploading…' : 'Upload video'}
-          </button>
-          {introVideoUrl && (
-            <button
-              type="button"
-              className="btn btn-ghost"
-              style={{ color: '#d92d20', borderColor: '#d92d20' }}
-              onClick={handleRemove}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <label className="icon-btn" style={{ cursor: uploading ? 'default' : 'pointer' }} aria-label="Upload video" title="Upload video">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <input
+              type="file"
+              accept={VIDEO_TYPES.join(',')}
+              onChange={handleFileChange}
               disabled={uploading}
-            >
-              Remove video
-            </button>
-          )}
+              style={{ display: 'none' }}
+            />
+          </label>
+          {uploading && <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Uploading…</span>}
         </div>
+
+        {error && <p className="form-error" style={{ fontSize: 13 }}>{error}</p>}
+
+        {introVideoUrl && !uploading && (
+          <button
+            type="button"
+            onClick={handleRemove}
+            style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#d92d20', cursor: 'pointer', width: 'fit-content' }}
+          >
+            Remove video
+          </button>
+        )}
+
         <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
           Click Save below to apply your video change.
         </p>
@@ -697,7 +705,11 @@ function DangerZoneSection() {
   return (
     <section>
       <h3 style={{ fontSize: 16, marginBottom: 12, color: '#d92d20' }}>Danger zone</h3>
-      <button type="button" className="btn btn-ghost" style={{ borderColor: '#d92d20', color: '#d92d20' }} onClick={() => setShowConfirm(true)}>
+      <button
+        type="button"
+        onClick={() => setShowConfirm(true)}
+        style={{ background: 'none', border: 'none', padding: 0, fontSize: 14, fontWeight: 600, color: '#d92d20', cursor: 'pointer' }}
+      >
         Delete my account
       </button>
 

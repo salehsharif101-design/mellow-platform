@@ -471,24 +471,6 @@ export default function CandidateDashboard() {
         View saved roles
       </Link>
 
-      <Link
-        to="/guide"
-        target="_blank"
-        style={{
-          marginTop: 12,
-          display: 'flex',
-          width: 'fit-content',
-          alignItems: 'center',
-          gap: 6,
-          fontSize: 14,
-          color: 'var(--color-primary)',
-          fontWeight: 600,
-          textDecoration: 'none',
-        }}
-      >
-        🎥 Video guide: how to record a great video →
-      </Link>
-
       {strengthPct < 100 && (
         <div className="card" style={{ marginTop: 32, padding: 24 }}>
           <h3 style={{ fontSize: 18 }}>Profile strength</h3>
@@ -553,14 +535,9 @@ export default function CandidateDashboard() {
             what you are capable of. A designer can walk through a project. A developer can screen record a problem
             they solved. A marketer can break down a campaign.
           </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 16, flexWrap: 'wrap' }}>
-            <button type="button" className="btn btn-primary" onClick={() => setShowAddVideo(true)}>
-              Add your first work video
-            </button>
-            <Link to="/guide" target="_blank" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}>
-              How to record a great video →
-            </Link>
-          </div>
+          <button type="button" className="btn btn-primary" onClick={() => setShowAddVideo(true)} style={{ marginTop: 16 }}>
+            Add your first work video
+          </button>
         </div>
       )}
 

@@ -337,10 +337,13 @@ function AvatarSection({ profile, userId, onUpdated }) {
         >
           {!profile.avatar_url && (profile.full_name?.[0]?.toUpperCase() || '?')}
         </div>
-        <div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
-              {uploading ? 'Uploading…' : 'Change photo'}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <label className="icon-btn" style={{ cursor: uploading ? 'default' : 'pointer' }} aria-label="Change photo" title="Change photo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
               <input
                 type="file"
                 accept={AVATAR_TYPES.join(',')}
@@ -349,19 +352,19 @@ function AvatarSection({ profile, userId, onUpdated }) {
                 style={{ display: 'none' }}
               />
             </label>
-            {profile.avatar_url && (
-              <button
-                type="button"
-                className="btn btn-ghost"
-                style={{ color: '#d92d20', borderColor: '#d92d20' }}
-                onClick={handleRemove}
-                disabled={removing}
-              >
-                {removing ? 'Removing…' : 'Remove'}
-              </button>
-            )}
+            {uploading && <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Uploading…</span>}
           </div>
-          {error && <p className="form-error" style={{ marginTop: 8 }}>{error}</p>}
+          {profile.avatar_url && (
+            <button
+              type="button"
+              onClick={handleRemove}
+              disabled={removing}
+              style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#d92d20', cursor: 'pointer', width: 'fit-content' }}
+            >
+              {removing ? 'Removing…' : 'Remove photo'}
+            </button>
+          )}
+          {error && <p className="form-error" style={{ marginTop: 4 }}>{error}</p>}
         </div>
       </div>
     </section>
@@ -731,7 +734,13 @@ function LanguagesSection({ languages, setLanguages, errorField, fieldRefs }) {
               ))}
             </select>
           </div>
-          <button type="button" className="btn btn-ghost" onClick={addLanguage} disabled={!language.trim()}>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            style={{ fontSize: 13, padding: '6px 14px' }}
+            onClick={addLanguage}
+            disabled={!language.trim()}
+          >
             Add
           </button>
         </div>
@@ -1027,9 +1036,8 @@ function WorkVideosSection({ profile, userId }) {
               <p style={{ marginTop: 8, fontSize: 13, fontWeight: 600 }}>{v.label}</p>
               <button
                 type="button"
-                className="btn btn-ghost"
-                style={{ marginTop: 6, fontSize: 12, padding: '4px 10px', color: '#d92d20', borderColor: '#d92d20' }}
                 onClick={() => setDeletingVideo(v)}
+                style={{ marginTop: 4, background: 'none', border: 'none', padding: 0, fontSize: 12, fontWeight: 600, color: '#d92d20', cursor: 'pointer' }}
               >
                 Delete
               </button>
@@ -1074,7 +1082,11 @@ function DangerZoneSection() {
   return (
     <section>
       <h3 style={{ fontSize: 16, marginBottom: 12, color: '#d92d20' }}>Danger zone</h3>
-      <button type="button" className="btn btn-ghost" style={{ borderColor: '#d92d20', color: '#d92d20' }} onClick={() => setShowConfirm(true)}>
+      <button
+        type="button"
+        onClick={() => setShowConfirm(true)}
+        style={{ background: 'none', border: 'none', padding: 0, fontSize: 14, fontWeight: 600, color: '#d92d20', cursor: 'pointer' }}
+      >
         Delete my account
       </button>
 
