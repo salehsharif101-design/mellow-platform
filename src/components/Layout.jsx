@@ -1,5 +1,5 @@
 import { Link, Outlet } from 'react-router-dom'
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import Logo from './Logo.jsx'
 import UserMenu from './UserMenu.jsx'
 import NavHighlight, { NEW_USER_HINT_KEYS } from './NavHighlight.jsx'
@@ -13,20 +13,27 @@ const HideChromeContext = createContext(null)
 // Lets a page hide the shared nav/footer while it's mounted (e.g. onboarding
 // flows) without restructuring the route tree. Pass `false` to opt back in
 // conditionally (e.g. only while onboarding is actually in progress).
+// Reference-counted so nested/simultaneous callers (a parent onboarding page
+// plus a child sub-step) don't stomp on each other — chrome only reappears
+// once every active caller has unmounted or opted out.
 export function useHideChrome(shouldHide = true) {
-  const setHideChrome = useContext(HideChromeContext)
+  const registerHide = useContext(HideChromeContext)
   useEffect(() => {
-    if (!setHideChrome || !shouldHide) return undefined
-    setHideChrome(true)
-    return () => setHideChrome(false)
-  }, [setHideChrome, shouldHide])
+    if (!registerHide || !shouldHide) return undefined
+    return registerHide()
+  }, [registerHide, shouldHide])
 }
 
 export default function Layout() {
   const { session, userType } = useAuth()
   const { unreadMessages } = useNotifications()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [hideChrome, setHideChrome] = useState(false)
+  const [hideCount, setHideCount] = useState(0)
+  const hideChrome = hideCount > 0
+  const registerHide = useCallback(() => {
+    setHideCount((c) => c + 1)
+    return () => setHideCount((c) => c - 1)
+  }, [])
   const headerRef = useRef(null)
 
   const dashboardPath = userType === 'employer' ? '/employer/dashboard' : '/dashboard'
@@ -130,7 +137,7 @@ export default function Layout() {
       )}
 
       <main style={{ flex: 1 }}>
-        <HideChromeContext.Provider value={setHideChrome}>
+        <HideChromeContext.Provider value={registerHide}>
           <Outlet />
         </HideChromeContext.Provider>
       </main>

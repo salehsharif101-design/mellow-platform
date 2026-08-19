@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { supabase } from '../../../../lib/supabase.js'
 import { useHideChrome } from '../../../../components/Layout.jsx'
 import VideoRecorderModal from '../../../../components/VideoRecorderModal.jsx'
@@ -182,9 +181,9 @@ export default function Step5Video({ initial, userId, onFinish, onBack, saving }
             />
           </label>
         </div>
-        <Link to="/guide" target="_blank" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600, marginTop: 8, display: 'inline-block' }}>
+        <a href="/guide" target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600, marginTop: 8, display: 'inline-block' }}>
           How to record a great video →
-        </Link>
+        </a>
       </div>
 
       {error && <p className="form-error">{error}</p>}
