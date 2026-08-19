@@ -1,3 +1,13 @@
+import { useEffect, useState } from 'react'
+import { useAuth } from '../../context/AuthContext.jsx'
+import { useHideChrome } from '../../components/Layout.jsx'
+import { supabase } from '../../lib/supabase.js'
+
+// Matches ProfileEdit.jsx's LAST_STEP for candidates and Onboarding.jsx's
+// wasIncomplete check (!company_name) for employers — the same onboarding
+// completion checks used everywhere else in the app.
+const CANDIDATE_LAST_STEP = 5
+
 const SECTION_TITLE_STYLE = { fontSize: 22, marginBottom: 4 }
 
 function SectionIcon({ emoji, color }) {
@@ -49,6 +59,41 @@ function BulletList({ items }) {
 }
 
 export default function Guide() {
+  const { user, userType } = useAuth()
+  const [onboardingIncomplete, setOnboardingIncomplete] = useState(false)
+
+  useEffect(() => {
+    if (!user || !userType) {
+      setOnboardingIncomplete(false)
+      return
+    }
+
+    let cancelled = false
+    async function check() {
+      if (userType === 'candidate') {
+        const { data } = await supabase
+          .from('candidate_profiles')
+          .select('onboarding_step')
+          .eq('user_id', user.id)
+          .maybeSingle()
+        if (!cancelled) setOnboardingIncomplete((data?.onboarding_step || 1) <= CANDIDATE_LAST_STEP)
+      } else if (userType === 'employer') {
+        const { data } = await supabase
+          .from('employer_profiles')
+          .select('company_name')
+          .eq('user_id', user.id)
+          .maybeSingle()
+        if (!cancelled) setOnboardingIncomplete(!data?.company_name)
+      }
+    }
+    check()
+    return () => {
+      cancelled = true
+    }
+  }, [user, userType])
+
+  useHideChrome(onboardingIncomplete)
+
   return (
     <div className="section">
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
