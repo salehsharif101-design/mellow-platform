@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
@@ -19,8 +19,11 @@ const CANDIDATE_SELECT =
 export default function ShortlistReview() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const roleParam = searchParams.get('role')
 
   const [employerId, setEmployerId] = useState(null)
+  const [roleTitle, setRoleTitle] = useState(null)
   const [entries, setEntries] = useState([])
   const [workVideosByCandidate, setWorkVideosByCandidate] = useState({})
   const [index, setIndex] = useState(0)
@@ -32,7 +35,7 @@ export default function ShortlistReview() {
   const [showCalendly, setShowCalendly] = useState(false)
 
   useEffect(() => {
-    if (!user) return
+    if (!user || !roleParam) return
 
     async function load() {
       const { data: employer, error: employerError } = await supabase
@@ -52,11 +55,14 @@ export default function ShortlistReview() {
       }
       setEmployerId(employer.id)
 
-      const { data, error: shortlistError } = await supabase
+      let query = supabase
         .from('shortlists')
-        .select(`id, candidate_id, status, candidate_profiles(${CANDIDATE_SELECT})`)
+        .select(`id, candidate_id, role_id, status, roles(title), candidate_profiles(${CANDIDATE_SELECT})`)
         .eq('employer_id', employer.id)
         .order('created_at', { ascending: false })
+      query = roleParam === 'general' ? query.is('role_id', null) : query.eq('role_id', roleParam)
+
+      const { data, error: shortlistError } = await query
 
       if (shortlistError) {
         setError(shortlistError.message)
@@ -64,6 +70,7 @@ export default function ShortlistReview() {
         return
       }
       setEntries(data || [])
+      setRoleTitle(roleParam === 'general' ? null : data?.[0]?.roles?.title || null)
 
       const candidateIds = (data || []).map((e) => e.candidate_id)
       if (candidateIds.length > 0) {
@@ -82,14 +89,16 @@ export default function ShortlistReview() {
       setLoading(false)
     }
 
+    setLoading(true)
+    setIndex(0)
     load()
-  }, [user])
+  }, [user, roleParam])
 
   useEffect(() => {
-    if (!loading && (!employerId || entries.length === 0)) {
+    if (!roleParam || (!loading && (!employerId || entries.length === 0))) {
       navigate('/employer/shortlist')
     }
-  }, [loading, employerId, entries, navigate])
+  }, [roleParam, loading, employerId, entries, navigate])
 
   async function changeStatus(status) {
     const entry = entries[index]
@@ -129,7 +138,7 @@ export default function ShortlistReview() {
     <div style={{ position: 'fixed', inset: 0, background: '#fff', zIndex: 900, overflowY: 'auto' }}>
       <div className="shortlist-review-topbar">
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', fontWeight: 600 }}>
-          {index + 1} of {entries.length}
+          {roleTitle || 'Not tied to a role'} · {index + 1} of {entries.length}
         </p>
         <button type="button" onClick={() => navigate('/employer/shortlist')} aria-label="Exit review mode" className="icon-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="2" strokeLinecap="round">

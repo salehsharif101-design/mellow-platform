@@ -366,8 +366,12 @@ export default function EmployerDashboard() {
         </div>
       )}
 
-      <div style={{ marginTop: 28 }}>
-        <h3 style={{ fontSize: 18, marginBottom: 14 }}>What's new</h3>
+      <div id="whats-new-section" style={{ marginTop: 28, scrollMarginTop: 20 }}>
+        <h3 style={{ fontSize: 18, marginBottom: 14 }}>
+          <a href="#whats-new-section" style={{ color: 'inherit', textDecoration: 'none' }}>
+            What's new
+          </a>
+        </h3>
         {feedItems.length === 0 ? (
           <p className="card" style={{ padding: 16, fontSize: 14, color: 'var(--color-text-muted)' }}>
             You're all caught up — nothing new since your last visit.
@@ -379,7 +383,7 @@ export default function EmployerDashboard() {
                 key={item.id}
                 className="card"
                 onClick={() => navigate(item.link)}
-                style={{ padding: '14px 18px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}
+                style={{ padding: '14px 18px', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#005ef5' }}
               >
                 {item.text}
               </div>

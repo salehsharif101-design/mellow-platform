@@ -1,5 +1,5 @@
 import { Link, Outlet } from 'react-router-dom'
-import { useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import Logo from './Logo.jsx'
 import UserMenu from './UserMenu.jsx'
 import NavHighlight, { NEW_USER_HINT_KEYS } from './NavHighlight.jsx'
@@ -8,10 +8,25 @@ import { useNotifications } from '../context/NotificationContext.jsx'
 
 const NAV_LINK_STYLE = { textDecoration: 'none', fontWeight: 600, fontSize: 14 }
 
+const HideChromeContext = createContext(null)
+
+// Lets a page hide the shared nav/footer while it's mounted (e.g. onboarding
+// flows) without restructuring the route tree. Pass `false` to opt back in
+// conditionally (e.g. only while onboarding is actually in progress).
+export function useHideChrome(shouldHide = true) {
+  const setHideChrome = useContext(HideChromeContext)
+  useEffect(() => {
+    if (!setHideChrome || !shouldHide) return undefined
+    setHideChrome(true)
+    return () => setHideChrome(false)
+  }, [setHideChrome, shouldHide])
+}
+
 export default function Layout() {
   const { session, userType } = useAuth()
   const { unreadMessages } = useNotifications()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [hideChrome, setHideChrome] = useState(false)
   const headerRef = useRef(null)
 
   const dashboardPath = userType === 'employer' ? '/employer/dashboard' : '/dashboard'
@@ -29,6 +44,7 @@ export default function Layout() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      {!hideChrome && (
       <header className="app-header" ref={headerRef}>
         <div className="app-header-inner">
           <div className="app-header-left">
@@ -111,11 +127,15 @@ export default function Layout() {
           </nav>
         </div>
       </header>
+      )}
 
       <main style={{ flex: 1 }}>
-        <Outlet />
+        <HideChromeContext.Provider value={setHideChrome}>
+          <Outlet />
+        </HideChromeContext.Provider>
       </main>
 
+      {!hideChrome && (
       <footer
         className="app-footer"
         style={{
@@ -173,6 +193,7 @@ export default function Layout() {
           </div>
         </div>
       </footer>
+      )}
     </div>
   )
 }

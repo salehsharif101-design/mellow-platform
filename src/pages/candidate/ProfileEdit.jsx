@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { useHideChrome } from '../../components/Layout.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
 import OnboardingProgress from './onboarding/OnboardingProgress.jsx'
@@ -67,6 +68,9 @@ export default function ProfileEdit() {
     loadProfile()
   }, [user])
 
+  const isComplete = (profile?.onboarding_step || 1) > LAST_STEP
+  useHideChrome(!loading && (!isComplete || justCompleted))
+
   async function saveStep(fields, nextStep) {
     setSaving(true)
     try {
@@ -104,8 +108,6 @@ export default function ProfileEdit() {
       </div>
     )
   }
-
-  const isComplete = (profile?.onboarding_step || 1) > LAST_STEP
 
   if (isComplete) {
     if (justCompleted) {

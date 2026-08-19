@@ -96,9 +96,17 @@ export default function RoleApplicants() {
     if (newStatus === 'shortlisted' && previousStatus !== 'shortlisted') {
       await supabase
         .from('shortlists')
-        .upsert({ employer_id: role.employer_id, candidate_id: candidateId }, { onConflict: 'employer_id,candidate_id', ignoreDuplicates: true })
+        .upsert(
+          { employer_id: role.employer_id, candidate_id: candidateId, role_id: role.id },
+          { onConflict: 'employer_id,candidate_id,role_id', ignoreDuplicates: true },
+        )
     } else if (previousStatus === 'shortlisted' && newStatus !== 'shortlisted') {
-      await supabase.from('shortlists').delete().eq('employer_id', role.employer_id).eq('candidate_id', candidateId)
+      await supabase
+        .from('shortlists')
+        .delete()
+        .eq('employer_id', role.employer_id)
+        .eq('candidate_id', candidateId)
+        .eq('role_id', role.id)
     }
   }
 

@@ -246,6 +246,18 @@ export default function CandidateDashboard() {
         }
       })
 
+      // Shortlisted-but-no-Calendly-link nudge — a standing reminder rather
+      // than a "since last visit" event, so it persists every load (like the
+      // deadline alert above) until they add the link.
+      if (shortlistRows.length > 0 && !candidate.calendly_url) {
+        items.unshift({
+          id: 'calendly-nudge',
+          text: 'You have been shortlisted. Add your Calendly link so the employer can book a meeting with you.',
+          link: '/profile/edit#linkedin-section',
+          timestamp: new Date().toISOString(),
+        })
+      }
+
       items.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
 
       setProfile(candidate)
@@ -405,7 +417,11 @@ export default function CandidateDashboard() {
       </div>
 
       <div id="whats-new-section" style={{ marginTop: 28, scrollMarginTop: 20 }}>
-        <h3 style={{ fontSize: 18, marginBottom: 14 }}>What's new</h3>
+        <h3 style={{ fontSize: 18, marginBottom: 14 }}>
+          <a href="#whats-new-section" style={{ color: 'inherit', textDecoration: 'none' }}>
+            What's new
+          </a>
+        </h3>
         {feedItems.length === 0 ? (
           <p className="card" style={{ padding: 16, fontSize: 14, color: 'var(--color-text-muted)' }}>
             You're all caught up — nothing new since your last visit, including no profile views yet. Keep your
@@ -418,7 +434,7 @@ export default function CandidateDashboard() {
                 key={item.id}
                 className="card"
                 onClick={() => navigate(item.link)}
-                style={{ padding: '14px 18px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}
+                style={{ padding: '14px 18px', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#005ef5' }}
               >
                 {item.text}
               </div>

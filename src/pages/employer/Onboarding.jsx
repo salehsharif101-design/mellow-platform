@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { useHideChrome } from '../../components/Layout.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
@@ -89,6 +90,8 @@ export default function EmployerOnboarding() {
 
     loadProfile()
   }, [user])
+
+  useHideChrome(!loading && wasIncomplete)
 
   function handleLogoChange(e) {
     const file = e.target.files?.[0]

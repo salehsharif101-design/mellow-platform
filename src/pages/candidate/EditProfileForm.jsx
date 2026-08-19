@@ -797,6 +797,9 @@ function LinkedInSection({
         </div>
         <div className="field">
           <label>Calendly link (optional)</label>
+          <p style={{ marginTop: -2, marginBottom: 6, fontSize: 13, color: 'var(--color-text-muted)' }}>
+            Add your Calendly link so employers can book a meeting with you directly from your profile.
+          </p>
           <input
             ref={fieldRefs.calendlyUrl}
             className="input"
