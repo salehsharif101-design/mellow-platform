@@ -69,7 +69,10 @@ export default function ProfileEdit() {
   }, [user])
 
   const isComplete = (profile?.onboarding_step || 1) > LAST_STEP
-  useHideChrome(!loading && (!isComplete || justCompleted))
+  // `isComplete` defaults to false while `profile` is still null (loading),
+  // so this hides chrome by default and only reveals it once we've
+  // confirmed the profile is actually complete — no flash on refresh.
+  useHideChrome(!isComplete || justCompleted)
 
   async function saveStep(fields, nextStep) {
     setSaving(true)

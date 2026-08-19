@@ -21,7 +21,10 @@ export default function EmployerOnboarding() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [wasIncomplete, setWasIncomplete] = useState(false)
+  // Defaults to true (assume mid-onboarding) so chrome stays hidden by
+  // default until loadProfile() confirms the real value — avoids a flash
+  // of the nav bar while the profile is still loading.
+  const [wasIncomplete, setWasIncomplete] = useState(true)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showWelcome, setShowWelcome] = useState(false)
   const [justCompleted, setJustCompleted] = useState(false)
@@ -91,7 +94,7 @@ export default function EmployerOnboarding() {
     loadProfile()
   }, [user])
 
-  useHideChrome(!loading && wasIncomplete)
+  useHideChrome(wasIncomplete)
 
   function handleLogoChange(e) {
     const file = e.target.files?.[0]

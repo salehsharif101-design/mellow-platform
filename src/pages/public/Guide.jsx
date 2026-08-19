@@ -59,40 +59,48 @@ function BulletList({ items }) {
 }
 
 export default function Guide() {
-  const { user, userType } = useAuth()
-  const [onboardingIncomplete, setOnboardingIncomplete] = useState(false)
+  const { user, userType, loading: authLoading } = useAuth()
+  // Defaults to 'checking' (chrome hidden) so a mid-onboarding talent never
+  // sees a flash of the nav bar while we work out who they are — it only
+  // flips to 'show' once we've positively confirmed onboarding is complete
+  // (or that there's no signed-in user at all).
+  const [status, setStatus] = useState('checking')
 
   useEffect(() => {
-    if (!user || !userType) {
-      setOnboardingIncomplete(false)
+    if (authLoading) return
+    if (!user) {
+      setStatus('show')
       return
     }
+    if (!userType) return // user_type still loading — keep waiting
 
     let cancelled = false
     async function check() {
+      let incomplete = false
       if (userType === 'candidate') {
         const { data } = await supabase
           .from('candidate_profiles')
           .select('onboarding_step')
           .eq('user_id', user.id)
           .maybeSingle()
-        if (!cancelled) setOnboardingIncomplete((data?.onboarding_step || 1) <= CANDIDATE_LAST_STEP)
+        incomplete = (data?.onboarding_step || 1) <= CANDIDATE_LAST_STEP
       } else if (userType === 'employer') {
         const { data } = await supabase
           .from('employer_profiles')
           .select('company_name')
           .eq('user_id', user.id)
           .maybeSingle()
-        if (!cancelled) setOnboardingIncomplete(!data?.company_name)
+        incomplete = !data?.company_name
       }
+      if (!cancelled) setStatus(incomplete ? 'hide' : 'show')
     }
     check()
     return () => {
       cancelled = true
     }
-  }, [user, userType])
+  }, [user, userType, authLoading])
 
-  useHideChrome(onboardingIncomplete)
+  useHideChrome(status !== 'show')
 
   return (
     <div className="section">
