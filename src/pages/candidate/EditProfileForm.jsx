@@ -816,7 +816,6 @@ function LinkedInSection({
 }
 
 function VideoSection({ userId, introVideoUrl, setIntroVideoUrl }) {
-  const [file, setFile] = useState(null)
   const [localPreviewUrl, setLocalPreviewUrl] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -843,8 +842,8 @@ function VideoSection({ userId, introVideoUrl, setIntroVideoUrl }) {
         URL.revokeObjectURL(objectUrl)
         return
       }
-      setFile(selected)
       setLocalPreviewUrl(objectUrl)
+      handleUpload(selected)
     }
     probe.src = objectUrl
   }
@@ -860,8 +859,7 @@ function VideoSection({ userId, introVideoUrl, setIntroVideoUrl }) {
     processFile(recordedFile)
   }
 
-  async function handleUpload() {
-    if (!file) return
+  async function handleUpload(file) {
     setUploading(true)
     setError('')
     try {
@@ -873,7 +871,6 @@ function VideoSection({ userId, introVideoUrl, setIntroVideoUrl }) {
       if (uploadError) throw uploadError
       const { data } = supabase.storage.from('candidate-videos').getPublicUrl(path)
       setIntroVideoUrl(`${data.publicUrl}?t=${Date.now()}`)
-      setFile(null)
       setLocalPreviewUrl(null)
     } catch (err) {
       setError(err.message)
@@ -884,62 +881,75 @@ function VideoSection({ userId, introVideoUrl, setIntroVideoUrl }) {
 
   function handleRemove() {
     setIntroVideoUrl(null)
-    setFile(null)
     setLocalPreviewUrl(null)
   }
 
   return (
     <section id="video-section">
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Intro video</h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 260 }}>
         {previewUrl && (
           <video
             src={previewUrl}
             controls
             style={{
               width: '100%',
-              maxWidth: 400,
               height: 'auto',
               objectFit: 'contain',
-              borderRadius: 12,
+              borderRadius: 10,
               background: '#000',
-              margin: '0 auto',
               display: 'block',
             }}
           />
         )}
-        <div className="field">
-          <label>Replace video (mp4, mov, or webm — up to 50MB)</label>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button type="button" className="btn btn-primary" onClick={() => setShowRecorder(true)}>
-              ● Record video
-            </button>
-            <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
-              Upload video
-              <input type="file" accept={VIDEO_TYPES.join(',')} onChange={handleFileChange} style={{ display: 'none' }} />
-            </label>
-          </div>
-          <Link to="/guide" target="_blank" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600, marginTop: 8, display: 'inline-block' }}>
-            How to record a great video →
-          </Link>
-        </div>
-        {error && <p className="form-error">{error}</p>}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-primary" type="button" onClick={handleUpload} disabled={!file || uploading} style={{ alignSelf: 'flex-start' }}>
-            {uploading ? 'Uploading…' : 'Upload video'}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Record video"
+            title="Record video"
+            onClick={() => setShowRecorder(true)}
+            disabled={uploading}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 7l-7 5 7 5V7z" />
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+            </svg>
           </button>
-          {introVideoUrl && (
-            <button
-              type="button"
-              className="btn btn-ghost"
-              style={{ color: '#d92d20', borderColor: '#d92d20' }}
-              onClick={handleRemove}
+          <label className="icon-btn" style={{ cursor: uploading ? 'default' : 'pointer' }} aria-label="Upload video" title="Upload video">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <input
+              type="file"
+              accept={VIDEO_TYPES.join(',')}
+              onChange={handleFileChange}
               disabled={uploading}
-            >
-              Remove video
-            </button>
-          )}
+              style={{ display: 'none' }}
+            />
+          </label>
+          {uploading && <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Uploading…</span>}
         </div>
+
+        {error && <p className="form-error" style={{ fontSize: 13 }}>{error}</p>}
+
+        {introVideoUrl && !uploading && (
+          <button
+            type="button"
+            onClick={handleRemove}
+            style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#d92d20', cursor: 'pointer', width: 'fit-content' }}
+          >
+            Remove video
+          </button>
+        )}
+
+        <Link to="/guide" target="_blank" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600, width: 'fit-content' }}>
+          How to record a great video →
+        </Link>
+
         <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
           Click Save below to apply your video change.
         </p>

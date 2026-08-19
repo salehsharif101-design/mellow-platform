@@ -39,7 +39,12 @@ export default function WorkVideoTip({ candidateId, userId }) {
       </div>
 
       {showAddVideo && (
-        <AddWorkVideoModal candidateId={candidateId} userId={userId} onClose={() => setShowAddVideo(false)} onAdded={() => {}} />
+        <AddWorkVideoModal
+          candidateId={candidateId}
+          userId={userId}
+          onClose={() => setShowAddVideo(false)}
+          onAdded={() => navigate('/dashboard')}
+        />
       )}
     </div>
   )

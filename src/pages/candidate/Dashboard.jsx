@@ -475,8 +475,9 @@ export default function CandidateDashboard() {
         to="/guide"
         target="_blank"
         style={{
-          marginTop: 20,
-          display: 'inline-flex',
+          marginTop: 12,
+          display: 'flex',
+          width: 'fit-content',
           alignItems: 'center',
           gap: 6,
           fontSize: 14,
