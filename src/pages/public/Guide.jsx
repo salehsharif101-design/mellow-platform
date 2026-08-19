@@ -53,7 +53,8 @@ export default function Guide() {
     <div className="section">
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
         <div style={{ textAlign: 'center' }}>
-          <h1 style={{ fontSize: 34 }}>How to record a video that gets you noticed</h1>
+          <img src="/thinking.png" alt="" style={{ width: '100%', maxWidth: 260, margin: '0 auto', display: 'block' }} />
+          <h1 style={{ marginTop: 24, fontSize: 34 }}>How to record a video that gets you noticed</h1>
           <p style={{ marginTop: 12, fontSize: 16, color: 'var(--color-text-muted)', maxWidth: 560, margin: '12px auto 0' }}>
             You do not need fancy equipment or a script. You need to be clear, honest, and yourself. Here is
             everything that makes a Mellow video work.

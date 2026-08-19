@@ -28,11 +28,12 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
   const recordedBlobRef = useRef(null)
   const streamRef = useRef(null)
 
-  useEffect(() => {
+  function startCamera() {
     if (!navigator.mediaDevices?.getUserMedia) {
       setError('Your browser does not support in-browser recording. Please upload a video file instead.')
       return
     }
+    setError('')
     let cancelled = false
     navigator.mediaDevices
       .getUserMedia({ video: { facingMode: 'user' }, audio: true })
@@ -52,6 +53,12 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
     return () => {
       cancelled = true
     }
+  }
+
+  useEffect(() => {
+    const cancel = startCamera()
+    return cancel
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -112,10 +119,30 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
   }
 
   function handleRetake() {
+    // Stop everything from the previous take before starting fresh — the
+    // old approach left the previous getUserMedia stream running (camera
+    // light stays on, tracks never released) while the live <video> lost
+    // its srcObject on remount and never got it back, since the effect
+    // that binds it only reruns when the `stream` reference itself
+    // changes. Tearing down and re-acquiring a new stream fixes both: the
+    // old hardware is actually released, and the new stream reference
+    // triggers that effect again for the freshly-mounted preview element.
+    if (timerRef.current) clearInterval(timerRef.current)
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop()
+    }
+    mediaRecorderRef.current = null
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+    setStream(null)
+
     if (recordedUrl) URL.revokeObjectURL(recordedUrl)
     recordedBlobRef.current = null
     setRecordedUrl(null)
+    setRecording(false)
     setSecondsLeft(MAX_SECONDS)
+
+    startCamera()
   }
 
   function handleUse() {
@@ -140,7 +167,7 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
 
       {!error && !recordedUrl && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', background: '#000' }}>
+          <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', background: '#000', minHeight: 240 }}>
             <video
               ref={liveVideoRef}
               autoPlay
@@ -148,6 +175,21 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
               playsInline
               style={{ width: '100%', maxHeight: '60vh', display: 'block' }}
             />
+            {!stream && (
+              <p
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff',
+                  fontSize: 14,
+                }}
+              >
+                Starting camera…
+              </p>
+            )}
             {recording && (
               <div
                 style={{

@@ -471,6 +471,23 @@ export default function CandidateDashboard() {
         View saved roles
       </Link>
 
+      <Link
+        to="/guide"
+        target="_blank"
+        style={{
+          marginTop: 20,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          fontSize: 14,
+          color: 'var(--color-primary)',
+          fontWeight: 600,
+          textDecoration: 'none',
+        }}
+      >
+        🎥 Video guide: how to record a great video →
+      </Link>
+
       {strengthPct < 100 && (
         <div className="card" style={{ marginTop: 32, padding: 24 }}>
           <h3 style={{ fontSize: 18 }}>Profile strength</h3>
