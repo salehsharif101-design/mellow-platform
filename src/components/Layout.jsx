@@ -196,6 +196,7 @@ export default function Layout() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14, opacity: 0.85 }}>
               <span>hello@joinmellow.xyz</span>
               <Link to="/privacy" style={{ color: '#fff', textDecoration: 'none' }}>Privacy Policy</Link>
+              <Link to="/terms" style={{ color: '#fff', textDecoration: 'none' }}>Terms of Service</Link>
             </div>
           </div>
         </div>

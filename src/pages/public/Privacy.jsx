@@ -28,6 +28,13 @@ export default function Privacy() {
           delete your videos at any time from your profile.
         </p>
 
+        <h3 style={{ marginTop: 32, fontSize: 18 }}>Messages</h3>
+        <p style={{ marginTop: 10, fontSize: 16, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
+          Messages sent between users on Mellow are stored securely on our platform. Mellow may access message
+          content in limited circumstances, including investigating reports of abuse or as required by applicable
+          law. We do not sell or share message content with third parties.
+        </p>
+
         <h3 style={{ marginTop: 32, fontSize: 18 }}>Your rights</h3>
         <p style={{ marginTop: 10, fontSize: 16, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
           You can edit or delete your profile and all associated data at any time. To request full account deletion
