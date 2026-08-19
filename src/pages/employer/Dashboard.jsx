@@ -367,11 +367,7 @@ export default function EmployerDashboard() {
       )}
 
       <div id="whats-new-section" style={{ marginTop: 28, scrollMarginTop: 20 }}>
-        <h3 style={{ fontSize: 18, marginBottom: 14 }}>
-          <a href="#whats-new-section" style={{ color: 'inherit', textDecoration: 'none' }}>
-            What's new
-          </a>
-        </h3>
+        <h3 style={{ fontSize: 18, marginBottom: 14 }}>What's new</h3>
         {feedItems.length === 0 ? (
           <p className="card" style={{ padding: 16, fontSize: 14, color: 'var(--color-text-muted)' }}>
             You're all caught up — nothing new since your last visit.

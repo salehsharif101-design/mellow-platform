@@ -8,6 +8,7 @@ import CalendlyModal from '../../components/CalendlyModal.jsx'
 import MessageThread from '../../components/MessageThread.jsx'
 import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
 import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
+import ProfileContactIcons from '../../components/ProfileContactIcons.jsx'
 import ShareButton from '../../components/ShareButton.jsx'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 
@@ -93,7 +94,7 @@ export default function PublicProfile() {
   const isEmployerViewer = userType === 'employer' && !isOwner
   const canBookMeeting = user && !isOwner && profile.calendly_url
   const showSignupCta = !user
-  const hasActions = isOwner || canBookMeeting || isEmployerViewer || showSignupCta
+  const hasActions = isOwner || showSignupCta
 
   return (
     <div className="section">
@@ -104,16 +105,6 @@ export default function PublicProfile() {
               <Link to="/profile/edit" className="btn btn-primary">
                 Edit profile
               </Link>
-            )}
-            {canBookMeeting && (
-              <button className="btn btn-primary" onClick={() => setShowCalendly(true)}>
-                Book a meeting
-              </button>
-            )}
-            {isEmployerViewer && (
-              <button className="btn btn-ghost" onClick={() => setShowContact(true)}>
-                Contact
-              </button>
             )}
             {showSignupCta && (
               <Link to="/signup" className="btn btn-primary">
@@ -136,7 +127,14 @@ export default function PublicProfile() {
                     label={profile.full_name}
                     size={19}
                   />
-                  <ShareButton url={`https://beta.joinmellow.xyz/profile/${profile.username || profile.id}`} label="Share profile" />
+                  <ProfileContactIcons
+                    calendlyUrl={canBookMeeting ? profile.calendly_url : null}
+                    onBookMeeting={() => setShowCalendly(true)}
+                    onMessage={isEmployerViewer ? () => setShowContact(true) : null}
+                    label={profile.full_name}
+                    size={19}
+                  />
+                  <ShareButton url={`https://beta.joinmellow.xyz/profile/${profile.username || profile.id}`} label="Share profile" size={19} />
                 </div>
                 <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>
                   {profile.current_company ? `${profile.job_title} at ${profile.current_company}` : profile.job_title}
