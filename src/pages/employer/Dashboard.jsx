@@ -391,7 +391,9 @@ export default function EmployerDashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20, marginTop: 28 }}>
         <Link to="/employer/roles" className="card stat-card-link" style={{ padding: 24 }}>
           <h3 style={{ fontSize: 16 }}>Active roles</h3>
-          <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10 }}>{activeRoles.length}</p>
+          <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10, color: activeRoles.length > 0 ? '#005ef5' : undefined }}>
+            {activeRoles.length}
+          </p>
         </Link>
         <Link to="/employer/applicants" className="card stat-card-link" style={{ padding: 24 }}>
           <h3 style={{ fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -402,11 +404,15 @@ export default function EmployerDashboard() {
               </span>
             )}
           </h3>
-          <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10 }}>{applications.length}</p>
+          <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10, color: applications.length > 0 ? '#005ef5' : undefined }}>
+            {applications.length}
+          </p>
         </Link>
         <Link to="/employer/shortlist" className="card stat-card-link" style={{ padding: 24 }}>
           <h3 style={{ fontSize: 16 }}>Shortlisted talent</h3>
-          <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10 }}>{shortlistCount}</p>
+          <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10, color: shortlistCount > 0 ? '#005ef5' : undefined }}>
+            {shortlistCount}
+          </p>
         </Link>
         <Link to="/employer/roles/new" className="card stat-card-link" style={{ padding: 24 }}>
           <h3 style={{ fontSize: 16 }}>Post a new role</h3>

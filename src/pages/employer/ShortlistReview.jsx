@@ -216,29 +216,28 @@ export default function ShortlistReview() {
           </div>
 
           <div style={{ marginTop: 40, display: 'flex', justifyContent: 'center' }}>
-            <div style={{ width: '100%', maxWidth: 320 }}>
-              {c.intro_video_url ? (
-                <VideoPlayCard url={c.intro_video_url} style={{ width: '100%' }} />
-              ) : (
-                <div
-                  style={{
-                    borderRadius: 10,
-                    background: 'var(--color-bg-soft)',
-                    aspectRatio: '9 / 16',
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--color-text-muted)',
-                    fontSize: 14,
-                    textAlign: 'center',
-                    padding: 16,
-                  }}
-                >
-                  No intro video yet
-                </div>
-              )}
-            </div>
+            {c.intro_video_url ? (
+              <VideoPlayCard url={c.intro_video_url} format="auto" style={{ width: '100%' }} />
+            ) : (
+              <div
+                style={{
+                  borderRadius: 10,
+                  background: 'var(--color-bg-soft)',
+                  aspectRatio: '9 / 16',
+                  width: '100%',
+                  maxWidth: 320,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--color-text-muted)',
+                  fontSize: 14,
+                  textAlign: 'center',
+                  padding: 16,
+                }}
+              >
+                No intro video yet
+              </div>
+            )}
           </div>
 
           {workVideos.length > 0 && (

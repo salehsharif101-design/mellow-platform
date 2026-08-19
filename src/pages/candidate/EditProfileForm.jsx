@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase.js'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
+import VideoRecorderModal from '../../components/VideoRecorderModal.jsx'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
 import { deleteAccount } from '../../lib/deleteAccount.js'
 
@@ -819,12 +820,11 @@ function VideoSection({ userId, introVideoUrl, setIntroVideoUrl }) {
   const [localPreviewUrl, setLocalPreviewUrl] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const [showRecorder, setShowRecorder] = useState(false)
 
   const previewUrl = localPreviewUrl || introVideoUrl
 
-  function handleFileChange(e) {
-    const selected = e.target.files?.[0]
-    if (!selected) return
+  function processFile(selected) {
     setError('')
     if (!VIDEO_TYPES.includes(selected.type)) {
       setError('Please upload an mp4, mov, or webm file.')
@@ -847,6 +847,17 @@ function VideoSection({ userId, introVideoUrl, setIntroVideoUrl }) {
       setLocalPreviewUrl(objectUrl)
     }
     probe.src = objectUrl
+  }
+
+  function handleFileChange(e) {
+    const selected = e.target.files?.[0]
+    if (!selected) return
+    processFile(selected)
+  }
+
+  function handleRecorded(recordedFile) {
+    setShowRecorder(false)
+    processFile(recordedFile)
   }
 
   async function handleUpload() {
@@ -888,7 +899,7 @@ function VideoSection({ userId, introVideoUrl, setIntroVideoUrl }) {
             style={{
               width: '100%',
               maxWidth: 400,
-              aspectRatio: '9 / 16',
+              height: 'auto',
               objectFit: 'contain',
               borderRadius: 12,
               background: '#000',
@@ -899,10 +910,18 @@ function VideoSection({ userId, introVideoUrl, setIntroVideoUrl }) {
         )}
         <div className="field">
           <label>Replace video (mp4, mov, or webm — up to 50MB)</label>
-          <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: -4, marginBottom: 8 }}>
-            Record vertically (portrait) for the best fit — that's how your video will be shown.
-          </p>
-          <input type="file" accept={VIDEO_TYPES.join(',')} onChange={handleFileChange} />
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" className="btn btn-primary" onClick={() => setShowRecorder(true)}>
+              ● Record video
+            </button>
+            <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
+              Upload video
+              <input type="file" accept={VIDEO_TYPES.join(',')} onChange={handleFileChange} style={{ display: 'none' }} />
+            </label>
+          </div>
+          <Link to="/guide" target="_blank" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600, marginTop: 8, display: 'inline-block' }}>
+            How to record a great video →
+          </Link>
         </div>
         {error && <p className="form-error">{error}</p>}
         <div style={{ display: 'flex', gap: 8 }}>
@@ -925,6 +944,8 @@ function VideoSection({ userId, introVideoUrl, setIntroVideoUrl }) {
           Click Save below to apply your video change.
         </p>
       </div>
+
+      {showRecorder && <VideoRecorderModal onClose={() => setShowRecorder(false)} onConfirm={handleRecorded} />}
     </section>
   )
 }

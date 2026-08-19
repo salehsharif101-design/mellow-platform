@@ -3,8 +3,26 @@ import { useRef, useState } from 'react'
 export default function VideoPlayCard({ url, style, format = 'vertical' }) {
   const videoRef = useRef(null)
   const [playing, setPlaying] = useState(false)
+  const [naturalSize, setNaturalSize] = useState(null)
 
+  const auto = format === 'auto'
   const horizontal = format === 'horizontal'
+
+  function handleLoadedMetadata() {
+    if (!auto) return
+    const v = videoRef.current
+    if (v?.videoWidth && v?.videoHeight) {
+      setNaturalSize({ width: v.videoWidth, height: v.videoHeight })
+    }
+  }
+
+  // "auto" reads the video's own dimensions once metadata loads and sizes
+  // the container to match, rather than assuming an orientation — used for
+  // intro videos, which candidates can record either way. Until metadata is
+  // available it falls back to the portrait box the intro video used
+  // before, so there's no layout jump on the common case.
+  const isPortrait = auto ? (naturalSize ? naturalSize.height > naturalSize.width : true) : !horizontal
+  const aspectRatio = auto && naturalSize ? `${naturalSize.width} / ${naturalSize.height}` : isPortrait ? '9 / 16' : '16 / 9'
 
   return (
     <div
@@ -13,9 +31,9 @@ export default function VideoPlayCard({ url, style, format = 'vertical' }) {
         borderRadius: 10,
         overflow: 'hidden',
         background: '#000',
-        aspectRatio: horizontal ? '16 / 9' : '9 / 16',
+        aspectRatio,
         width: '100%',
-        maxWidth: horizontal ? 640 : 400,
+        maxWidth: isPortrait ? 400 : 640,
         margin: '0 auto',
         ...style,
       }}
@@ -26,6 +44,7 @@ export default function VideoPlayCard({ url, style, format = 'vertical' }) {
         controls={playing}
         playsInline
         webkit-playsinline="true"
+        onLoadedMetadata={handleLoadedMetadata}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
         style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain', background: '#000' }}

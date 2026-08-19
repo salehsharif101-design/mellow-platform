@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../../../../lib/supabase.js'
+import VideoRecorderModal from '../../../../components/VideoRecorderModal.jsx'
 
 const MAX_DURATION_SECONDS = 60
 const MAX_FILE_BYTES = 50 * 1024 * 1024 // matches the candidate-videos bucket limit
@@ -59,6 +61,7 @@ export default function Step5Video({ initial, userId, onFinish, onBack, saving }
   const [previewUrl, setPreviewUrl] = useState(initial.intro_video_url || null)
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [showRecorder, setShowRecorder] = useState(false)
 
   useEffect(() => {
     return () => {
@@ -71,9 +74,7 @@ export default function Step5Video({ initial, userId, onFinish, onBack, saving }
     return <TipsScreen onContinue={() => setShowTips(false)} />
   }
 
-  function handleFileChange(e) {
-    const selected = e.target.files?.[0]
-    if (!selected) return
+  function processFile(selected) {
     setError('')
 
     if (!ACCEPTED_TYPES.includes(selected.type)) {
@@ -98,6 +99,17 @@ export default function Step5Video({ initial, userId, onFinish, onBack, saving }
       setPreviewUrl(objectUrl)
     }
     probe.src = objectUrl
+  }
+
+  function handleFileChange(e) {
+    const selected = e.target.files?.[0]
+    if (!selected) return
+    processFile(selected)
+  }
+
+  function handleRecorded(recordedFile) {
+    setShowRecorder(false)
+    processFile(recordedFile)
   }
 
   async function handleUpload() {
@@ -141,7 +153,7 @@ export default function Step5Video({ initial, userId, onFinish, onBack, saving }
           style={{
             width: '100%',
             maxWidth: 400,
-            aspectRatio: '9 / 16',
+            height: 'auto',
             objectFit: 'contain',
             borderRadius: 12,
             background: '#000',
@@ -152,11 +164,25 @@ export default function Step5Video({ initial, userId, onFinish, onBack, saving }
       )}
 
       <div className="field">
-        <label htmlFor="video">Upload your 60-second intro (mp4, mov, or webm — up to 50MB)</label>
-        <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: -4, marginBottom: 8 }}>
-          Record vertically (portrait) for the best fit — that's how your video will be shown.
-        </p>
-        <input id="video" type="file" accept="video/mp4,video/quicktime,video/webm" onChange={handleFileChange} />
+        <label htmlFor="video">Your 60-second intro (mp4, mov, or webm — up to 50MB)</label>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button type="button" className="btn btn-primary" onClick={() => setShowRecorder(true)}>
+            ● Record video
+          </button>
+          <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
+            Upload video
+            <input
+              id="video"
+              type="file"
+              accept="video/mp4,video/quicktime,video/webm"
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+            />
+          </label>
+        </div>
+        <Link to="/guide" target="_blank" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600, marginTop: 8, display: 'inline-block' }}>
+          How to record a great video →
+        </Link>
       </div>
 
       {error && <p className="form-error">{error}</p>}
@@ -174,6 +200,8 @@ export default function Step5Video({ initial, userId, onFinish, onBack, saving }
           {uploading || saving ? 'Uploading…' : 'Upload & finish'}
         </button>
       </div>
+
+      {showRecorder && <VideoRecorderModal onClose={() => setShowRecorder(false)} onConfirm={handleRecorded} />}
     </div>
   )
 }

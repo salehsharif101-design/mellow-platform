@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import Modal from './Modal.jsx'
 import { supabase } from '../lib/supabase.js'
 
@@ -104,10 +105,12 @@ export default function AddWorkVideoModal({ candidateId, userId, onClose, onAdde
         <div className="field">
           <label htmlFor="work-video-file">Video file (mp4, mov, or webm — up to 50MB)</label>
           <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: -4, marginBottom: 8 }}>
-            You can record in any orientation. Screen recordings and presentations work best horizontally. Talking
-            head videos work best vertically.
+            You can record in any orientation.
           </p>
           <input id="work-video-file" type="file" accept="video/mp4,video/quicktime,video/webm" onChange={handleFileChange} />
+          <Link to="/guide" target="_blank" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600, marginTop: 8, display: 'inline-block' }}>
+            How to record a great video →
+          </Link>
         </div>
         {error && <p className="form-error">{error}</p>}
         <div style={{ display: 'flex', gap: 12 }}>

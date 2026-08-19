@@ -1,5 +1,7 @@
+import { createPortal } from 'react-dom'
+
 export default function Modal({ title, onClose, children, width = 480 }) {
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed',
@@ -38,6 +40,7 @@ export default function Modal({ title, onClose, children, width = 480 }) {
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

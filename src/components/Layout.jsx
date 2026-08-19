@@ -134,7 +134,7 @@ export default function Layout() {
           <div>
             <Logo size={20} white />
             <p style={{ marginTop: 12, opacity: 0.85, fontSize: 14 }}>
-              Hire on video, not paper.
+              Meet people, not documents.
             </p>
           </div>
           <div>

@@ -433,19 +433,27 @@ export default function CandidateDashboard() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
           <Link to="/applications" className="card stat-card-link" style={{ padding: 20 }}>
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Applications sent</p>
-            <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{applications.length}</p>
+            <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6, color: applications.length > 0 ? '#005ef5' : undefined }}>
+              {applications.length}
+            </p>
           </Link>
           <Link to="/profile-views" className="card stat-card-link" style={{ padding: 20 }}>
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Profile views this week</p>
-            <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{weeklyViewCount}</p>
+            <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6, color: weeklyViewCount > 0 ? '#005ef5' : undefined }}>
+              {weeklyViewCount}
+            </p>
           </Link>
           <Link to="/shortlisted" className="card stat-card-link" style={{ padding: 20 }}>
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Times shortlisted</p>
-            <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{shortlistCount ?? 0}</p>
+            <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6, color: (shortlistCount ?? 0) > 0 ? '#005ef5' : undefined }}>
+              {shortlistCount ?? 0}
+            </p>
           </Link>
           <Link to="/messages" className="card stat-card-link" style={{ padding: 20 }}>
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Messages received</p>
-            <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{messagesReceivedCount}</p>
+            <p style={{ fontSize: 28, fontWeight: 700, marginTop: 6, color: messagesReceivedCount > 0 ? '#005ef5' : undefined }}>
+              {messagesReceivedCount}
+            </p>
           </Link>
         </div>
       </div>
@@ -518,7 +526,6 @@ export default function CandidateDashboard() {
             marginTop: 24,
             padding: '24px 28px',
             background: '#EEF4FF',
-            borderLeft: '4px solid #005ef5',
             borderRadius: 10,
           }}
         >
@@ -528,9 +535,14 @@ export default function CandidateDashboard() {
             what you are capable of. A designer can walk through a project. A developer can screen record a problem
             they solved. A marketer can break down a campaign.
           </p>
-          <button type="button" className="btn btn-primary" onClick={() => setShowAddVideo(true)} style={{ marginTop: 16 }}>
-            Add your first work video
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 16, flexWrap: 'wrap' }}>
+            <button type="button" className="btn btn-primary" onClick={() => setShowAddVideo(true)}>
+              Add your first work video
+            </button>
+            <Link to="/guide" target="_blank" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}>
+              How to record a great video →
+            </Link>
+          </div>
         </div>
       )}
 
