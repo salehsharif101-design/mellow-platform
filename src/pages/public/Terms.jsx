@@ -51,7 +51,7 @@ export default function Terms() {
 
         <h3 style={{ marginTop: 32, fontSize: 18 }}>Limitation of liability</h3>
         <p style={{ marginTop: 10, fontSize: 16, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
-          Mellow is a platform that connects talent and employers — we are not a party to any employment
+          Mellow is a platform that connects talent and employers, and we are not a party to any employment
           relationship, offer, or agreement formed between users. We don't guarantee the accuracy of information
           users provide, and we're not responsible for hiring decisions, employment outcomes, or interactions
           between users on the platform.
