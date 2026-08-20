@@ -208,12 +208,14 @@ export default function EmployerOnboarding() {
       if (wasIncomplete) {
         notify('employer-welcome', { userId: user.id })
         setJustCompleted(true)
+        setSaving(false)
       } else {
+        // Not resetting saving here — navigating away, so this component is
+        // about to unmount.
         navigate('/employer/roles/new')
       }
     } catch (err) {
       setError(err.message)
-    } finally {
       setSaving(false)
     }
   }

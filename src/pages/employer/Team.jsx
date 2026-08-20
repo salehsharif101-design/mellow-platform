@@ -10,6 +10,8 @@ const STATUS_STYLE = {
   invited: { background: '#fff6e0', color: '#8a6100' },
 }
 
+const MAX_TEAM_MEMBERS = 5
+
 export default function Team() {
   const { user } = useAuth()
 
@@ -68,22 +70,46 @@ export default function Team() {
     setInviteError('')
     const email = inviteEmail.trim().toLowerCase()
     if (!email) return
-    setInviting(true)
-    const { data, error: insertError } = await supabase
-      .from('employer_team_members')
-      .insert({ employer_id: employerId, invited_email: email, invited_by: user.id })
-      .select()
-      .single()
-    setInviting(false)
-    if (insertError) {
-      setInviteError(
-        insertError.code === '23505' ? 'This email has already been invited.' : insertError.message,
-      )
+
+    if (members.length >= MAX_TEAM_MEMBERS) {
+      setInviteError(`You have reached the maximum of ${MAX_TEAM_MEMBERS} team members.`)
       return
     }
-    notify('team-invite', { teamMemberId: data.id })
-    setMembers((prev) => [...prev, data])
-    setInviteEmail('')
+
+    setInviting(true)
+    try {
+      // Team invites can only go to emails with no existing Mellow account
+      // at all — reuses the same lookup the signup form uses to catch
+      // duplicate emails, so this doesn't create a second way to check
+      // whether an email is registered.
+      const checkRes = await fetch('/api/check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const checkData = await checkRes.json()
+      if (checkRes.ok && checkData.exists) {
+        setInviteError('This email is already registered on Mellow. Please use a different email address to invite a team member.')
+        return
+      }
+
+      const { data, error: insertError } = await supabase
+        .from('employer_team_members')
+        .insert({ employer_id: employerId, invited_email: email, invited_by: user.id })
+        .select()
+        .single()
+      if (insertError) {
+        setInviteError(
+          insertError.code === '23505' ? 'This email has already been invited.' : insertError.message,
+        )
+        return
+      }
+      notify('team-invite', { teamMemberId: data.id })
+      setMembers((prev) => [...prev, data])
+      setInviteEmail('')
+    } finally {
+      setInviting(false)
+    }
   }
 
   async function handleRemove() {
@@ -155,24 +181,32 @@ export default function Team() {
         </div>
 
         {isOwner && (
-          <form onSubmit={handleInvite} style={{ marginTop: 28, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            <div className="field" style={{ flex: 1, marginBottom: 0 }}>
-              <label htmlFor="invite-email">Invite a team member by email</label>
-              <input
-                id="invite-email"
-                className="input"
-                type="email"
-                required
-                placeholder="teammate@company.com"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-              />
-              {inviteError && <p className="form-error" style={{ marginTop: 6 }}>{inviteError}</p>}
-            </div>
-            <button className="btn btn-primary" type="submit" disabled={inviting} style={{ marginTop: 24 }}>
-              {inviting ? 'Sending…' : 'Invite'}
-            </button>
-          </form>
+          <>
+            {members.length >= MAX_TEAM_MEMBERS ? (
+              <p style={{ marginTop: 28, fontSize: 14, color: 'var(--color-text-muted)' }}>
+                You have reached the maximum of {MAX_TEAM_MEMBERS} team members.
+              </p>
+            ) : (
+              <form onSubmit={handleInvite} style={{ marginTop: 28, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <div className="field" style={{ flex: 1, marginBottom: 0 }}>
+                  <label htmlFor="invite-email">Invite a team member by email</label>
+                  <input
+                    id="invite-email"
+                    className="input"
+                    type="email"
+                    required
+                    placeholder="teammate@company.com"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                  />
+                  {inviteError && <p className="form-error" style={{ marginTop: 6 }}>{inviteError}</p>}
+                </div>
+                <button className="btn btn-primary" type="submit" disabled={inviting} style={{ marginTop: 24 }}>
+                  {inviting ? 'Sending…' : 'Invite'}
+                </button>
+              </form>
+            )}
+          </>
         )}
       </div>
 

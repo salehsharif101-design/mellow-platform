@@ -52,10 +52,11 @@ export default function ResetPassword() {
       const { error: updateError } = await supabase.auth.updateUser({ password })
       if (updateError) throw updateError
       await supabase.auth.signOut()
+      // Not resetting saving here — navigating away, so this component is
+      // about to unmount.
       navigate('/login?reset=success')
     } catch (err) {
       setError(err.message)
-    } finally {
       setSaving(false)
     }
   }

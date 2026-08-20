@@ -63,9 +63,8 @@ export default function ShareButton({ url, label = 'Share', size = 17, bordered 
         style={bordered ? undefined : { background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', lineHeight: 0 }}
       >
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-          <polyline points="17 8 12 3 7 8" />
-          <line x1="12" y1="3" x2="12" y2="15" />
+          <polyline points="15 4 20 9 15 14" />
+          <path d="M4 20v-7a4 4 0 0 1 4-4h12" />
         </svg>
       </button>
       {copied && (

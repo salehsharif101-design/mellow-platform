@@ -49,6 +49,7 @@ export default function Signup() {
       const checkData = await checkRes.json()
       if (checkRes.ok && checkData.exists) {
         setExistingAccountType(checkData.userType)
+        setLoading(false)
         return
       }
 
@@ -65,12 +66,15 @@ export default function Signup() {
         // Email confirmation is required before a session exists — there's
         // nothing to route into yet, so tell the candidate to check their inbox.
         setNeedsConfirmation(true)
+        setLoading(false)
         return
       }
+      // Not resetting loading here — navigating away, so this component is
+      // about to unmount; resetting first would flip the submit button back
+      // to its idle label for a frame before the route actually changes.
       navigate(userType === 'employer' ? '/employer/onboarding' : '/profile/edit')
     } catch (err) {
       setError(err.message)
-    } finally {
       setLoading(false)
     }
   }

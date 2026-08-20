@@ -97,6 +97,7 @@ export default function TeamAccept() {
       })
       if (!data.session) {
         setNeedsConfirmation(true)
+        setSubmitting(false)
         return
       }
       const res = await fetch('/api/team-invite', {
@@ -106,15 +107,27 @@ export default function TeamAccept() {
       })
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || 'Something went wrong accepting the invitation.')
+      // Not resetting submitting here — navigating away, so this component
+      // is about to unmount.
       navigate('/employer/dashboard')
     } catch (err) {
       setError(err.message)
-    } finally {
       setSubmitting(false)
     }
   }
 
   if (loading) return null
+
+  // Already signed in with a matching, not-yet-active session — the effect
+  // above is about to accept and redirect. Render nothing rather than the
+  // full "set a password" form for the instant before that finishes.
+  const willAutoAccept =
+    session &&
+    invite &&
+    invite.status !== 'active' &&
+    !accepted &&
+    (session.user.email || '').toLowerCase() === invite.invitedEmail.toLowerCase()
+  if (willAutoAccept) return null
 
   if (error && !invite) {
     return (

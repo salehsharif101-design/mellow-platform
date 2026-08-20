@@ -75,10 +75,11 @@ export default function NewRole() {
       if (insertError) throw insertError
       notify('first-role-video-nudge', { employerId })
       notify('role-live-notification', { roleId: newRole.id })
+      // Not resetting saving here — navigating away, so this component is
+      // about to unmount.
       navigate('/employer/roles')
     } catch (err) {
       setError(err.message)
-    } finally {
       setSaving(false)
     }
   }
