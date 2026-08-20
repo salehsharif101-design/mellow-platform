@@ -232,14 +232,6 @@ export default function TeamAccept() {
           {submitting ? 'Joining…' : 'Accept invitation'}
         </button>
       </form>
-
-      <p style={{ marginTop: 20, fontSize: 14, color: 'var(--color-text-muted)' }}>
-        Already have a Mellow account with this email?{' '}
-        <Link to="/login?type=employer" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
-          Log in
-        </Link>
-        , then come back to this invitation link.
-      </p>
     </div>
   )
 }

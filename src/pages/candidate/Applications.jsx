@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { getCandidateStatusLabel } from '../../lib/roleFormat.js'
+import { getCachedPage, setCachedPage } from '../../lib/dashboardCache.js'
 import EmptyState from '../../components/EmptyState.jsx'
+import ListPageSkeleton from '../../components/ListPageSkeleton.jsx'
 
 const STATUS_LABEL_STYLES = {
   Applied: { background: 'var(--color-bg-soft)', color: 'var(--color-primary)' },
@@ -71,8 +73,15 @@ function Timeline({ application }) {
 
 export default function Applications() {
   const { user } = useAuth()
-  const [applications, setApplications] = useState([])
-  const [loading, setLoading] = useState(true)
+
+  const cacheKey = user ? `applications:${user.id}` : null
+  const cached = cacheKey ? getCachedPage(cacheKey) : null
+
+  const [applications, setApplications] = useState(cached?.applications ?? [])
+  // Only a genuinely cold load (nothing cached yet from an earlier visit
+  // this session) shows the skeleton — a return visit renders the cached
+  // data immediately while load() quietly refreshes it in the background.
+  const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState('')
   const [expandedIds, setExpandedIds] = useState(new Set())
 
@@ -102,13 +111,19 @@ export default function Applications() {
         .eq('candidate_id', candidate.id)
         .order('applied_at', { ascending: false })
 
-      if (appsError) setError(appsError.message)
-      else setApplications(data)
-
+      if (appsError) {
+        setError(appsError.message)
+        setLoading(false)
+        return
+      }
+      setApplications(data)
       setLoading(false)
+
+      if (cacheKey) setCachedPage(cacheKey, { applications: data })
     }
 
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
   function toggleExpanded(id) {
@@ -120,7 +135,7 @@ export default function Applications() {
     })
   }
 
-  if (loading) return null
+  if (loading) return <ListPageSkeleton titleWidth={220} rows={4} />
 
   if (error) {
     return (

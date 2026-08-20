@@ -4,10 +4,12 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
 import { formatDeadline, formatSalary, scoreRoleForCandidate } from '../../lib/roleFormat.js'
+import { getCachedPage, setCachedPage } from '../../lib/dashboardCache.js'
 import EmptyState from '../../components/EmptyState.jsx'
 import Modal from '../../components/Modal.jsx'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import SaveRoleButton from '../../components/SaveRoleButton.jsx'
+import ListPageSkeleton from '../../components/ListPageSkeleton.jsx'
 
 const MAX_RECOMMENDATIONS = 5
 
@@ -16,14 +18,20 @@ export default function BrowseRoles() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
-  const [candidateId, setCandidateId] = useState(null)
-  const [candidateInfo, setCandidateInfo] = useState(null)
-  const [roles, setRoles] = useState([])
-  const [appliedRoleIds, setAppliedRoleIds] = useState(new Set())
-  const [savedEntries, setSavedEntries] = useState([]) // saved_roles rows joined with roles()
+  const cacheKey = user ? `candidate-roles:${user.id}` : null
+  const cached = cacheKey ? getCachedPage(cacheKey) : null
+
+  const [candidateId, setCandidateId] = useState(cached?.candidateId ?? null)
+  const [candidateInfo, setCandidateInfo] = useState(cached?.candidateInfo ?? null)
+  const [roles, setRoles] = useState(cached?.roles ?? [])
+  const [appliedRoleIds, setAppliedRoleIds] = useState(new Set(cached?.appliedRoleIds ?? []))
+  const [savedEntries, setSavedEntries] = useState(cached?.savedEntries ?? []) // saved_roles rows joined with roles()
   // Deep-linkable via /roles?tab=saved (e.g. from the dashboard's saved-roles link).
   const [tab, setTab] = useState(searchParams.get('tab') === 'saved' ? 'saved' : 'browse')
-  const [loading, setLoading] = useState(true)
+  // Only a genuinely cold load (nothing cached yet from an earlier visit
+  // this session) shows the skeleton — a return visit renders the cached
+  // data immediately while load() quietly refreshes it in the background.
+  const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState('')
   const [applyingId, setApplyingId] = useState(null)
   const [needsVideoRoleId, setNeedsVideoRoleId] = useState(null)
@@ -81,17 +89,41 @@ export default function BrowseRoles() {
             .order('created_at', { ascending: false }),
         ])
 
-      if (rolesError) setError(rolesError.message)
-      else setRoles(activeRoles)
+      if (rolesError) {
+        setError(rolesError.message)
+        setLoading(false)
+        return
+      }
+      setRoles(activeRoles)
 
-      if (!applicationsError) setAppliedRoleIds(new Set(applications.map((a) => a.role_id)))
+      const appliedIds = applicationsError ? [] : applications.map((a) => a.role_id)
+      if (!applicationsError) setAppliedRoleIds(new Set(appliedIds))
 
-      setSavedEntries(saved || [])
+      const savedRows = saved || []
+      setSavedEntries(savedRows)
 
       setLoading(false)
+
+      if (cacheKey) {
+        setCachedPage(cacheKey, {
+          candidateId: candidate.id,
+          candidateInfo: {
+            skills: candidate.skills || [],
+            jobTitle: candidate.job_title || '',
+            workStyle: candidate.work_style || [],
+            availability: candidate.availability || '',
+            location: candidate.location || '',
+            yearsOfExperience: candidate.years_of_experience || '',
+          },
+          roles: activeRoles,
+          appliedRoleIds: appliedIds,
+          savedEntries: savedRows,
+        })
+      }
     }
 
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
   const savedRoleIds = useMemo(() => new Set(savedEntries.filter((s) => s.role_id).map((s) => s.role_id)), [savedEntries])
@@ -185,7 +217,7 @@ export default function BrowseRoles() {
     setApplyingId(null)
   }
 
-  if (loading) return null
+  if (loading) return <ListPageSkeleton titleWidth={160} rows={4} />
 
   if (error) {
     return (

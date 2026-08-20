@@ -3,15 +3,24 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { resolveEmployerId, getEmployerUserIds } from '../../lib/employerAccess.js'
+import { getCachedPage, setCachedPage } from '../../lib/dashboardCache.js'
 import MessageThread from '../../components/MessageThread.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
+import MessagesSkeleton from '../../components/MessagesSkeleton.jsx'
 
 export default function EmployerMessages() {
   const { user } = useAuth()
-  const [conversations, setConversations] = useState([])
+
+  const cacheKey = user ? `employer-messages:${user.id}` : null
+  const cached = cacheKey ? getCachedPage(cacheKey) : null
+
+  const [conversations, setConversations] = useState(cached?.conversations ?? [])
   const [selected, setSelected] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [myIds, setMyIds] = useState([])
+  // Only a genuinely cold load (nothing cached yet from an earlier visit
+  // this session) shows the skeleton — a return visit renders the cached
+  // data immediately while load() quietly refreshes it in the background.
+  const [loading, setLoading] = useState(!cached)
+  const [myIds, setMyIds] = useState(cached?.myIds ?? [])
 
   useEffect(() => {
     if (!user) return
@@ -38,6 +47,7 @@ export default function EmployerMessages() {
       if (otherIds.length === 0) {
         setConversations([])
         setLoading(false)
+        if (cacheKey) setCachedPage(cacheKey, { conversations: [], myIds: ids })
         return
       }
 
@@ -62,12 +72,15 @@ export default function EmployerMessages() {
 
       setConversations(convos)
       setLoading(false)
+
+      if (cacheKey) setCachedPage(cacheKey, { conversations: convos, myIds: ids })
     }
 
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
-  if (loading) return null
+  if (loading) return <MessagesSkeleton />
 
   return (
     <div className="section">

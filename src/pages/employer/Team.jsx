@@ -3,7 +3,9 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { notify } from '../../lib/notify.js'
+import { getCachedPage, setCachedPage } from '../../lib/dashboardCache.js'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
+import ListPageSkeleton from '../../components/ListPageSkeleton.jsx'
 
 const STATUS_STYLE = {
   active: { background: '#e3f9e9', color: '#0f7a3d' },
@@ -15,11 +17,17 @@ const MAX_TEAM_MEMBERS = 5
 export default function Team() {
   const { user } = useAuth()
 
-  const [employerId, setEmployerId] = useState(null)
-  const [isOwner, setIsOwner] = useState(false)
-  const [ownerEmail, setOwnerEmail] = useState('')
-  const [members, setMembers] = useState([])
-  const [loading, setLoading] = useState(true)
+  const cacheKey = user ? `team:${user.id}` : null
+  const cached = cacheKey ? getCachedPage(cacheKey) : null
+
+  const [employerId, setEmployerId] = useState(cached?.employerId ?? null)
+  const [isOwner, setIsOwner] = useState(cached?.isOwner ?? false)
+  const [ownerEmail, setOwnerEmail] = useState(cached?.ownerEmail ?? '')
+  const [members, setMembers] = useState(cached?.members ?? [])
+  // Only a genuinely cold load (nothing cached yet from an earlier visit
+  // this session) shows the skeleton — a return visit renders the cached
+  // data immediately while load() quietly refreshes it in the background.
+  const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState('')
 
   const [inviteEmail, setInviteEmail] = useState('')
@@ -30,10 +38,10 @@ export default function Team() {
   useEffect(() => {
     if (!user) return
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
   async function load() {
-    setLoading(true)
     const { employerId: resolvedId, isOwner: ownerFlag } = await resolveEmployerId(user.id)
     if (!resolvedId) {
       setLoading(false)
@@ -42,27 +50,40 @@ export default function Team() {
     setEmployerId(resolvedId)
     setIsOwner(ownerFlag)
 
-    const { data: employer } = await supabase
-      .from('employer_profiles')
-      .select('user_id')
-      .eq('id', resolvedId)
-      .maybeSingle()
-    if (employer?.user_id) {
-      const { data: ownerUser } = await supabase.from('users').select('email').eq('id', employer.user_id).maybeSingle()
-      setOwnerEmail(ownerUser?.email || '')
+    // Neither query depends on the other's result — both only need
+    // resolvedId — so they go out together instead of one after another.
+    const [employerResult, membersResult] = await Promise.all([
+      supabase.from('employer_profiles').select('user_id').eq('id', resolvedId).maybeSingle(),
+      ownerFlag
+        ? supabase
+            .from('employer_team_members')
+            .select('id, invited_email, status, created_at')
+            .eq('employer_id', resolvedId)
+            .order('created_at', { ascending: true })
+        : Promise.resolve({ data: [] }),
+    ])
+
+    let email = ''
+    if (employerResult.data?.user_id) {
+      const { data: ownerUser } = await supabase.from('users').select('email').eq('id', employerResult.data.user_id).maybeSingle()
+      email = ownerUser?.email || ''
+      setOwnerEmail(email)
     }
 
+    let memberRows = []
     if (ownerFlag) {
-      const { data, error: membersError } = await supabase
-        .from('employer_team_members')
-        .select('id, invited_email, status, created_at')
-        .eq('employer_id', resolvedId)
-        .order('created_at', { ascending: true })
-      if (membersError) setError(membersError.message)
-      else setMembers(data || [])
+      if (membersResult.error) setError(membersResult.error.message)
+      else {
+        memberRows = membersResult.data || []
+        setMembers(memberRows)
+      }
     }
 
     setLoading(false)
+
+    if (cacheKey) {
+      setCachedPage(cacheKey, { employerId: resolvedId, isOwner: ownerFlag, ownerEmail: email, members: memberRows })
+    }
   }
 
   async function handleInvite(e) {
@@ -120,7 +141,7 @@ export default function Team() {
     setRemovingMember(null)
   }
 
-  if (loading) return null
+  if (loading) return <ListPageSkeleton titleWidth={100} rows={3} />
 
   if (!employerId) {
     return (

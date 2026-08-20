@@ -4,9 +4,11 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { notify } from '../../lib/notify.js'
+import { getCachedPage, setCachedPage } from '../../lib/dashboardCache.js'
 import EmptyState from '../../components/EmptyState.jsx'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
+import ListPageSkeleton from '../../components/ListPageSkeleton.jsx'
 
 const AVAILABILITY_OPTIONS = ['Immediately', 'Within a month', '1 to 3 months', 'Just exploring']
 const WORK_STYLE_OPTIONS = ['Remote', 'Hybrid', 'On-site']
@@ -14,11 +16,17 @@ const WORK_STYLE_OPTIONS = ['Remote', 'Hybrid', 'On-site']
 export default function TalentFeed() {
   const { user } = useAuth()
 
-  const [employerId, setEmployerId] = useState(null)
-  const [candidates, setCandidates] = useState([])
-  const [shortlistedIds, setShortlistedIds] = useState(new Set())
-  const [workVideoCounts, setWorkVideoCounts] = useState({})
-  const [loading, setLoading] = useState(true)
+  const cacheKey = user ? `talent:${user.id}` : null
+  const cached = cacheKey ? getCachedPage(cacheKey) : null
+
+  const [employerId, setEmployerId] = useState(cached?.employerId ?? null)
+  const [candidates, setCandidates] = useState(cached?.candidates ?? [])
+  const [shortlistedIds, setShortlistedIds] = useState(new Set(cached?.shortlistedIds ?? []))
+  const [workVideoCounts, setWorkVideoCounts] = useState(cached?.workVideoCounts ?? {})
+  // Only a genuinely cold load (nothing cached yet from an earlier visit
+  // this session) shows the skeleton — a return visit renders the cached
+  // data immediately while load() quietly refreshes it in the background.
+  const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState('')
   const [savingId, setSavingId] = useState(null)
 
@@ -52,18 +60,23 @@ export default function TalentFeed() {
           supabase.from('shortlists').select('candidate_id').eq('employer_id', resolvedId),
         ])
 
-      if (candidatesError) setError(candidatesError.message)
-      else setCandidates(liveCandidates)
+      if (candidatesError) {
+        setError(candidatesError.message)
+        setLoading(false)
+        return
+      }
+      setCandidates(liveCandidates)
 
-      if (!shortlistError) setShortlistedIds(new Set(shortlists.map((s) => s.candidate_id)))
+      const shortlistIds = shortlistError ? [] : shortlists.map((s) => s.candidate_id)
+      if (!shortlistError) setShortlistedIds(new Set(shortlistIds))
 
       const candidateIds = (liveCandidates || []).map((c) => c.id)
+      let counts = {}
       if (candidateIds.length > 0) {
         const { data: videoRows } = await supabase
           .from('candidate_videos')
           .select('candidate_id')
           .in('candidate_id', candidateIds)
-        const counts = {}
         ;(videoRows || []).forEach((v) => {
           counts[v.candidate_id] = (counts[v.candidate_id] || 0) + 1
         })
@@ -71,9 +84,19 @@ export default function TalentFeed() {
       }
 
       setLoading(false)
+
+      if (cacheKey) {
+        setCachedPage(cacheKey, {
+          employerId: resolvedId,
+          candidates: liveCandidates,
+          shortlistedIds: shortlistIds,
+          workVideoCounts: counts,
+        })
+      }
     }
 
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
   const allSkills = useMemo(() => {
@@ -141,7 +164,7 @@ export default function TalentFeed() {
     setSavingId(null)
   }
 
-  if (loading) return null
+  if (loading) return <ListPageSkeleton titleWidth={200} rows={6} cards />
 
   if (error) {
     return (

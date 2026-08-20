@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
+import { getCachedPage, setCachedPage } from '../../lib/dashboardCache.js'
 import EditRoleModal from '../../components/EditRoleModal.jsx'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
 import ShareButton from '../../components/ShareButton.jsx'
 import IconButton from '../../components/IconButton.jsx'
+import ListPageSkeleton from '../../components/ListPageSkeleton.jsx'
 
 const STATUSES = ['open', 'paused', 'closed']
 const STATUS_LABELS = { open: 'Open', paused: 'Paused', closed: 'Closed' }
@@ -19,10 +21,17 @@ const STATUS_COLORS = {
 
 export default function EmployerRoles() {
   const { user } = useAuth()
-  const [roles, setRoles] = useState([])
-  const [applicationCounts, setApplicationCounts] = useState({})
-  const [hasIntroVideo, setHasIntroVideo] = useState(true)
-  const [loading, setLoading] = useState(true)
+
+  const cacheKey = user ? `roles:${user.id}` : null
+  const cached = cacheKey ? getCachedPage(cacheKey) : null
+
+  const [roles, setRoles] = useState(cached?.roles ?? [])
+  const [applicationCounts, setApplicationCounts] = useState(cached?.applicationCounts ?? {})
+  const [hasIntroVideo, setHasIntroVideo] = useState(cached?.hasIntroVideo ?? true)
+  // Only a genuinely cold load (nothing cached yet from an earlier visit
+  // this session) shows the skeleton — a return visit renders the cached
+  // data immediately while load() quietly refreshes it in the background.
+  const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState('')
   const [updatingStatusId, setUpdatingStatusId] = useState(null)
   const [editingRole, setEditingRole] = useState(null)
@@ -31,45 +40,42 @@ export default function EmployerRoles() {
   useEffect(() => {
     if (!user) return
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
   async function load() {
-    setLoading(true)
     const { employerId } = await resolveEmployerId(user.id)
     if (!employerId) {
       setLoading(false)
       return
     }
-    const employer = { id: employerId }
 
-    // Best-effort: the video nudge banner is non-critical, so a failure here
-    // (e.g. the column not existing yet on an older schema) shouldn't block
-    // the rest of the page from loading.
-    supabase
-      .from('employer_profiles')
-      .select('intro_video_url')
-      .eq('id', employer.id)
-      .maybeSingle()
-      .then(({ data }) => setHasIntroVideo(!!data?.intro_video_url))
-      .catch(() => {})
+    const [introResult, rolesResult] = await Promise.all([
+      // Best-effort: the video nudge banner is non-critical, so a failure
+      // here (e.g. the column not existing yet on an older schema)
+      // shouldn't block the rest of the page from loading.
+      supabase.from('employer_profiles').select('intro_video_url').eq('id', employerId).maybeSingle().then(
+        (res) => res,
+        () => ({ data: null }),
+      ),
+      supabase.from('roles').select('*').eq('employer_id', employerId).order('created_at', { ascending: false }),
+    ])
 
-    const { data: myRoles, error: rolesError } = await supabase
-      .from('roles')
-      .select('*')
-      .eq('employer_id', employer.id)
-      .order('created_at', { ascending: false })
+    const hasIntro = !!introResult.data?.intro_video_url
+    setHasIntroVideo(hasIntro)
 
-    if (rolesError) {
-      setError(rolesError.message)
+    if (rolesResult.error) {
+      setError(rolesResult.error.message)
       setLoading(false)
       return
     }
+    const myRoles = rolesResult.data
     setRoles(myRoles)
 
     const roleIds = myRoles.map((r) => r.id)
+    let counts = {}
     if (roleIds.length > 0) {
       const { data: apps } = await supabase.from('applications').select('role_id').in('role_id', roleIds)
-      const counts = {}
       ;(apps || []).forEach((a) => {
         counts[a.role_id] = (counts[a.role_id] || 0) + 1
       })
@@ -77,6 +83,10 @@ export default function EmployerRoles() {
     }
 
     setLoading(false)
+
+    if (cacheKey) {
+      setCachedPage(cacheKey, { roles: myRoles, applicationCounts: counts, hasIntroVideo: hasIntro })
+    }
   }
 
   async function changeStatus(role, status) {
@@ -101,7 +111,7 @@ export default function EmployerRoles() {
     setDeletingRole(null)
   }
 
-  if (loading) return null
+  if (loading) return <ListPageSkeleton titleWidth={180} rows={4} />
 
   if (error) {
     return (

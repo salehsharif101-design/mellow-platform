@@ -4,7 +4,9 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { notify } from '../../lib/notify.js'
+import { getCachedPage, setCachedPage } from '../../lib/dashboardCache.js'
 import SkillsPicker from '../../components/SkillsPicker.jsx'
+import FormPageSkeleton from '../../components/FormPageSkeleton.jsx'
 
 const ROLE_TYPES = ['full-time', 'part-time', 'contract', 'freelance']
 const CURRENCIES = ['BHD', 'AED', 'SAR', 'USD']
@@ -14,8 +16,11 @@ export default function NewRole() {
   const { user } = useAuth()
   const navigate = useNavigate()
 
-  const [employerId, setEmployerId] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const cacheKey = user ? `new-role:${user.id}` : null
+  const cached = cacheKey ? getCachedPage(cacheKey) : null
+
+  const [employerId, setEmployerId] = useState(cached?.employerId ?? null)
+  const [loading, setLoading] = useState(!cached)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -43,9 +48,12 @@ export default function NewRole() {
       }
       setEmployerId(resolvedId)
       setLoading(false)
+
+      if (cacheKey) setCachedPage(cacheKey, { employerId: resolvedId })
     }
 
     loadEmployer()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, navigate])
 
   async function handleSubmit(e) {
@@ -84,7 +92,7 @@ export default function NewRole() {
     }
   }
 
-  if (loading) return null
+  if (loading) return <FormPageSkeleton fields={7} />
 
   const isValid = title.trim() && location.trim() && description.trim()
 
