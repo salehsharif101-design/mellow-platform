@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { useRedirectIfAuthenticated } from '../../lib/useRedirectIfAuthenticated.js'
+import { useHideChrome } from '../../components/Layout.jsx'
 
 export default function Login() {
   const [searchParams] = useSearchParams()
@@ -21,6 +22,14 @@ export default function Login() {
   // (it needs to send a just-confirmed employer to onboarding, not just the
   // dashboard) — skipped here so the two don't race each other.
   const checkingSession = useRedirectIfAuthenticated(confirmedParam)
+  // The shared header renders its logged-out "Log in / Sign up" links the
+  // instant AuthContext mounts, before its own session check has resolved —
+  // completely independent of the checkingConfirmation gate below, which
+  // only ever controlled this page's own content. Without this, that header
+  // could still flash while a confirmation link is being processed, even
+  // though the page body itself never rendered anything. Hidden for exactly
+  // the same window checkingConfirmation blocks the form.
+  useHideChrome(checkingConfirmation)
   const [needsResend, setNeedsResend] = useState(false)
   const [resending, setResending] = useState(false)
   const [resendSent, setResendSent] = useState(false)
