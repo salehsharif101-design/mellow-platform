@@ -56,13 +56,13 @@ export default function Login() {
     // existing company, not starting one). Anything short of a confirmed
     // session + known account type falls back to the login form below.
     let cancelled = false
-    ;(async () => {
-      const { data } = await supabase.auth.getSession()
-      const confirmedSession = data.session
-      if (!confirmedSession) {
-        if (!cancelled) setCheckingConfirmation(false)
-        return
-      }
+    // getSession() and the SIGNED_IN listener below can both resolve with
+    // the same session — this guards against routing twice.
+    let routed = false
+
+    async function routeToDestination(confirmedSession) {
+      if (routed) return
+      routed = true
       const { data: row } = await supabase
         .from('users')
         .select('user_type')
@@ -85,11 +85,41 @@ export default function Login() {
       // it to false first would render the full login form for one frame
       // before that navigation actually takes effect.
       navigate(destination, { replace: true })
+    }
+
+    // The confirmation link's session tokens arrive in the URL hash and are
+    // exchanged for a session asynchronously as the Supabase client
+    // initializes — getSession() below already waits for that, but as a
+    // backstop against any timing gap, also listen for the SIGNED_IN event
+    // it fires once the session is actually saved, so a token still being
+    // processed never falls through to showing the login form.
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (cancelled || event !== 'SIGNED_IN' || !session) return
+      routeToDestination(session)
+    })
+
+    ;(async () => {
+      const { data } = await supabase.auth.getSession()
+      if (cancelled) return
+      if (data.session) {
+        routeToDestination(data.session)
+        return
+      }
+      // Only give up and show the login form once it's clear there's
+      // nothing left to wait for — a token still sitting in the hash means
+      // the SIGNED_IN listener above will fire shortly.
+      if (!window.location.hash.includes('access_token')) {
+        setCheckingConfirmation(false)
+      }
     })()
+
     return () => {
       cancelled = true
+      subscription.unsubscribe()
     }
-  }, [confirmedParam, navigate])
+  }, [confirmedParam, invalidLink, navigate])
 
   if (checkingConfirmation || checkingSession) return null
 
