@@ -124,11 +124,21 @@ export default function Login() {
     setLoading(true)
     try {
       const { user } = await signIn({ email, password })
-      const { data: row } = await supabase
-        .from('users')
-        .select('user_type')
-        .eq('id', user.id)
-        .single()
+
+      const [{ data: row }, { data: removedMembership }] = await Promise.all([
+        supabase.from('users').select('user_type').eq('id', user.id).single(),
+        supabase.from('employer_team_members').select('id').eq('user_id', user.id).eq('status', 'removed').maybeSingle(),
+      ])
+
+      if (removedMembership) {
+        // Their team access was revoked, but the auth-account deletion that
+        // normally accompanies a removal didn't go through — this row is the
+        // fallback marker for that case (see api/team-remove.js). Don't let
+        // them back into the dashboard with stale access.
+        await supabase.auth.signOut()
+        setError('Your team access has been removed. Please sign up for a new account if you would like to use Mellow.')
+        return
+      }
 
       if (row?.user_type && row.user_type !== type) {
         // Wrong login page for this account — don't leave them signed in

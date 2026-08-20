@@ -135,8 +135,16 @@ export default function Team() {
 
   async function handleRemove() {
     if (!removingMember) return
-    const { error: removeError } = await supabase.from('employer_team_members').delete().eq('id', removingMember.id)
-    if (removeError) throw new Error(removeError.message)
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    const res = await fetch('/api/team-remove', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ teamMemberId: removingMember.id }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || 'Failed to remove team member.')
     setMembers((prev) => prev.filter((m) => m.id !== removingMember.id))
     setRemovingMember(null)
   }
