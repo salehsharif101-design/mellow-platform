@@ -53,11 +53,11 @@ export function AuthProvider({ children }) {
     return data
   }
 
-  async function resendConfirmation(email) {
+  async function resendConfirmation(email, emailRedirectTo) {
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email,
-      options: { emailRedirectTo: 'https://beta.joinmellow.xyz/login?confirmed=1' },
+      options: { emailRedirectTo: emailRedirectTo || 'https://beta.joinmellow.xyz/login?confirmed=1' },
     })
     if (error) throw error
   }
