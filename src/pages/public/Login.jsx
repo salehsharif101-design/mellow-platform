@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { resolveEmployerId } from '../../lib/employerAccess.js'
 
 export default function Login() {
   const [searchParams] = useSearchParams()
@@ -46,24 +47,40 @@ export default function Login() {
     if (!confirmedParam || invalidLink) return
     // The confirmation link signs the user in automatically — if that
     // session is already here, skip the manual login and drop them
-    // straight into onboarding. Anything short of a confirmed session +
-    // known account type falls back to the login form below.
+    // straight into onboarding (or, for a team member accepting an
+    // invite, straight to their company's dashboard — they're joining an
+    // existing company, not starting one). Anything short of a confirmed
+    // session + known account type falls back to the login form below.
     let cancelled = false
     ;(async () => {
-      try {
-        const { data } = await supabase.auth.getSession()
-        const confirmedSession = data.session
-        if (!confirmedSession) return
-        const { data: row } = await supabase
-          .from('users')
-          .select('user_type')
-          .eq('id', confirmedSession.user.id)
-          .single()
-        if (cancelled || !row?.user_type) return
-        navigate(row.user_type === 'employer' ? '/employer/onboarding' : '/profile/edit', { replace: true })
-      } finally {
+      const { data } = await supabase.auth.getSession()
+      const confirmedSession = data.session
+      if (!confirmedSession) {
         if (!cancelled) setCheckingConfirmation(false)
+        return
       }
+      const { data: row } = await supabase
+        .from('users')
+        .select('user_type')
+        .eq('id', confirmedSession.user.id)
+        .single()
+      if (cancelled) return
+      if (!row?.user_type) {
+        setCheckingConfirmation(false)
+        return
+      }
+
+      let destination = '/profile/edit'
+      if (row.user_type === 'employer') {
+        const { employerId, isOwner } = await resolveEmployerId(confirmedSession.user.id)
+        if (cancelled) return
+        destination = employerId && !isOwner ? '/employer/dashboard' : '/employer/onboarding'
+      }
+      // Deliberately not resetting checkingConfirmation here — this
+      // component is about to unmount as the route changes, and flipping
+      // it to false first would render the full login form for one frame
+      // before that navigation actually takes effect.
+      navigate(destination, { replace: true })
     })()
     return () => {
       cancelled = true
@@ -76,20 +93,21 @@ export default function Login() {
     if (confirmedParam) return
     let cancelled = false
     ;(async () => {
-      try {
-        const { data } = await supabase.auth.getSession()
-        const existingSession = data.session
-        if (!existingSession) return
-        const { data: row } = await supabase
-          .from('users')
-          .select('user_type')
-          .eq('id', existingSession.user.id)
-          .single()
-        if (cancelled) return
-        navigate(row?.user_type === 'employer' ? '/employer/dashboard' : '/dashboard', { replace: true })
-      } finally {
+      const { data } = await supabase.auth.getSession()
+      const existingSession = data.session
+      if (!existingSession) {
         if (!cancelled) setCheckingSession(false)
+        return
       }
+      const { data: row } = await supabase
+        .from('users')
+        .select('user_type')
+        .eq('id', existingSession.user.id)
+        .single()
+      if (cancelled) return
+      // Not reset on this path either — see the identical note in the
+      // confirmation-link effect above.
+      navigate(row?.user_type === 'employer' ? '/employer/dashboard' : '/dashboard', { replace: true })
     })()
     return () => {
       cancelled = true

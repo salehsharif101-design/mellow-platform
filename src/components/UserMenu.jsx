@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
+import { resolveEmployerId } from '../lib/employerAccess.js'
 import CandidateAvatar from './CandidateAvatar.jsx'
 
 export default function UserMenu() {
@@ -15,11 +16,17 @@ export default function UserMenu() {
 
     async function load() {
       if (userType === 'employer') {
-        const { data } = await supabase
-          .from('employer_profiles')
-          .select('company_name, company_slug, logo_url')
-          .eq('user_id', user.id)
-          .maybeSingle()
+        // A team member has no employer_profiles row of their own — they
+        // represent the company they're a member of, not a personal
+        // account, so resolve to that company's row either way.
+        const { employerId } = await resolveEmployerId(user.id)
+        const { data } = employerId
+          ? await supabase
+              .from('employer_profiles')
+              .select('company_name, company_slug, logo_url')
+              .eq('id', employerId)
+              .maybeSingle()
+          : { data: null }
         setProfile({
           name: data?.company_name || 'Your company',
           viewPath: data?.company_slug ? `/company/${data.company_slug}` : null,
