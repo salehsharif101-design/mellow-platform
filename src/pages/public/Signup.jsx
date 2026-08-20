@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { notify } from '../../lib/notify.js'
 import { NEW_USER_HINT_KEYS } from '../../components/NavHighlight.jsx'
 import { useRedirectIfAuthenticated } from '../../lib/useRedirectIfAuthenticated.js'
+import { useHideChrome } from '../../components/Layout.jsx'
+import Logo from '../../components/Logo.jsx'
 
 const PASSWORD_REQUIREMENT_MESSAGE = 'Password must be at least 8 characters and include a number or special character'
 
@@ -26,6 +28,11 @@ export default function Signup() {
   const { signUp } = useAuth()
   const navigate = useNavigate()
   const checkingSession = useRedirectIfAuthenticated()
+  // The account isn't fully signed in yet at this point — no session exists
+  // until the confirmation link is clicked — so the shared nav (dashboard
+  // links, message badges, the account menu) has nothing valid to show and
+  // shouldn't appear at all.
+  useHideChrome(needsConfirmation)
 
   if (checkingSession) return null
 
@@ -86,6 +93,9 @@ export default function Signup() {
   if (needsConfirmation) {
     return (
       <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
+        <Link to="/" style={{ display: 'inline-block', marginBottom: 32 }}>
+          <Logo size={28} />
+        </Link>
         <h1 style={{ fontSize: 28 }}>Check your inbox</h1>
         <p style={{ marginTop: 12, color: 'var(--color-text-muted)' }}>
           We sent a confirmation link to <strong>{email}</strong>. Click it to activate your
