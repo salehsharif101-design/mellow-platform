@@ -1,10 +1,31 @@
 import { useState } from 'react'
+import { supabase } from '../../../../lib/supabase.js'
+import { useDraftAutosave } from '../../../../lib/useDraftAutosave.js'
 
 export default function Step4Links({ initial, onContinue, onBack, saving }) {
   const [linkedinUrl, setLinkedinUrl] = useState(initial.linkedin_url || '')
   const [calendlyUrl, setCalendlyUrl] = useState(initial.calendly_url || '')
   const [websiteUrl, setWebsiteUrl] = useState(initial.website_url || '')
   const [error, setError] = useState('')
+
+  // Saves the in-progress links as a draft so they survive a refresh, tab
+  // switch, or closed browser before "Continue"/"Skip" is clicked. Doesn't
+  // validate the website URL format here — that check only blocks the real
+  // submit, not the draft save.
+  useDraftAutosave(
+    () => {
+      if (!initial.id) return
+      supabase
+        .from('candidate_profiles')
+        .update({
+          linkedin_url: linkedinUrl.trim() || null,
+          calendly_url: calendlyUrl.trim() || null,
+          website_url: websiteUrl.trim() || null,
+        })
+        .eq('id', initial.id)
+    },
+    [linkedinUrl, calendlyUrl, websiteUrl],
+  )
 
   function handleSubmit(e) {
     e.preventDefault()

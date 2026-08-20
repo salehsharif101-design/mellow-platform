@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useHideChrome } from '../../components/Layout.jsx'
+import { useDraftAutosave } from '../../lib/useDraftAutosave.js'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
@@ -40,6 +41,8 @@ export default function EmployerOnboarding() {
   const [logoFile, setLogoFile] = useState(null)
   const [logoPreviewUrl, setLogoPreviewUrl] = useState(null)
   const [logoError, setLogoError] = useState('')
+
+  const draftLoadedRef = useRef(false)
 
   useEffect(() => {
     if (!user) return
@@ -85,16 +88,50 @@ export default function EmployerOnboarding() {
         setTypicalRoles(profile.typical_roles || '')
         setCompanyHighlight(profile.company_highlight || '')
         setLogoPreviewUrl(profile.logo_url || null)
-        setWasIncomplete(!profile.company_name)
+        // onboarding_step, not company_name — company_name may already be
+        // set from an autosaved draft even though the rest of the form
+        // (and thus onboarding itself) is still incomplete.
+        setWasIncomplete((profile.onboarding_step || 1) < 2)
         setShowWelcome(!profile.company_name)
       }
       setLoading(false)
+      draftLoadedRef.current = true
     }
 
     loadProfile()
   }, [user])
 
   useHideChrome(wasIncomplete)
+
+  // Autosaves the in-progress form as a draft (without marking onboarding
+  // complete) so it survives a refresh, a tab switch, or the browser being
+  // closed before the employer clicks "Continue". Skipped once onboarding is
+  // actually done, on the welcome screen, or before the initial load — so it
+  // never overwrites a saved profile with blank initial state.
+  useDraftAutosave(
+    async () => {
+      const { data: { user: freshUser } } = await supabase.auth.getUser()
+      if (!freshUser) return
+      await supabase
+        .from('employer_profiles')
+        .upsert(
+          {
+            user_id: freshUser.id,
+            company_name: companyName.trim(),
+            industry: industry.trim(),
+            company_size: companySize,
+            headline: headline.trim() || null,
+            website_url: websiteUrl.trim() || null,
+            culture_description: cultureDescription.trim(),
+            typical_roles: typicalRoles.trim() || null,
+            company_highlight: companyHighlight.trim() || null,
+          },
+          { onConflict: 'user_id' },
+        )
+    },
+    [companyName, industry, companySize, headline, websiteUrl, cultureDescription, typicalRoles, companyHighlight],
+    { enabled: draftLoadedRef.current && !loading && !showWelcome && wasIncomplete },
+  )
 
   function handleLogoChange(e) {
     const file = e.target.files?.[0]
@@ -145,6 +182,7 @@ export default function EmployerOnboarding() {
         culture_description: cultureDescription.trim(),
         typical_roles: typicalRoles.trim() || null,
         company_highlight: companyHighlight.trim() || null,
+        onboarding_step: 2,
         ...(logoUrl !== undefined ? { logo_url: logoUrl } : {}),
       }
 

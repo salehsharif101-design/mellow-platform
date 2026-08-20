@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { supabase } from '../../../../lib/supabase.js'
+import { useDraftAutosave } from '../../../../lib/useDraftAutosave.js'
 
 const PROFICIENCIES = ['basic', 'conversational', 'fluent', 'native']
 
@@ -21,6 +23,16 @@ export default function Step3Languages({ initial, onContinue, onBack, saving }) 
   function removeLanguage(lang) {
     setLanguages((prev) => prev.filter((l) => l.language !== lang))
   }
+
+  // Saves the in-progress language list as a draft so it survives a
+  // refresh, tab switch, or closed browser before "Continue" is clicked.
+  useDraftAutosave(
+    () => {
+      if (!initial.id) return
+      supabase.from('candidate_profiles').update({ languages }).eq('id', initial.id)
+    },
+    [languages],
+  )
 
   function handleSubmit(e) {
     e.preventDefault()

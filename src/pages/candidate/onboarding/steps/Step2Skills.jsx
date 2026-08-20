@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { SKILL_CATEGORIES } from '../../../../lib/skillCategories.js'
 import SkillCategorySection from '../../../../components/SkillCategorySection.jsx'
+import { supabase } from '../../../../lib/supabase.js'
+import { useDraftAutosave } from '../../../../lib/useDraftAutosave.js'
 
 const MAX_SKILLS = 10
 
@@ -42,6 +44,16 @@ export default function Step2Skills({ initial, onContinue, onBack, saving }) {
   function removeSkill(skill) {
     setSkills((prev) => prev.filter((s) => s !== skill))
   }
+
+  // Saves the in-progress skill selection as a draft so it survives a
+  // refresh, tab switch, or closed browser before "Continue" is clicked.
+  useDraftAutosave(
+    () => {
+      if (!initial.id) return
+      supabase.from('candidate_profiles').update({ skills }).eq('id', initial.id)
+    },
+    [skills],
+  )
 
   function handleSubmit(e) {
     e.preventDefault()

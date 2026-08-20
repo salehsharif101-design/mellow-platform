@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { supabase } from '../../../../lib/supabase.js'
+import { useDraftAutosave } from '../../../../lib/useDraftAutosave.js'
 
 const AVAILABILITY_OPTIONS = ['Immediately', 'Within a month', '1 to 3 months', 'Just exploring']
 const WORK_STYLE_OPTIONS = ['Remote', 'Hybrid', 'On-site']
@@ -27,10 +29,8 @@ export default function Step1Basics({ initial, onContinue, saving }) {
     setWorkStyle((prev) => (prev.includes(option) ? prev.filter((w) => w !== option) : [...prev, option]))
   }
 
-  function handleSubmit(e) {
-    e.preventDefault()
-    if (!isValid) return
-    onContinue({
+  function buildPayload() {
+    return {
       full_name: fullName.trim(),
       job_title: jobTitle.trim(),
       current_company: currentCompany.trim() || null,
@@ -39,13 +39,45 @@ export default function Step1Basics({ initial, onContinue, saving }) {
       bio: bio.trim(),
       headline: headline.trim() || null,
       proud_of: proudOf.trim() || null,
-      availability,
+      availability: availability || null,
       work_style: workStyle,
       education_level: educationLevel || null,
       field_of_study: fieldOfStudy.trim() || null,
       institution_name: institutionName.trim() || null,
       graduation_year: graduationYear ? Number(graduationYear) : null,
-    })
+    }
+  }
+
+  // Saves this step's in-progress fields as a draft (without advancing
+  // onboarding_step) so a refresh, tab switch, or closed browser doesn't
+  // lose everything typed here before "Continue" is clicked.
+  useDraftAutosave(
+    () => {
+      if (!initial.id) return
+      supabase.from('candidate_profiles').update(buildPayload()).eq('id', initial.id)
+    },
+    [
+      fullName,
+      jobTitle,
+      currentCompany,
+      yearsOfExperience,
+      location,
+      bio,
+      headline,
+      proudOf,
+      availability,
+      workStyle,
+      educationLevel,
+      fieldOfStudy,
+      institutionName,
+      graduationYear,
+    ],
+  )
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    if (!isValid) return
+    onContinue(buildPayload())
   }
 
   return (
