@@ -84,7 +84,17 @@ export default function TeamAccept() {
 
     setSubmitting(true)
     try {
-      const data = await signUp({ email: invite.invitedEmail, password, userType: 'employer' })
+      // If email confirmation is required, Supabase emails a link back to
+      // this exact page (not the generic /login one) — otherwise the
+      // confirmation flow has no idea this signup was accepting a team
+      // invite and sends them into onboarding as if they were starting a
+      // brand new company.
+      const data = await signUp({
+        email: invite.invitedEmail,
+        password,
+        userType: 'employer',
+        emailRedirectTo: `https://beta.joinmellow.xyz/employer/team/accept?token=${token}`,
+      })
       if (!data.session) {
         setNeedsConfirmation(true)
         return

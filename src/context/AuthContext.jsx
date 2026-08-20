@@ -34,13 +34,13 @@ export function AuthProvider({ children }) {
       .then(({ data }) => setProfile(data ?? null))
   }, [session?.user])
 
-  async function signUp({ email, password, userType }) {
+  async function signUp({ email, password, userType, emailRedirectTo }) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { user_type: userType },
-        emailRedirectTo: 'https://beta.joinmellow.xyz/login?confirmed=1',
+        emailRedirectTo: emailRedirectTo || 'https://beta.joinmellow.xyz/login?confirmed=1',
       },
     })
     if (error) throw error
