@@ -123,6 +123,23 @@ export default function Login() {
     setResendSent(false)
     setLoading(true)
     try {
+      // Checked before attempting to sign in at all — a removed team
+      // member's Supabase Auth account is normally deleted outright (see
+      // api/team-remove.js), so signIn() would just fail with a generic
+      // "Invalid login credentials" with no way to tell them why. This
+      // check is keyed off email rather than a user id for exactly that
+      // reason: it has to work even after the account itself is gone.
+      const removedRes = await fetch('/api/check-removed-member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const removedData = await removedRes.json().catch(() => ({}))
+      if (removedRes.ok && removedData.removed) {
+        setError('Your team access has been removed. Please sign up for a new account if you would like to use Mellow.')
+        return
+      }
+
       const { user } = await signIn({ email, password })
 
       const [{ data: row }, { data: removedMembership }] = await Promise.all([
