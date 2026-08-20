@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
+import { useRedirectIfAuthenticated } from '../../lib/useRedirectIfAuthenticated.js'
 
 export default function Login() {
   const [searchParams] = useSearchParams()
@@ -16,7 +17,10 @@ export default function Login() {
   const confirmedParam = searchParams.get('confirmed') === '1'
   const [showConfirmed, setShowConfirmed] = useState(false)
   const [checkingConfirmation, setCheckingConfirmation] = useState(confirmedParam)
-  const [checkingSession, setCheckingSession] = useState(!confirmedParam)
+  // The confirmation-link flow below has its own "already logged in" bounce
+  // (it needs to send a just-confirmed employer to onboarding, not just the
+  // dashboard) — skipped here so the two don't race each other.
+  const checkingSession = useRedirectIfAuthenticated(confirmedParam)
   const [needsResend, setNeedsResend] = useState(false)
   const [resending, setResending] = useState(false)
   const [resendSent, setResendSent] = useState(false)
@@ -81,33 +85,6 @@ export default function Login() {
       // it to false first would render the full login form for one frame
       // before that navigation actually takes effect.
       navigate(destination, { replace: true })
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [confirmedParam, navigate])
-
-  useEffect(() => {
-    // Not the confirmation-link flow — but a logged-in user shouldn't see
-    // the login form at all, so bounce them straight to their dashboard.
-    if (confirmedParam) return
-    let cancelled = false
-    ;(async () => {
-      const { data } = await supabase.auth.getSession()
-      const existingSession = data.session
-      if (!existingSession) {
-        if (!cancelled) setCheckingSession(false)
-        return
-      }
-      const { data: row } = await supabase
-        .from('users')
-        .select('user_type')
-        .eq('id', existingSession.user.id)
-        .single()
-      if (cancelled) return
-      // Not reset on this path either — see the identical note in the
-      // confirmation-link effect above.
-      navigate(row?.user_type === 'employer' ? '/employer/dashboard' : '/dashboard', { replace: true })
     })()
     return () => {
       cancelled = true

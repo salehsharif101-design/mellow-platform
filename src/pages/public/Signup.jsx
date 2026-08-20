@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { notify } from '../../lib/notify.js'
 import { NEW_USER_HINT_KEYS } from '../../components/NavHighlight.jsx'
+import { useRedirectIfAuthenticated } from '../../lib/useRedirectIfAuthenticated.js'
 
 const PASSWORD_REQUIREMENT_MESSAGE = 'Password must be at least 8 characters and include a number or special character'
 
@@ -24,6 +25,9 @@ export default function Signup() {
 
   const { signUp } = useAuth()
   const navigate = useNavigate()
+  const checkingSession = useRedirectIfAuthenticated()
+
+  if (checkingSession) return null
 
   async function handleSubmit(e) {
     e.preventDefault()
