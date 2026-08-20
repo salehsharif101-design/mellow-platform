@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { resolveEmployerId, getEmployerUserIds } from '../../lib/employerAccess.js'
 import MessageThread from '../../components/MessageThread.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
 
@@ -10,19 +11,28 @@ export default function EmployerMessages() {
   const [conversations, setConversations] = useState([])
   const [selected, setSelected] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [myIds, setMyIds] = useState([])
 
   useEffect(() => {
     if (!user) return
 
     async function load() {
+      // The inbox is shared across the whole team — a candidate's
+      // conversation with "the company" isn't tied to whichever teammate
+      // happens to be logged in.
+      const { employerId } = await resolveEmployerId(user.id)
+      const ids = employerId ? await getEmployerUserIds(employerId) : [user.id]
+      setMyIds(ids)
+
+      const orFilter = ids.map((id) => `sender_id.eq.${id},recipient_id.eq.${id}`).join(',')
       const { data: messages } = await supabase
         .from('messages')
         .select('*')
-        .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
+        .or(orFilter)
         .order('sent_at', { ascending: false })
 
       const otherIds = Array.from(
-        new Set((messages || []).map((m) => (m.sender_id === user.id ? m.recipient_id : m.sender_id))),
+        new Set((messages || []).map((m) => (ids.includes(m.sender_id) ? m.recipient_id : m.sender_id))),
       )
 
       if (otherIds.length === 0) {
@@ -100,6 +110,7 @@ export default function EmployerMessages() {
                 <MessageThread
                   otherUserId={selected}
                   otherUserLabel={conversations.find((c) => c.otherId === selected)?.label}
+                  myIds={myIds}
                 />
                 {conversations.find((c) => c.otherId === selected)?.candidateId && (
                   <Link

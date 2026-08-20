@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useHideChrome } from '../../components/Layout.jsx'
 import { useDraftAutosave } from '../../lib/useDraftAutosave.js'
+import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
@@ -55,6 +56,15 @@ export default function EmployerOnboarding() {
       if (userError || !freshUser) {
         setError(userError?.message || 'Your session has expired — please log in again.')
         setLoading(false)
+        return
+      }
+
+      // A team member already belongs to a company — send them straight to
+      // its dashboard instead of the upsert below creating a second, blank
+      // employer_profiles row under their own user_id.
+      const { employerId, isOwner } = await resolveEmployerId(freshUser.id)
+      if (employerId && !isOwner) {
+        navigate('/employer/dashboard')
         return
       }
 

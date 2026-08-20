@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { resolveEmployerId } from '../../lib/employerAccess.js'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
@@ -18,29 +19,19 @@ export default function Shortlist() {
     if (!user) return
 
     async function load() {
-      const { data: employer, error: employerError } = await supabase
-        .from('employer_profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (employerError) {
-        setError(employerError.message)
+      const { employerId: resolvedId } = await resolveEmployerId(user.id)
+      if (!resolvedId) {
         setLoading(false)
         return
       }
-      if (!employer) {
-        setLoading(false)
-        return
-      }
-      setEmployerId(employer.id)
+      setEmployerId(resolvedId)
 
       const { data, error: shortlistError } = await supabase
         .from('shortlists')
         .select(
           'id, candidate_id, role_id, status, roles(id, title), candidate_profiles(id, user_id, username, full_name, job_title, current_company, location, skills, availability, years_of_experience, intro_video_url, avatar_url, education_level, field_of_study, institution_name, graduation_year, linkedin_url, calendly_url, website_url)',
         )
-        .eq('employer_id', employer.id)
+        .eq('employer_id', resolvedId)
         .order('created_at', { ascending: false })
 
       if (shortlistError) setError(shortlistError.message)

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { resolveEmployerId } from '../../lib/employerAccess.js'
 import EditRoleModal from '../../components/EditRoleModal.jsx'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
@@ -34,21 +35,12 @@ export default function EmployerRoles() {
 
   async function load() {
     setLoading(true)
-    const { data: employer, error: employerError } = await supabase
-      .from('employer_profiles')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    if (employerError) {
-      setError(employerError.message)
+    const { employerId } = await resolveEmployerId(user.id)
+    if (!employerId) {
       setLoading(false)
       return
     }
-    if (!employer) {
-      setLoading(false)
-      return
-    }
+    const employer = { id: employerId }
 
     // Best-effort: the video nudge banner is non-critical, so a failure here
     // (e.g. the column not existing yet on an older schema) shouldn't block

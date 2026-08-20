@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { notify } from '../../lib/notify.js'
 import SkillsPicker from '../../components/SkillsPicker.jsx'
 
@@ -35,20 +36,12 @@ export default function NewRole() {
     if (!user) return
 
     async function loadEmployer() {
-      const { data, error: fetchError } = await supabase
-        .from('employer_profiles')
-        .select('id, company_name')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (fetchError) {
-        setError(fetchError.message)
-      } else if (!data) {
+      const { employerId: resolvedId } = await resolveEmployerId(user.id)
+      if (!resolvedId) {
         navigate('/employer/onboarding')
         return
-      } else {
-        setEmployerId(data.id)
       }
+      setEmployerId(resolvedId)
       setLoading(false)
     }
 

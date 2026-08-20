@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { deleteAccount } from '../../lib/deleteAccount.js'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
 
@@ -20,6 +21,7 @@ export default function EmployerEditProfile() {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
+  const [isTeamMember, setIsTeamMember] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -28,6 +30,18 @@ export default function EmployerEditProfile() {
       const { data: { user: freshUser }, error: userError } = await supabase.auth.getUser()
       if (userError || !freshUser) {
         setLoadError(userError?.message || 'Your session has expired — please log in again.')
+        setLoading(false)
+        return
+      }
+
+      // Only the account owner can edit the company profile — a team
+      // member sees a notice instead. Checked before the upsert below,
+      // since that upsert would otherwise create a second, blank
+      // employer_profiles row for a team member (unique on their own
+      // user_id, so it wouldn't conflict with the owner's row).
+      const { employerId, isOwner } = await resolveEmployerId(freshUser.id)
+      if (employerId && !isOwner) {
+        setIsTeamMember(true)
         setLoading(false)
         return
       }
@@ -56,6 +70,21 @@ export default function EmployerEditProfile() {
   }, [user])
 
   if (loading) return null
+
+  if (isTeamMember) {
+    return (
+      <div className="section" style={{ maxWidth: 480, margin: '0 auto', textAlign: 'center' }}>
+        <h1 style={{ fontSize: 24 }}>Only the account owner can edit the company profile</h1>
+        <p style={{ marginTop: 12, color: 'var(--color-text-muted)' }}>
+          Ask the account owner to make changes, or head back to the{' '}
+          <Link to="/employer/dashboard" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+            dashboard
+          </Link>
+          .
+        </p>
+      </div>
+    )
+  }
 
   if (loadError) {
     return (

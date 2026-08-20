@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { notify } from '../../lib/notify.js'
 import EmptyState from '../../components/EmptyState.jsx'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
@@ -30,23 +31,13 @@ export default function TalentFeed() {
     if (!user) return
 
     async function load() {
-      const { data: employer, error: employerError } = await supabase
-        .from('employer_profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (employerError) {
-        setError(employerError.message)
-        setLoading(false)
-        return
-      }
-      if (!employer) {
+      const { employerId: resolvedId } = await resolveEmployerId(user.id)
+      if (!resolvedId) {
         setError('Finish setting up your company profile before browsing talent.')
         setLoading(false)
         return
       }
-      setEmployerId(employer.id)
+      setEmployerId(resolvedId)
 
       const [{ data: liveCandidates, error: candidatesError }, { data: shortlists, error: shortlistError }] =
         await Promise.all([
@@ -58,7 +49,7 @@ export default function TalentFeed() {
             .eq('is_live', true)
             .eq('is_open_to_opportunities', true)
             .order('created_at', { ascending: false }),
-          supabase.from('shortlists').select('candidate_id').eq('employer_id', employer.id),
+          supabase.from('shortlists').select('candidate_id').eq('employer_id', resolvedId),
         ])
 
       if (candidatesError) setError(candidatesError.message)

@@ -4,7 +4,11 @@ import { useNotifications } from '../context/NotificationContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { notify } from '../lib/notify.js'
 
-export default function MessageThread({ otherUserId, otherUserLabel }) {
+// `myIds` lets a shared company inbox (multiple team members) see and mark
+// read the same conversation regardless of which teammate a past message
+// was sent to/from — defaults to just the current user for the normal
+// one-person-per-account case (candidates, or an employer with no team).
+export default function MessageThread({ otherUserId, otherUserLabel, myIds }) {
   const { user } = useAuth()
   const { refresh: refreshNotifications } = useNotifications()
   const [messages, setMessages] = useState([])
@@ -13,16 +17,20 @@ export default function MessageThread({ otherUserId, otherUserLabel }) {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
 
+  const myIdList = myIds && myIds.length > 0 ? myIds : user ? [user.id] : []
+  const myIdKey = myIdList.join(',')
+
   useEffect(() => {
-    if (!user || !otherUserId) return
+    if (!user || !otherUserId || myIdList.length === 0) return
 
     async function load() {
+      const filters = myIdList
+        .map((id) => `and(sender_id.eq.${id},recipient_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},recipient_id.eq.${id})`)
+        .join(',')
       const { data, error: fetchError } = await supabase
         .from('messages')
         .select('*')
-        .or(
-          `and(sender_id.eq.${user.id},recipient_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},recipient_id.eq.${user.id})`,
-        )
+        .or(filters)
         .order('sent_at', { ascending: true })
 
       if (fetchError) {
@@ -34,7 +42,7 @@ export default function MessageThread({ otherUserId, otherUserLabel }) {
       setMessages(data)
       setLoading(false)
 
-      const unreadIds = data.filter((m) => m.recipient_id === user.id && !m.read_at).map((m) => m.id)
+      const unreadIds = data.filter((m) => myIdList.includes(m.recipient_id) && !m.read_at).map((m) => m.id)
       if (unreadIds.length > 0) {
         await supabase.from('messages').update({ read_at: new Date().toISOString() }).in('id', unreadIds)
         refreshNotifications()
@@ -42,7 +50,8 @@ export default function MessageThread({ otherUserId, otherUserLabel }) {
     }
 
     load()
-  }, [user, otherUserId, refreshNotifications])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, otherUserId, refreshNotifications, myIdKey])
 
   async function handleSend(e) {
     e.preventDefault()
@@ -86,7 +95,7 @@ export default function MessageThread({ otherUserId, otherUserLabel }) {
           <p style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>No messages yet — say hello.</p>
         )}
         {messages.map((m) => {
-          const fromMe = m.sender_id === user.id
+          const fromMe = myIdList.includes(m.sender_id)
           return (
             <div
               key={m.id}

@@ -35,6 +35,8 @@ import TalentFeed from './pages/employer/Talent.jsx'
 import Shortlist from './pages/employer/Shortlist.jsx'
 import ShortlistReview from './pages/employer/ShortlistReview.jsx'
 import Messages from './pages/employer/Messages.jsx'
+import Team from './pages/employer/Team.jsx'
+import TeamAccept from './pages/employer/TeamAccept.jsx'
 
 export default function App() {
   return (
@@ -211,6 +213,17 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/employer/team"
+          element={
+            <ProtectedRoute requireUserType="employer">
+              <Team />
+            </ProtectedRoute>
+          }
+        />
+        {/* Public — the invite token itself is the credential; the person
+            accepting it may not have an account yet. */}
+        <Route path="/employer/team/accept" element={<TeamAccept />} />
 
         <Route path="*" element={<NotFound />} />
       </Route>

@@ -5,6 +5,7 @@ import { useNotifications } from '../../context/NotificationContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { formatRelativeTime, daysSince } from '../../lib/roleFormat.js'
 import { getCachedDashboard, setCachedDashboard } from '../../lib/dashboardCache.js'
+import { resolveEmployerId, getEmployerUserIds } from '../../lib/employerAccess.js'
 import ShareButton from '../../components/ShareButton.jsx'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import DashboardSkeleton from '../../components/DashboardSkeleton.jsx'
@@ -27,10 +28,10 @@ const PROFILE_STRENGTH_CHECKS = [
   { key: 'typicalRoles', label: 'Typical roles filled in', anchor: '#typical-roles-section', tip: 'Add the kinds of roles you typically hire for.' },
 ]
 
-function groupByOtherParty(messages, myId) {
+function groupByOtherParty(messages, myIds) {
   const map = new Map()
   for (const m of messages) {
-    const otherId = m.sender_id === myId ? m.recipient_id : m.sender_id
+    const otherId = myIds.has(m.sender_id) ? m.recipient_id : m.sender_id
     if (!map.has(otherId)) map.set(otherId, [])
     map.get(otherId).push(m)
   }
@@ -67,22 +68,24 @@ export default function EmployerDashboard() {
     if (!user) return
 
     async function load() {
-      // The employer profile and the full message thread don't depend on
-      // each other, so they're fetched together rather than one after
-      // another.
-      const [empResult, allMessagesResult] = await Promise.all([
+      // Resolves to the owner's own company, or the company they're an
+      // active team member of — either way, everyone on the team sees the
+      // same dashboard.
+      const { employerId } = await resolveEmployerId(user.id)
+      if (!employerId) {
+        setLoading(false)
+        return
+      }
+
+      const [empResult, myIdList] = await Promise.all([
         supabase
           .from('employer_profiles')
           .select(
             'id, company_name, company_slug, logo_url, intro_video_url, about, culture_description, company_highlight, typical_roles, linkedin_url, website_url, last_viewed_applications_at',
           )
-          .eq('user_id', user.id)
+          .eq('id', employerId)
           .maybeSingle(),
-        supabase
-          .from('messages')
-          .select('id, sender_id, recipient_id, body, sent_at, read_at')
-          .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
-          .order('sent_at', { ascending: false }),
+        getEmployerUserIds(employerId),
       ])
 
       const emp = empResult.data
@@ -91,13 +94,26 @@ export default function EmployerDashboard() {
         return
       }
 
+      // The message inbox is shared across the whole team — a candidate's
+      // conversation with "the company" isn't tied to whichever teammate
+      // happens to be logged in.
+      const myIds = new Set(myIdList)
+      const orFilter = myIdList.map((id) => `sender_id.eq.${id},recipient_id.eq.${id}`).join(',')
+      const allMessagesResult = orFilter
+        ? await supabase
+            .from('messages')
+            .select('id, sender_id, recipient_id, body, sent_at, read_at')
+            .or(orFilter)
+            .order('sent_at', { ascending: false })
+        : { data: [] }
+
       const allMessages = allMessagesResult.data || []
 
-      const messagesByOther = groupByOtherParty(allMessages, user.id)
+      const messagesByOther = groupByOtherParty(allMessages, myIds)
       let unanswered = false
       messagesByOther.forEach((msgs) => {
         const latest = msgs[0]
-        if (latest.sender_id !== user.id && Date.now() - new Date(latest.sent_at).getTime() > THREE_DAYS_MS) {
+        if (!myIds.has(latest.sender_id) && Date.now() - new Date(latest.sent_at).getTime() > THREE_DAYS_MS) {
           unanswered = true
         }
       })
@@ -114,7 +130,7 @@ export default function EmployerDashboard() {
       const sinceIso = new Date(sinceMs).toISOString()
 
       const unreadSince = allMessages.filter(
-        (m) => m.recipient_id === user.id && !m.read_at && new Date(m.sent_at).getTime() > sinceMs,
+        (m) => myIds.has(m.recipient_id) && !m.read_at && new Date(m.sent_at).getTime() > sinceMs,
       )
       const unreadBySender = new Map()
       unreadSince.forEach((m) => {
@@ -418,6 +434,12 @@ export default function EmployerDashboard() {
           <h3 style={{ fontSize: 16 }}>Post a new role</h3>
           <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 10 }}>
             Create a role and start receiving applications.
+          </p>
+        </Link>
+        <Link to="/employer/team" className="card stat-card-link" style={{ padding: 24 }}>
+          <h3 style={{ fontSize: 16 }}>Team</h3>
+          <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 10 }}>
+            Invite teammates to help manage your account.
           </p>
         </Link>
       </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { resolveEmployerId } from '../../lib/employerAccess.js'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import QuickMessageModal from '../../components/QuickMessageModal.jsx'
@@ -39,27 +40,17 @@ export default function ShortlistReview() {
     if (!user || !roleParam) return
 
     async function load() {
-      const { data: employer, error: employerError } = await supabase
-        .from('employer_profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (employerError) {
-        setError(employerError.message)
+      const { employerId: resolvedId } = await resolveEmployerId(user.id)
+      if (!resolvedId) {
         setLoading(false)
         return
       }
-      if (!employer) {
-        setLoading(false)
-        return
-      }
-      setEmployerId(employer.id)
+      setEmployerId(resolvedId)
 
       let query = supabase
         .from('shortlists')
         .select(`id, candidate_id, role_id, status, roles(title), candidate_profiles(${CANDIDATE_SELECT})`)
-        .eq('employer_id', employer.id)
+        .eq('employer_id', resolvedId)
         .order('created_at', { ascending: false })
       query = roleParam === 'general' ? query.is('role_id', null) : query.eq('role_id', roleParam)
 

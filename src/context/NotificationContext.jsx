@@ -1,6 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useAuth } from './AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
+import { resolveEmployerId, getEmployerUserIds } from '../lib/employerAccess.js'
 
 const NotificationContext = createContext(undefined)
 
@@ -13,16 +14,36 @@ export function NotificationProvider({ children }) {
   const [newApplications, setNewApplications] = useState(0)
   const [newShortlists, setNewShortlists] = useState(0)
   const [newProfileViews, setNewProfileViews] = useState(0)
+  // Caches the resolved company id so clearApplicationsBadge (called from a
+  // click handler, not from refresh()) doesn't need to re-resolve it.
+  const employerIdRef = useRef(null)
 
   const refresh = useCallback(async () => {
     if (!user || !userType) return
 
-    const { count: msgCount } = await supabase
-      .from('messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('recipient_id', user.id)
-      .is('read_at', null)
-    setUnreadMessages(msgCount || 0)
+    if (userType === 'employer') {
+      const { employerId } = await resolveEmployerId(user.id)
+      employerIdRef.current = employerId
+      if (!employerId) {
+        setUnreadMessages(0)
+        setNewApplications(0)
+        return
+      }
+      const myIds = await getEmployerUserIds(employerId)
+      const { count: msgCount } = await supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .in('recipient_id', myIds)
+        .is('read_at', null)
+      setUnreadMessages(msgCount || 0)
+    } else {
+      const { count: msgCount } = await supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('recipient_id', user.id)
+        .is('read_at', null)
+      setUnreadMessages(msgCount || 0)
+    }
 
     if (userType === 'candidate') {
       const { data: candidate } = await supabase
@@ -49,10 +70,11 @@ export function NotificationProvider({ children }) {
     }
 
     if (userType === 'employer') {
+      if (!employerIdRef.current) return
       const { data: employer } = await supabase
         .from('employer_profiles')
         .select('id, last_viewed_applications_at')
-        .eq('user_id', user.id)
+        .eq('id', employerIdRef.current)
         .maybeSingle()
       if (!employer) return
       const { data: roleRows } = await supabase.from('roles').select('id').eq('employer_id', employer.id)
@@ -97,11 +119,11 @@ export function NotificationProvider({ children }) {
 
   async function clearApplicationsBadge() {
     setNewApplications(0)
-    if (userType === 'employer' && user) {
+    if (userType === 'employer' && employerIdRef.current) {
       await supabase
         .from('employer_profiles')
         .update({ last_viewed_applications_at: new Date().toISOString() })
-        .eq('user_id', user.id)
+        .eq('id', employerIdRef.current)
     }
   }
 

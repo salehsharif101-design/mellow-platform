@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { notify } from '../../lib/notify.js'
 import { formatRelativeTime } from '../../lib/roleFormat.js'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
@@ -36,12 +37,15 @@ export default function RoleApplicants() {
     if (!user) return
 
     async function load() {
-      const { data: roleRow, error: roleError } = await supabase
-        .from('roles')
-        .select('id, title, employer_id, view_count, employer_profiles!inner(user_id)')
-        .eq('id', roleId)
-        .eq('employer_profiles.user_id', user.id)
-        .maybeSingle()
+      const { employerId } = await resolveEmployerId(user.id)
+      const { data: roleRow, error: roleError } = employerId
+        ? await supabase
+            .from('roles')
+            .select('id, title, employer_id, view_count')
+            .eq('id', roleId)
+            .eq('employer_id', employerId)
+            .maybeSingle()
+        : { data: null, error: null }
 
       if (roleError || !roleRow) {
         setError('Role not found.')

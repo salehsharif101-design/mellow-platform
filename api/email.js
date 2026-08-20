@@ -229,6 +229,30 @@ async function sendLiveNotification(supabase, candidateId) {
   })
 }
 
+async function sendTeamInvite(supabase, teamMemberId) {
+  const teamMember = unwrap(
+    await supabase
+      .from('employer_team_members')
+      .select('invited_email, invite_token, invited_by, employer_profiles(company_name)')
+      .eq('id', teamMemberId)
+      .single(),
+  )
+  const inviter = unwrap(await supabase.from('users').select('email').eq('id', teamMember.invited_by).single())
+  const companyName = teamMember.employer_profiles?.company_name || 'their company'
+
+  return sendEmail({
+    to: teamMember.invited_email,
+    subject: `You've been invited to join ${companyName} on Mellow`,
+    html: renderEmailHtml({
+      heading: `Join ${companyName} on Mellow`,
+      bodyText: `${inviter.email} has invited you to join ${companyName}'s team on Mellow. Accept the invitation to help manage applications, message candidates, and post roles.`,
+      ctaLabel: 'Accept invitation',
+      ctaUrl: `${SITE_URL}/employer/team/accept?token=${teamMember.invite_token}`,
+      illustration: 'Collaborate2.png',
+    }),
+  })
+}
+
 async function sendVideoLibraryNotification(supabase, candidateId) {
   const { email } = await getCandidateContact(supabase, candidateId)
 
@@ -295,6 +319,9 @@ export default async function handler(req, res) {
         break
       case 'shortlist-notification':
         await sendShortlistNotification(supabase, body.shortlistId)
+        break
+      case 'team-invite':
+        await sendTeamInvite(supabase, body.teamMemberId)
         break
       case 'rejection-notification':
         await sendRejectionNotification(supabase, body.applicationId)

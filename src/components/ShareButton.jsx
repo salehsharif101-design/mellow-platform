@@ -1,15 +1,18 @@
 import { useState } from 'react'
 
-// Small icon-only share control used everywhere a page link can be copied
+// Small icon-only share control used everywhere a page link can be shared
 // (candidate/company profiles, role pages, employer dashboard/roles list).
 // Matches the size and stroke style of the LinkedIn/website icons in
 // CompanyLinkIcons so it can sit inline with them.
+//
+// Uses the native Web Share API where available — on mobile this opens the
+// device's own share sheet (WhatsApp, Instagram, LinkedIn, iMessage, etc);
+// some desktop browsers support it too. Everywhere else, falls back to
+// copying the link to the clipboard with a "Link copied!" confirmation.
 export default function ShareButton({ url, label = 'Share', size = 17, bordered = false }) {
   const [copied, setCopied] = useState(false)
 
-  async function handleClick(e) {
-    e.preventDefault()
-    e.stopPropagation()
+  async function copyToClipboard() {
     try {
       await navigator.clipboard.writeText(url)
     } catch {
@@ -29,6 +32,24 @@ export default function ShareButton({ url, label = 'Share', size = 17, bordered 
     }
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  async function handleClick(e) {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: label, url })
+      } catch (err) {
+        // AbortError just means the user closed the share sheet without
+        // picking anything — not a real failure, so no clipboard fallback.
+        if (err?.name !== 'AbortError') await copyToClipboard()
+      }
+      return
+    }
+
+    await copyToClipboard()
   }
 
   return (

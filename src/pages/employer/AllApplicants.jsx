@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { formatRelativeTime } from '../../lib/roleFormat.js'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
@@ -30,23 +31,13 @@ export default function AllApplicants() {
     if (!user) return
 
     async function load() {
-      const { data: employer, error: employerError } = await supabase
-        .from('employer_profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (employerError) {
-        setError(employerError.message)
-        setLoading(false)
-        return
-      }
-      if (!employer) {
+      const { employerId } = await resolveEmployerId(user.id)
+      if (!employerId) {
         setLoading(false)
         return
       }
 
-      const { data: roles } = await supabase.from('roles').select('id, title').eq('employer_id', employer.id)
+      const { data: roles } = await supabase.from('roles').select('id, title').eq('employer_id', employerId)
       const roleIds = (roles || []).map((r) => r.id)
       const roleTitleById = Object.fromEntries((roles || []).map((r) => [r.id, r.title]))
 

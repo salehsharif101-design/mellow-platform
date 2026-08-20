@@ -95,6 +95,9 @@ export default function Layout() {
                       <Link to="/employer/roles" style={NAV_LINK_STYLE} onClick={closeMobileMenu}>
                         Manage roles
                       </Link>
+                      <Link to="/employer/team" style={NAV_LINK_STYLE} onClick={closeMobileMenu}>
+                        Team
+                      </Link>
                     </>
                   ) : (
                     <NavHighlight

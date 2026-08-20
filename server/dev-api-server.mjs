@@ -20,6 +20,7 @@ const { default: emailHandler } = await import('../api/email.js')
 const { default: deleteAccountHandler } = await import('../api/delete-account.js')
 const { default: waitlistHandler } = await import('../api/waitlist.js')
 const { default: checkEmailHandler } = await import('../api/check-email.js')
+const { default: teamInviteHandler } = await import('../api/team-invite.js')
 const { default: profileViewDigestHandler } = await import('../api/cron/profile-view-digest.js')
 const { default: weeklyDigestHandler } = await import('../api/cron/weekly-digest.js')
 
@@ -31,6 +32,7 @@ const ROUTES = {
   '/api/delete-account': deleteAccountHandler,
   '/api/waitlist': waitlistHandler,
   '/api/check-email': checkEmailHandler,
+  '/api/team-invite': teamInviteHandler,
   '/api/cron/profile-view-digest': profileViewDigestHandler,
   '/api/cron/weekly-digest': weeklyDigestHandler,
 }
