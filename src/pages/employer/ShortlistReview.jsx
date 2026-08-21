@@ -11,6 +11,7 @@ import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
 import MessageIconButton from '../../components/MessageIconButton.jsx'
 import BookMeetingButton from '../../components/BookMeetingButton.jsx'
 import ShareButton from '../../components/ShareButton.jsx'
+import { syncApplicationStatus } from '../../lib/shortlistSync.js'
 
 const STATUSES = ['reviewing', 'shortlisted', 'rejected']
 const STATUS_LABELS = { reviewing: 'Reviewing', shortlisted: 'Shortlisted', rejected: 'Rejected' }
@@ -96,6 +97,7 @@ export default function ShortlistReview() {
   async function changeStatus(status) {
     const entry = entries[index]
     if (!entry) return
+    const previousStatus = entry.status
     setUpdating(true)
     const { data, error: updateError } = await supabase
       .from('shortlists')
@@ -105,6 +107,12 @@ export default function ShortlistReview() {
       .single()
     if (!updateError) {
       setEntries((prev) => prev.map((e, i) => (i === index ? { ...e, status: data.status } : e)))
+      if (status !== previousStatus) {
+        // Otherwise the matching application (if any) keeps reading as
+        // "shortlisted" forever, which is what fed a stale count into the
+        // role pipeline cards on the dashboard.
+        await syncApplicationStatus(entry.role_id, entry.candidate_id, status)
+      }
     }
     setUpdating(false)
   }

@@ -6,6 +6,7 @@ import { resolveEmployerId } from '../../lib/employerAccess.js'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
+import { syncApplicationStatus } from '../../lib/shortlistSync.js'
 
 export default function Shortlist() {
   const { user } = useAuth()
@@ -44,10 +45,15 @@ export default function Shortlist() {
   }, [user])
 
   async function remove(shortlistId) {
+    const entry = entries.find((e) => e.id === shortlistId)
     setRemovingId(shortlistId)
     const { error: removeError } = await supabase.from('shortlists').delete().eq('id', shortlistId)
     if (!removeError) {
       setEntries((prev) => prev.filter((e) => e.id !== shortlistId))
+      // Otherwise the matching application (if any) keeps reading as
+      // "shortlisted" forever, which is what fed a stale count into the
+      // role pipeline cards on the dashboard.
+      await syncApplicationStatus(entry?.role_id, entry?.candidate_id, 'reviewing')
     }
     setRemovingId(null)
   }
