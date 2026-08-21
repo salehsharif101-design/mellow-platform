@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
+import { notify } from '../../lib/notify.js'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import QuickMessageModal from '../../components/QuickMessageModal.jsx'
@@ -37,6 +38,7 @@ export default function ShortlistReview() {
   const [showMessage, setShowMessage] = useState(false)
   const [messageSent, setMessageSent] = useState(false)
   const [showCalendly, setShowCalendly] = useState(false)
+  const [pendingRejection, setPendingRejection] = useState(false)
 
   useEffect(() => {
     if (!user || !roleParam) return
@@ -117,6 +119,37 @@ export default function ShortlistReview() {
     setUpdating(false)
   }
 
+  function handleStatusSelect(newStatus) {
+    if (newStatus === 'rejected') {
+      setPendingRejection(true)
+      return
+    }
+    setPendingRejection(false)
+    changeStatus(newStatus)
+  }
+
+  // Mirrors RoleApplicants.jsx's confirmRejection — rejects either way, and
+  // only fires the notification email on "Yes". Since this page's entries
+  // are shortlists rows (not applications), only entries tied to a role
+  // have a matching application to notify about — a candidate shortlisted
+  // generally from the Talent Feed has none, so "Yes" is a no-op for those.
+  async function confirmRejection(shouldNotify) {
+    const entry = entries[index]
+    await changeStatus('rejected')
+    if (shouldNotify && entry?.role_id) {
+      const { data: application } = await supabase
+        .from('applications')
+        .select('id')
+        .eq('role_id', entry.role_id)
+        .eq('candidate_id', entry.candidate_id)
+        .maybeSingle()
+      if (application) {
+        notify('rejection-notification', { applicationId: application.id })
+      }
+    }
+    setPendingRejection(false)
+  }
+
   if (loading) return null
 
   if (error) {
@@ -160,7 +193,10 @@ export default function ShortlistReview() {
                   key={e.id}
                   type="button"
                   className={`shortlist-strip-item${i === index ? ' active' : ''}`}
-                  onClick={() => setIndex(i)}
+                  onClick={() => {
+                    setPendingRejection(false)
+                    setIndex(i)
+                  }}
                 >
                   <CandidateAvatar avatarUrl={ec.avatar_url} fullName={ec.full_name} size={40} />
                   <span>{ec.full_name}</span>
@@ -337,20 +373,44 @@ export default function ShortlistReview() {
         </div>
       </div>
 
+      {pendingRejection && (
+        <div style={{ position: 'fixed', bottom: 68, left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 901 }}>
+          <div
+            className="card"
+            style={{ padding: '14px 18px', background: 'var(--color-bg-soft)', border: 'none', maxWidth: 420, margin: '0 24px' }}
+          >
+            <p style={{ fontSize: 14, fontWeight: 600 }}>
+              Would you like to notify them that you have decided to move forward with other talent?
+            </p>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'center' }}>
+              <button type="button" className="btn btn-primary" disabled={updating} onClick={() => confirmRejection(true)}>
+                Yes, send email
+              </button>
+              <button type="button" className="btn btn-ghost" disabled={updating} onClick={() => confirmRejection(false)}>
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="shortlist-review-bottombar">
         <button
           type="button"
           className="btn btn-ghost"
           disabled={index === 0}
-          onClick={() => setIndex((i) => Math.max(0, i - 1))}
+          onClick={() => {
+            setPendingRejection(false)
+            setIndex((i) => Math.max(0, i - 1))
+          }}
         >
           ← Previous
         </button>
         <select
           className="input"
-          value={entry.status}
+          value={pendingRejection ? 'rejected' : entry.status}
           disabled={updating}
-          onChange={(e) => changeStatus(e.target.value)}
+          onChange={(e) => handleStatusSelect(e.target.value)}
           style={{ width: 'auto', padding: '8px 12px' }}
         >
           {STATUSES.map((s) => (
@@ -363,7 +423,10 @@ export default function ShortlistReview() {
           type="button"
           className="btn btn-ghost"
           disabled={index === entries.length - 1}
-          onClick={() => setIndex((i) => Math.min(entries.length - 1, i + 1))}
+          onClick={() => {
+            setPendingRejection(false)
+            setIndex((i) => Math.min(entries.length - 1, i + 1))
+          }}
         >
           Next →
         </button>

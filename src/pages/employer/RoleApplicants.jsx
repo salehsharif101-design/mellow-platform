@@ -98,12 +98,19 @@ export default function RoleApplicants() {
   async function syncShortlist(candidateId, newStatus, previousStatus) {
     if (!role?.employer_id || !candidateId) return
     if (newStatus === 'shortlisted' && previousStatus !== 'shortlisted') {
-      await supabase
+      const { data } = await supabase
         .from('shortlists')
         .upsert(
           { employer_id: role.employer_id, candidate_id: candidateId, role_id: role.id },
           { onConflict: 'employer_id,candidate_id,role_id', ignoreDuplicates: true },
         )
+        .select()
+        .maybeSingle()
+      // ignoreDuplicates means an already-shortlisted candidate (e.g.
+      // bounced through "reviewing" and back) returns no row here, so this
+      // only ever fires for a genuinely new shortlist entry — otherwise
+      // they'd get a duplicate notification every time.
+      if (data) notify('shortlist-notification', { shortlistId: data.id })
     } else if (previousStatus === 'shortlisted' && newStatus !== 'shortlisted') {
       await supabase
         .from('shortlists')
