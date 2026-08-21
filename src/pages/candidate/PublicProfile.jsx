@@ -8,7 +8,8 @@ import CalendlyModal from '../../components/CalendlyModal.jsx'
 import MessageThread from '../../components/MessageThread.jsx'
 import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
 import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
-import ProfileContactIcons from '../../components/ProfileContactIcons.jsx'
+import MessageIconButton from '../../components/MessageIconButton.jsx'
+import BookMeetingButton from '../../components/BookMeetingButton.jsx'
 import ShareButton from '../../components/ShareButton.jsx'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 
@@ -127,14 +128,15 @@ export default function PublicProfile() {
                     label={profile.full_name}
                     size={19}
                   />
-                  <ProfileContactIcons
-                    calendlyUrl={canBookMeeting ? profile.calendly_url : null}
-                    onBookMeeting={() => setShowCalendly(true)}
+                  <MessageIconButton
                     onMessage={isEmployerViewer ? () => setShowContact(true) : null}
                     label={profile.full_name}
                     size={19}
                   />
                   <ShareButton url={`https://beta.joinmellow.xyz/profile/${profile.username || profile.id}`} label="Share profile" size={19} />
+                  {canBookMeeting && (
+                    <BookMeetingButton onClick={() => setShowCalendly(true)} style={{ marginLeft: 'auto' }} />
+                  )}
                 </div>
                 <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>
                   {profile.current_company ? `${profile.job_title} at ${profile.current_company}` : profile.job_title}

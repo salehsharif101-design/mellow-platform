@@ -8,7 +8,8 @@ import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import QuickMessageModal from '../../components/QuickMessageModal.jsx'
 import CalendlyModal from '../../components/CalendlyModal.jsx'
 import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
-import ProfileContactIcons from '../../components/ProfileContactIcons.jsx'
+import MessageIconButton from '../../components/MessageIconButton.jsx'
+import BookMeetingButton from '../../components/BookMeetingButton.jsx'
 import ShareButton from '../../components/ShareButton.jsx'
 
 const STATUSES = ['reviewing', 'shortlisted', 'rejected']
@@ -172,14 +173,11 @@ export default function ShortlistReview() {
                   <div className="profile-name-row">
                     <h1 style={{ fontSize: 28 }}>{c.full_name}</h1>
                     <CompanyLinkIcons linkedinUrl={c.linkedin_url} websiteUrl={c.website_url} label={c.full_name} size={19} />
-                    <ProfileContactIcons
-                      calendlyUrl={c.calendly_url}
-                      onBookMeeting={() => setShowCalendly(true)}
-                      onMessage={() => setShowMessage(true)}
-                      label={c.full_name}
-                      size={19}
-                    />
+                    <MessageIconButton onMessage={() => setShowMessage(true)} label={c.full_name} size={19} />
                     <ShareButton url={`https://beta.joinmellow.xyz/profile/${c.username || c.id}`} label="Share profile" size={19} />
+                    {c.calendly_url && (
+                      <BookMeetingButton onClick={() => setShowCalendly(true)} style={{ marginLeft: 'auto' }} />
+                    )}
                   </div>
                   <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>
                     {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title}
