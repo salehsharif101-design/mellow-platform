@@ -171,16 +171,28 @@ async function sendShortlistNotification(supabase, shortlistId) {
     await supabase.from('shortlists').select('candidate_id').eq('id', shortlistId).single(),
   )
   const candidate = unwrap(
-    await supabase.from('candidate_profiles').select('user_id, username').eq('id', shortlist.candidate_id).single(),
+    await supabase
+      .from('candidate_profiles')
+      .select('user_id, username, calendly_url')
+      .eq('id', shortlist.candidate_id)
+      .single(),
   )
   const candidateUser = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
+
+  // Nudges the candidate to add a Calendly link, but only if they don't
+  // already have one — an employer who just shortlisted them may want to
+  // book time directly, and this is the moment that's most likely to land.
+  const calendlyNudge = candidate.calendly_url
+    ? ''
+    : '<br><br>Make it easy for employers to reach you. Add your Calendly link to your profile so they can book a meeting with you directly.<br><br>' +
+      `<a href="${SITE_URL}/profile/edit" style="color:#005ef5;font-weight:700;text-decoration:none;">Add your Calendly link</a>`
 
   return sendEmail({
     to: candidateUser.email,
     subject: 'You were shortlisted on Mellow',
     html: renderEmailHtml({
       heading: "You've been shortlisted",
-      bodyText: 'An employer shortlisted your Mellow profile. Keep it up to date — they may reach out soon.',
+      bodyText: `An employer shortlisted your Mellow profile. Keep it up to date — they may reach out soon.${calendlyNudge}`,
       ctaLabel: 'View my profile',
       ctaUrl: `${SITE_URL}/profile/${candidate.username || shortlist.candidate_id}`,
       illustration: 'Your_Requested_Is_Posted.png',

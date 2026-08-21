@@ -172,6 +172,7 @@ export default function RoleApplicants() {
   }
 
   const shortlistedCount = applications.filter((a) => a.status === 'shortlisted').length
+  const rejectedCount = applications.filter((a) => a.status === 'rejected').length
   const views = role.view_count || 0
   const conversion = views > 0 ? Math.round((applications.length / views) * 100) : null
 
@@ -182,7 +183,7 @@ export default function RoleApplicants() {
       </Link>
       <h1 style={{ fontSize: 28, marginTop: 8 }}>Applicants for {role.title}</h1>
       <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 6 }}>
-        {views} view{views === 1 ? '' : 's'} · {applications.length} applied · {shortlistedCount} shortlisted
+        {views} view{views === 1 ? '' : 's'} · {applications.length} applied · {shortlistedCount} shortlisted · {rejectedCount} rejected
         {conversion !== null && ` · ${conversion}% view-to-apply`}
       </p>
 

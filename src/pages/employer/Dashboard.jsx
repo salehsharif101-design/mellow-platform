@@ -322,11 +322,12 @@ export default function EmployerDashboard() {
     const total = roleApps.length
     const unviewed = roleApps.filter((a) => !a.viewed_at).length
     const shortlistedCount = roleApps.filter((a) => a.status === 'shortlisted').length
+    const rejectedCount = roleApps.filter((a) => a.status === 'rejected').length
     const views = role.view_count || 0
     const conversion = views > 0 ? Math.round((total / views) * 100) : null
     const daysOpen = daysSince(role.created_at)
     const showTip = daysOpen > 14 && total < 5
-    return { role, total, unviewed, shortlistedCount, views, conversion, daysOpen, showTip }
+    return { role, total, unviewed, shortlistedCount, rejectedCount, views, conversion, daysOpen, showTip }
   })
 
   const rejectedApplications = applications.filter((a) => a.status === 'rejected')
@@ -452,7 +453,7 @@ export default function EmployerDashboard() {
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {pipeline.map(({ role, total, unviewed, shortlistedCount, views, conversion, daysOpen, showTip }) => (
+            {pipeline.map(({ role, total, unviewed, shortlistedCount, rejectedCount, views, conversion, daysOpen, showTip }) => (
               <div
                 key={role.id}
                 className="card"
@@ -478,7 +479,7 @@ export default function EmployerDashboard() {
                   </div>
                 </div>
                 <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 10 }}>
-                  {views} view{views === 1 ? '' : 's'} · {total} applied · {shortlistedCount} shortlisted
+                  {views} view{views === 1 ? '' : 's'} · {total} applied · {shortlistedCount} shortlisted · {rejectedCount} rejected
                   {conversion !== null && ` · ${conversion}% view-to-apply`}
                 </p>
                 {showTip && (
