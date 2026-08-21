@@ -7,7 +7,6 @@ import { formatRelativeTime, daysSince } from '../../lib/roleFormat.js'
 import { getCachedDashboard, setCachedDashboard } from '../../lib/dashboardCache.js'
 import { resolveEmployerId, getEmployerUserIds } from '../../lib/employerAccess.js'
 import ShareButton from '../../components/ShareButton.jsx'
-import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import DashboardSkeleton from '../../components/DashboardSkeleton.jsx'
 
 // Matches NotificationContext's poll interval so the pipeline cards' New
@@ -551,32 +550,6 @@ export default function EmployerDashboard() {
                 )}
               </div>
             ))}
-          </div>
-        </div>
-      )}
-
-      {rejectedApplications.length > 0 && (
-        <div style={{ marginTop: 36 }}>
-          <h3 style={{ fontSize: 18, marginBottom: 14 }}>Rejected talent</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {rejectedApplications.map((a) => {
-              const c = a.candidate_profiles
-              if (!c) return null
-              return (
-                <div key={a.id} className="card" style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <Link to={`/profile/${c.username || c.id}`} style={{ flexShrink: 0, lineHeight: 0 }}>
-                    <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={40} />
-                  </Link>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: 600, fontSize: 14 }}>{c.full_name}</p>
-                    {c.job_title && <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{c.job_title}</p>}
-                  </div>
-                  <Link to={`/profile/${c.username || c.id}`} className="btn btn-ghost">
-                    View profile
-                  </Link>
-                </div>
-              )
-            })}
           </div>
         </div>
       )}
