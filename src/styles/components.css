@@ -594,8 +594,10 @@ textarea.input:focus {
 .profile-name-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
+  width: 100%;
 }
 
 .profile-tag-row {

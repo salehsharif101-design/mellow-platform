@@ -169,15 +169,15 @@ export default function ShortlistReview() {
                 <Link to={`/profile/${c.username || c.id}`} style={{ flexShrink: 0 }}>
                   <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={96} style={{ fontSize: 32 }} />
                 </Link>
-                <div style={{ minWidth: 0 }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
                   <div className="profile-name-row">
-                    <h1 style={{ fontSize: 28 }}>{c.full_name}</h1>
-                    <CompanyLinkIcons linkedinUrl={c.linkedin_url} websiteUrl={c.website_url} label={c.full_name} size={19} />
-                    <MessageIconButton onMessage={() => setShowMessage(true)} label={c.full_name} size={19} />
-                    <ShareButton url={`https://beta.joinmellow.xyz/profile/${c.username || c.id}`} label="Share profile" size={19} />
-                    {c.calendly_url && (
-                      <BookMeetingButton onClick={() => setShowCalendly(true)} style={{ marginLeft: 'auto' }} />
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <h1 style={{ fontSize: 28 }}>{c.full_name}</h1>
+                      <CompanyLinkIcons linkedinUrl={c.linkedin_url} websiteUrl={c.website_url} label={c.full_name} size={19} />
+                      <MessageIconButton onMessage={() => setShowMessage(true)} label={c.full_name} size={19} />
+                      <ShareButton url={`https://beta.joinmellow.xyz/profile/${c.username || c.id}`} label="Share profile" size={19} />
+                    </div>
+                    {c.calendly_url && <BookMeetingButton onClick={() => setShowCalendly(true)} />}
                   </div>
                   <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>
                     {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title}

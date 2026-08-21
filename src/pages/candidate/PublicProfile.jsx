@@ -119,24 +119,24 @@ export default function PublicProfile() {
           <div className="profile-hero-info">
             <div className="profile-hero-avatar-row">
               <CandidateAvatar avatarUrl={profile.avatar_url} fullName={profile.full_name} size={96} style={{ fontSize: 32 }} />
-              <div style={{ minWidth: 0 }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
                 <div className="profile-name-row">
-                  <h1 style={{ fontSize: 28 }}>{profile.full_name}</h1>
-                  <CompanyLinkIcons
-                    linkedinUrl={profile.linkedin_url}
-                    websiteUrl={profile.website_url}
-                    label={profile.full_name}
-                    size={19}
-                  />
-                  <MessageIconButton
-                    onMessage={isEmployerViewer ? () => setShowContact(true) : null}
-                    label={profile.full_name}
-                    size={19}
-                  />
-                  <ShareButton url={`https://beta.joinmellow.xyz/profile/${profile.username || profile.id}`} label="Share profile" size={19} />
-                  {canBookMeeting && (
-                    <BookMeetingButton onClick={() => setShowCalendly(true)} style={{ marginLeft: 'auto' }} />
-                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <h1 style={{ fontSize: 28 }}>{profile.full_name}</h1>
+                    <CompanyLinkIcons
+                      linkedinUrl={profile.linkedin_url}
+                      websiteUrl={profile.website_url}
+                      label={profile.full_name}
+                      size={19}
+                    />
+                    <MessageIconButton
+                      onMessage={isEmployerViewer ? () => setShowContact(true) : null}
+                      label={profile.full_name}
+                      size={19}
+                    />
+                    <ShareButton url={`https://beta.joinmellow.xyz/profile/${profile.username || profile.id}`} label="Share profile" size={19} />
+                  </div>
+                  {canBookMeeting && <BookMeetingButton onClick={() => setShowCalendly(true)} />}
                 </div>
                 <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>
                   {profile.current_company ? `${profile.job_title} at ${profile.current_company}` : profile.job_title}
