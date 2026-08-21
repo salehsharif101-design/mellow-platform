@@ -34,6 +34,7 @@ import NewRole from './pages/employer/NewRole.jsx'
 import TalentFeed from './pages/employer/Talent.jsx'
 import Shortlist from './pages/employer/Shortlist.jsx'
 import ShortlistReview from './pages/employer/ShortlistReview.jsx'
+import RejectedTalent from './pages/employer/RejectedTalent.jsx'
 import Messages from './pages/employer/Messages.jsx'
 import Team from './pages/employer/Team.jsx'
 import TeamAccept from './pages/employer/TeamAccept.jsx'
@@ -202,6 +203,14 @@ export default function App() {
           element={
             <ProtectedRoute requireUserType="employer">
               <ShortlistReview />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employer/rejected"
+          element={
+            <ProtectedRoute requireUserType="employer">
+              <RejectedTalent />
             </ProtectedRoute>
           }
         />

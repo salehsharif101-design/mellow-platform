@@ -431,6 +431,12 @@ export default function EmployerDashboard() {
             {shortlistCount}
           </p>
         </Link>
+        <Link to="/employer/rejected" className="card stat-card-link" style={{ padding: 24 }}>
+          <h3 style={{ fontSize: 16 }}>Rejected talent</h3>
+          <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10, color: rejectedApplications.length > 0 ? '#005ef5' : undefined }}>
+            {rejectedApplications.length}
+          </p>
+        </Link>
         <Link to="/employer/roles/new" className="card stat-card-link" style={{ padding: 24 }}>
           <h3 style={{ fontSize: 16 }}>Post a new role</h3>
           <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 10 }}>
