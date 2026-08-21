@@ -1,6 +1,6 @@
 const ICON_BUTTON_STYLE = { background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', lineHeight: 0 }
 
-// Calendly + message icon pair, styled and sized to sit inline with
+// Calendly + message pair, styled and sized to sit inline with
 // CompanyLinkIcons and ShareButton in a profile hero's icon row. The caller
 // decides visibility/permissions (e.g. don't show "book a meeting" to the
 // profile owner) by only passing calendlyUrl/onMessage when applicable.
@@ -12,16 +12,10 @@ export default function ProfileContactIcons({ calendlyUrl, onBookMeeting, onMess
         <button
           type="button"
           onClick={onBookMeeting}
-          aria-label={`Book a meeting with ${label}`}
-          title="Book a meeting"
-          style={ICON_BUTTON_STYLE}
+          className="btn btn-ghost"
+          style={{ fontSize: 13, fontWeight: 600, padding: '6px 14px', whiteSpace: 'nowrap' }}
         >
-          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-            <line x1="16" y1="2" x2="16" y2="6" />
-            <line x1="8" y1="2" x2="8" y2="6" />
-            <line x1="3" y1="10" x2="21" y2="10" />
-          </svg>
+          Book a meeting
         </button>
       )}
       {onMessage && (
