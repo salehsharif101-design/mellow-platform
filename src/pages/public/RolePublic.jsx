@@ -324,7 +324,7 @@ export default function RolePublic() {
           {employer?.intro_video_url && (
             <div style={{ marginTop: 28 }}>
               <h2 style={{ fontSize: 16, marginBottom: 12 }}>Meet the team</h2>
-              <VideoPlayCard url={employer.intro_video_url} format="horizontal" />
+              <VideoPlayCard url={employer.intro_video_url} format="auto" />
             </div>
           )}
 
