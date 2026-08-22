@@ -194,6 +194,12 @@ export default function EmployerOnboarding() {
         company_highlight: companyHighlight.trim() || null,
         onboarding_step: 2,
         ...(logoUrl !== undefined ? { logo_url: logoUrl } : {}),
+        // Only stamped on first-time completion — this upsert also runs
+        // whenever an already-onboarded employer edits their profile, and
+        // the work-video nudge cron (api/cron/work-video-nudge.js) needs a
+        // stable "when they finished onboarding" timestamp, not one that
+        // keeps sliding forward on every edit.
+        ...(wasIncomplete ? { onboarding_completed_at: new Date().toISOString() } : {}),
       }
 
       // Upsert rather than a plain update: loadProfile() should already have

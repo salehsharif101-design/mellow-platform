@@ -25,6 +25,7 @@ const { default: teamInviteHandler } = await import('../api/team-invite.js')
 const { default: teamRemoveHandler } = await import('../api/team-remove.js')
 const { default: profileViewDigestHandler } = await import('../api/cron/profile-view-digest.js')
 const { default: weeklyDigestHandler } = await import('../api/cron/weekly-digest.js')
+const { default: workVideoNudgeHandler } = await import('../api/cron/work-video-nudge.js')
 
 const PORT = process.env.ADMIN_API_PORT || 5174
 
@@ -39,6 +40,7 @@ const ROUTES = {
   '/api/team-remove': teamRemoveHandler,
   '/api/cron/profile-view-digest': profileViewDigestHandler,
   '/api/cron/weekly-digest': weeklyDigestHandler,
+  '/api/cron/work-video-nudge': workVideoNudgeHandler,
 }
 
 const server = http.createServer(async (req, res) => {
