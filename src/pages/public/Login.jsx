@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { useRedirectIfAuthenticated } from '../../lib/useRedirectIfAuthenticated.js'
 import { useHideChrome } from '../../components/Layout.jsx'
+import { suppressNextAuthRedirect } from '../../lib/authRedirectGuard.js'
 
 export default function Login() {
   const [searchParams] = useSearchParams()
@@ -64,6 +65,10 @@ export default function Login() {
     // invite, straight to their company's dashboard — they're joining an
     // existing company, not starting one). Anything short of a confirmed
     // session + known account type falls back to the login form below.
+    // This establishes the session directly from the URL hash rather than
+    // through AuthContext's signIn(), so its generic redirect needs its own
+    // opt-out here too, or it would race this effect's onboarding-aware one.
+    suppressNextAuthRedirect()
     let cancelled = false
     // getSession() and the SIGNED_IN listener below can both resolve with
     // the same session — this guards against routing twice.

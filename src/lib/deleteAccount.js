@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js'
+import { suppressNextAuthRedirect } from './authRedirectGuard.js'
 
 export async function deleteAccount() {
   const {
@@ -17,6 +18,9 @@ export async function deleteAccount() {
 
   // The account (and its auth user) no longer exists server-side at this
   // point, but the client still holds a session token — clear it so the UI
-  // doesn't think it's still logged in.
+  // doesn't think it's still logged in. The caller navigates to its own
+  // "account deleted" destination right after, not the generic /login the
+  // cross-tab redirect would otherwise send this tab to.
+  suppressNextAuthRedirect()
   await supabase.auth.signOut()
 }
