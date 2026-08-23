@@ -10,9 +10,14 @@ import { getServiceClient, unwrap, getCandidateContact, getEmployerContact } fro
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 // A cron misfire (retried run, manual re-trigger) shouldn't double-send —
-// guard against re-sending to anyone digested in the last 6 days rather than
-// requiring an exact 7-day gap.
-const DEDUP_GUARD_MS = 6 * 24 * 60 * 60 * 1000
+// guard against re-sending to anyone digested in the last 5 days rather than
+// requiring an exact 7-day gap. Needs real slack below 7 days: an earlier
+// off-schedule send (a manual trigger during testing, a late-running cron)
+// leaves last_*_digest_sent_at short of a full week before the next real
+// Sunday run, and a too-tight guard (6 days came within hours of doing this
+// in production) silently swallows that week's legitimate send with no
+// error anywhere — exactly what happened to the employer digest.
+const DEDUP_GUARD_MS = 5 * 24 * 60 * 60 * 1000
 
 // Same loose word-overlap match as src/lib/roleFormat.js's
 // roleMatchesCandidate — duplicated here since api/ functions run as
