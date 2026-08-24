@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { suppressNextAuthRedirect, consumeAuthRedirectSuppression } from '../lib/authRedirectGuard.js'
@@ -10,6 +10,15 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+  // Tracks the signed-in user id outside React state so the listener below
+  // can tell a genuine cross-tab identity change (someone logged in or out
+  // in another tab) apart from GoTrue re-emitting SIGNED_IN for the SAME
+  // user — which it does on things like the tab regaining focus/visibility,
+  // not just on an actual login. Without this, clicking an external link
+  // (LinkedIn, a Calendly booking) that opens in a new tab and coming back
+  // fires a spurious SIGNED_IN here and yanks the user off the page they
+  // were already on and into the dashboard.
+  const currentUserIdRef = useRef(null)
 
   useEffect(() => {
     // A URL hash carrying auth tokens means this page load landed here
@@ -23,6 +32,7 @@ export function AuthProvider({ children }) {
     }
 
     supabase.auth.getSession().then(({ data }) => {
+      currentUserIdRef.current = data.session?.user?.id ?? null
       setSession(data.session)
       setLoading(false)
     })
@@ -35,10 +45,19 @@ export function AuthProvider({ children }) {
     // TeamAccept.jsx, deleteAccount.js) call suppressNextAuthRedirect()
     // first so they don't race with the generic redirect below.
     const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
+      const previousUserId = currentUserIdRef.current
+      currentUserIdRef.current = newSession?.user?.id ?? null
       setSession(newSession)
 
       if (event !== 'SIGNED_IN' && event !== 'SIGNED_OUT') return
       if (consumeAuthRedirectSuppression()) return
+
+      // Redirect only on an actual identity change — a different (or newly
+      // present/absent) user id than this tab already had. A same-user
+      // SIGNED_IN re-fire (e.g. from a focus/visibility revalidation after
+      // switching back from an externally opened tab) leaves the id
+      // unchanged, so it's ignored here and the current page is left alone.
+      if (newSession?.user?.id === previousUserId) return
 
       if (event === 'SIGNED_OUT') {
         navigate('/login', { replace: true })
