@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Modal from './Modal.jsx'
 import { supabase } from '../lib/supabase.js'
 
-const MAX_FILE_BYTES = 50 * 1024 * 1024
+const MAX_FILE_BYTES = 100 * 1024 * 1024
 const ACCEPTED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm']
 const LABEL_OPTIONS = ['Recent project', 'Technical skill', 'Case study', 'Other']
 const MAX_DESCRIPTION_LENGTH = 100
@@ -24,7 +24,7 @@ export default function AddWorkVideoModal({ candidateId, userId, onClose, onAdde
       return
     }
     if (selected.size > MAX_FILE_BYTES) {
-      setError('That file is over the 50MB limit.')
+      setError('That file is over the 100MB limit.')
       return
     }
     setFile(selected)
@@ -102,7 +102,7 @@ export default function AddWorkVideoModal({ candidateId, userId, onClose, onAdde
           </p>
         </div>
         <div className="field">
-          <label htmlFor="work-video-file">Video file (mp4, mov, or webm — up to 50MB)</label>
+          <label htmlFor="work-video-file">Video file (mp4, mov, or webm — up to 100MB)</label>
           <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: -4, marginBottom: 8 }}>
             You can record in any orientation.
           </p>

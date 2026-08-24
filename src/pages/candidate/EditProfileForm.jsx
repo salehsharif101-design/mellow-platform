@@ -15,7 +15,7 @@ const AVAILABILITY_OPTIONS = ['Immediately', 'Within a month', '1 to 3 months', 
 const AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
 const VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm']
-const MAX_VIDEO_BYTES = 50 * 1024 * 1024
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024
 const MAX_VIDEO_SECONDS = 60
 
 export default function EditProfileForm({ profile, userId, onUpdated }) {
@@ -842,7 +842,7 @@ function VideoSection({ userId, introVideoUrl, setIntroVideoUrl }) {
       return
     }
     if (selected.size > MAX_VIDEO_BYTES) {
-      setError('That file is over the 50MB limit.')
+      setError('That file is over the 100MB limit.')
       return
     }
     const objectUrl = URL.createObjectURL(selected)

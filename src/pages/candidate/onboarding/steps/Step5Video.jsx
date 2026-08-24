@@ -4,7 +4,7 @@ import { useHideChrome } from '../../../../components/Layout.jsx'
 import VideoRecorderModal from '../../../../components/VideoRecorderModal.jsx'
 
 const MAX_DURATION_SECONDS = 60
-const MAX_FILE_BYTES = 50 * 1024 * 1024 // matches the candidate-videos bucket limit
+const MAX_FILE_BYTES = 100 * 1024 * 1024 // matches the candidate-videos bucket limit
 const ACCEPTED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm']
 
 const PROMPTS = [
@@ -83,7 +83,7 @@ export default function Step5Video({ initial, userId, onFinish, onBack, saving }
       return
     }
     if (selected.size > MAX_FILE_BYTES) {
-      setError('That file is over the 50MB limit.')
+      setError('That file is over the 100MB limit.')
       return
     }
 
@@ -165,7 +165,7 @@ export default function Step5Video({ initial, userId, onFinish, onBack, saving }
       )}
 
       <div className="field">
-        <label htmlFor="video">Your 60-second intro (mp4, mov, or webm — up to 50MB)</label>
+        <label htmlFor="video">Your 60-second intro (mp4, mov, or webm — up to 100MB)</label>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button type="button" className="btn btn-primary" onClick={() => setShowRecorder(true)}>
             ● Record video

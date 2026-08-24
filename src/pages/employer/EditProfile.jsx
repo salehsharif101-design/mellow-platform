@@ -12,7 +12,7 @@ const MAX_LOGO_BYTES = 5 * 1024 * 1024
 const MAX_HIGHLIGHT_LENGTH = 150
 const MAX_ABOUT_LENGTH = 300
 const VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm']
-const MAX_VIDEO_BYTES = 50 * 1024 * 1024
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024
 const MAX_VIDEO_SECONDS = 60
 
 export default function EmployerEditProfile() {
@@ -615,7 +615,7 @@ function IntroVideoSection({ introVideoUrl, setIntroVideoUrl }) {
       return
     }
     if (selected.size > MAX_VIDEO_BYTES) {
-      setError('That file is over the 50MB limit.')
+      setError('That file is over the 100MB limit.')
       return
     }
     const objectUrl = URL.createObjectURL(selected)
