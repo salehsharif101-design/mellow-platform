@@ -1,4 +1,8 @@
-// Vercel Cron target — see the "crons" entry in vercel.json (runs hourly).
+// Vercel Cron target — see the "crons" entry in vercel.json (runs daily at
+// 07:00 UTC — Vercel's Hobby plan caps crons at once per day, so this can't
+// run hourly; the uncapped "onboarding_completed_at <= cutoff" query below
+// means a daily check still catches everyone eventually, just with up to a
+// day's extra delay past the 24h mark instead of within the hour).
 // Nudges an employer to check out candidates' work videos 24 hours after
 // they finish onboarding, once, and only if they haven't already started
 // using the platform (shortlisted someone or sent a message) — in which
