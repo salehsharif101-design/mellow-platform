@@ -369,6 +369,23 @@ export default function CandidateDashboard() {
         </div>
       </div>
 
+      {!profile.is_live && (
+        <div
+          className="card"
+          style={{ marginTop: 24, padding: '20px 24px', background: '#FFF8E5', border: '1px solid #F5D889' }}
+        >
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#8a5a00' }}>
+            Your profile is not yet live — employers can't discover you yet
+          </p>
+          <p style={{ marginTop: 6, fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+            Your profile is almost ready. Add your video to go live and start getting discovered by employers.
+          </p>
+          <Link to="/profile/edit" className="btn btn-primary" style={{ marginTop: 14, display: 'inline-block' }}>
+            Add my video
+          </Link>
+        </div>
+      )}
+
       <div
         className="card"
         style={{

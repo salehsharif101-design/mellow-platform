@@ -56,7 +56,7 @@ function PromptCard({ number, prompt }) {
   )
 }
 
-export default function Step5Video({ initial, userId, onFinish, onBack, saving }) {
+export default function Step5Video({ initial, userId, onFinish, onBack, onSaveForLater, saving }) {
   const [showTips, setShowTips] = useState(true)
   const [file, setFile] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(initial.intro_video_url || null)
@@ -184,6 +184,24 @@ export default function Step5Video({ initial, userId, onFinish, onBack, saving }
         <a href="/guide" target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600, marginTop: 8, display: 'inline-block' }}>
           How to record a great video →
         </a>
+        <br />
+        <button
+          type="button"
+          onClick={onSaveForLater}
+          disabled={uploading || saving}
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            marginTop: 10,
+            fontSize: 13,
+            color: 'var(--color-text-muted)',
+            textDecoration: 'underline',
+            cursor: uploading || saving ? 'default' : 'pointer',
+          }}
+        >
+          Save my profile and come back later
+        </button>
       </div>
 
       {error && <p className="form-error">{error}</p>}

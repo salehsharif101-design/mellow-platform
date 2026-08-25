@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useHideChrome } from '../../components/Layout.jsx'
 import { supabase } from '../../lib/supabase.js'
@@ -17,6 +18,7 @@ const LAST_STEP = 5
 
 export default function ProfileEdit() {
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   const [profile, setProfile] = useState(null)
   const [step, setStep] = useState(1)
@@ -102,6 +104,33 @@ export default function ProfileEdit() {
     }
   }
 
+  // Deliberately leaves onboarding_step untouched (stays at 5, same as it
+  // already was on arrival at this step) rather than treating it like a
+  // normal saveStep(fields, 5) — profile.onboarding_step > LAST_STEP is what
+  // `isComplete` checks, and keeping it at exactly 5 is what sends the
+  // candidate straight back to this same Step5Video step (not the separate
+  // EditProfileForm video section) the next time they land on /profile/edit.
+  // video_reminder_started_at is only ever stamped the first time — it's
+  // the timestamp api/cron/video-reminder.js measures the 24h/72h/7d
+  // reminder delays from, and repeat "save for later" clicks shouldn't
+  // reset that clock.
+  async function saveForLater() {
+    setSaving(true)
+    try {
+      if (!profile.video_reminder_started_at) {
+        const { error } = await supabase
+          .from('candidate_profiles')
+          .update({ video_reminder_started_at: new Date().toISOString() })
+          .eq('id', profile.id)
+        if (error) throw error
+      }
+      navigate('/dashboard')
+    } catch (err) {
+      setLoadError(err.message)
+      setSaving(false)
+    }
+  }
+
   if (loading) return null
 
   if (loadError) {
@@ -180,6 +209,7 @@ export default function ProfileEdit() {
               saving={saving}
               onBack={() => setStep(4)}
               onFinish={(fields) => saveStep({ ...fields, is_live: true }, 6)}
+              onSaveForLater={saveForLater}
             />
           )}
         </div>
