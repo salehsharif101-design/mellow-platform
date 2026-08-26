@@ -4,7 +4,7 @@ import { useHideChrome } from '../../components/Layout.jsx'
 import Confetti from '../../components/Confetti.jsx'
 
 const REFERRAL_MESSAGE =
-  'I just got hired through Mellow - a video hiring platform where you apply with a 60-second video instead of a CV. Check it out 👉 https://beta.joinmellow.xyz'
+  'I just got hired through Mellow - a video hiring platform where you apply with a 60-second video instead of a CV. Check it out https://beta.joinmellow.xyz'
 
 // Reached from the hire-confirmation email's "Yes, I got the role" button
 // (sent by api/meeting-outcome.js's "hire_confirmed" action). Recording the
