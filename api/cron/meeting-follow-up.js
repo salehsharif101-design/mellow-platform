@@ -18,7 +18,7 @@ const HOUR_MS = 60 * 60 * 1000
 const DAY_MS = 24 * HOUR_MS
 
 async function sendMeetingFollowUps(supabase) {
-  // scheduled_at is no longer an actual meeting time from Calendly — it's
+  // scheduled_at is no longer an actual meeting time from Calendly, it's
   // stamped at click time as "now + 7 days" (src/pages/candidate/
   // PublicProfile.jsx's handleBookMeeting), so it already IS the send
   // time. No extra offset needed here, just "has that moment arrived yet".
@@ -36,10 +36,10 @@ async function sendMeetingFollowUps(supabase) {
 
     await sendEmail({
       to: employerEmail,
-      subject: `Your meeting with ${candidateName} — how did it go?`,
+      subject: `Your meeting with ${candidateName} - how did it go?`,
       html: renderEmailHtml({
         heading: 'Checking in',
-        bodyText: `You recently connected with ${candidateName} through Mellow. Whether your meeting has already happened or is coming up soon, we wanted to check in. If you have already met — how did it go? Did you make a hire? If your meeting is still ahead — good luck. We hope it goes well.`,
+        bodyText: `You recently connected with ${candidateName} through Mellow. Whether your meeting has already happened or is coming up soon, we wanted to check in. If you have already met, how did it go? Did you make a hire? If your meeting is still ahead, good luck. We hope it goes well.`,
         ctaLabel: 'We made a hire',
         ctaUrl: `${SITE_URL}/hire-confirmed?candidate=${meeting.candidate_id}&employer=${meeting.employer_id}`,
         secondaryCtaLabel: 'Still in progress',

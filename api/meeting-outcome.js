@@ -83,11 +83,15 @@ export default async function handler(req, res) {
           subject: 'Congratulations - it looks like you landed something',
           html: renderEmailHtml({
             heading: 'Congratulations',
-            bodyText: `It looks like your meeting with ${companyName} went well. We hope Mellow played a part in your next chapter. Could you confirm — did you get the role?`,
+            bodyText: `It looks like your meeting with ${companyName} went well. We hope Mellow played a part in your next chapter. Could you confirm, did you get the role?`,
+            secondaryBodyText:
+              'One more thing, keep adding videos to your work library. It is a great way to keep your video portfolio up to date and show your growth over time. Your next opportunity might come from someone discovering your work, even when you are not actively looking.',
             ctaLabel: 'Yes, I got the role',
             ctaUrl: `${SITE_URL}/hire-accepted?candidateId=${candidateId}&employer=${employerId}`,
             secondaryCtaLabel: 'Not yet',
             secondaryCtaUrl: `${SITE_URL}/hire-declined?candidateId=${candidateId}&employer=${employerId}`,
+            extraCtaLabel: 'Add to my work library',
+            extraCtaUrl: `${SITE_URL}/profile/edit`,
             illustration: 'Client_to_creative.png',
           }),
         })

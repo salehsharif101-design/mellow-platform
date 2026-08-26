@@ -6,17 +6,26 @@ const SITE_URL = 'https://beta.joinmellow.xyz'
 export function renderEmailHtml({
   heading,
   bodyText,
+  // Optional second paragraph, rendered below bodyText and above the CTA
+  // buttons — for an email that needs a follow-on note after its main
+  // message (e.g. an encouraging tip) without cramming it into one block.
+  secondaryBodyText,
   ctaLabel,
   ctaUrl,
-  // Optional second, side-by-side button (e.g. "Yes, we made a hire" /
-  // "Still deciding") — styled as an outline button so it reads as the
+  // Optional second, side-by-side button (e.g. "We made a hire" /
+  // "Still in progress") — styled as an outline button so it reads as the
   // secondary action without competing with the solid primary one.
   secondaryCtaLabel,
   secondaryCtaUrl,
+  // Optional third button on its own row below the main CTA(s) — smaller
+  // and lighter still, for a lower-emphasis follow-on action.
+  extraCtaLabel,
+  extraCtaUrl,
   illustration,
   illustrationWidth = 340,
   footerDomain = 'beta.joinmellow.xyz',
 }) {
+  const hasExtraCta = Boolean(extraCtaLabel && extraCtaUrl)
   return `<!doctype html>
 <html>
   <body style="margin:0;padding:0;background:#ffffff;font-family:'Inter',Helvetica,Arial,sans-serif;">
@@ -45,9 +54,18 @@ export function renderEmailHtml({
               </td>
             </tr>
             ${
+              secondaryBodyText
+                ? `<tr>
+              <td style="padding-bottom:28px;">
+                <p style="margin:0;font-size:15px;line-height:1.6;color:#444444;">${secondaryBodyText}</p>
+              </td>
+            </tr>`
+                : ''
+            }
+            ${
               ctaLabel && ctaUrl
                 ? `<tr>
-              <td style="padding-bottom:40px;">
+              <td style="padding-bottom:${hasExtraCta ? 16 : 40}px;">
                 <table role="presentation" cellpadding="0" cellspacing="0"><tr>
                   <td>
                     <a
@@ -68,6 +86,19 @@ export function renderEmailHtml({
                       : ''
                   }
                 </tr></table>
+              </td>
+            </tr>`
+                : ''
+            }
+            ${
+              hasExtraCta
+                ? `<tr>
+              <td style="padding-bottom:40px;">
+                <a
+                  href="${extraCtaUrl}"
+                  style="display:inline-block;background:#ffffff;color:#005ef5;text-decoration:none;font-weight:700;font-size:13px;padding:9px 18px;border-radius:7px;border:1.5px solid #005ef5;"
+                  >${extraCtaLabel}</a
+                >
               </td>
             </tr>`
                 : ''
