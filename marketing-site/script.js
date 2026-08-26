@@ -47,6 +47,33 @@ document.querySelectorAll('.nav-links a:not(.nav-cta)').forEach(function(a) {
   if (a.getAttribute('href') === path) a.classList.add('active');
 });
 
+// Language toggle (MELLOW_I18N is defined inline per-page before this script loads)
+function mellowApplyLanguage(lang) {
+  var isAr = lang === 'ar';
+  document.documentElement.lang = isAr ? 'ar' : 'en';
+  document.documentElement.dir = isAr ? 'rtl' : 'ltr';
+  var dict = (window.MELLOW_I18N && window.MELLOW_I18N.ar) || {};
+  document.querySelectorAll('[data-i18n]').forEach(function (el) {
+    if (!el.hasAttribute('data-i18n-en')) el.setAttribute('data-i18n-en', el.innerHTML);
+    var arText = dict[el.getAttribute('data-i18n')];
+    el.innerHTML = isAr && arText ? arText : el.getAttribute('data-i18n-en');
+  });
+  document.querySelectorAll('.lang-btn').forEach(function (b) {
+    b.classList.toggle('active', b.getAttribute('data-lang') === lang);
+  });
+  if (window.mellowRenderBanner) window.mellowRenderBanner(lang);
+}
+
+document.querySelectorAll('.lang-btn').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var lang = b.getAttribute('data-lang');
+    localStorage.setItem('mellow_lang', lang);
+    mellowApplyLanguage(lang);
+  });
+});
+
+mellowApplyLanguage(localStorage.getItem('mellow_lang') || 'en');
+
 // Waitlist form
 var wf = document.getElementById('wf');
 if (wf) {

@@ -2,6 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
+<script>
+(function(){
+  try {
+    var l = localStorage.getItem('mellow_lang') || 'en';
+    document.documentElement.lang = l;
+    document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr';
+  } catch (e) {}
+})();
+</script>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Mellow - For Talent</title>
 <meta name="description" content="Record once. Apply everywhere. Free."/>
@@ -19,10 +28,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="main.css"/>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import url('https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -46,6 +57,14 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 .nav-links a:hover,.nav-links a.active{opacity:1;}
 .nav-cta{background:var(--blue);color:#fff !important;padding:9px 20px;border-radius:7px;font-weight:700;font-size:14px;opacity:1 !important;white-space:nowrap;}
 .nav-cta:hover{background:var(--dark) !important;}
+
+/* LANGUAGE TOGGLE */
+.lang-switch{display:flex;align-items:center;gap:6px;}
+.lang-btn{background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:var(--blue);opacity:0.45;padding:4px 2px;}
+.lang-btn.active{opacity:1;}
+.lang-sep{color:var(--blue);opacity:0.3;font-size:12px;}
+.mobile-menu .lang-switch{margin-top:22px;gap:10px;}
+.mobile-menu .lang-btn{font-size:18px;}
 
 /* HAMBURGER */
 .hamburger{display:none;background:none;border:none;cursor:pointer;padding:4px;flex-direction:column;gap:5px;}
@@ -183,6 +202,12 @@ body.has-banner .pw{padding-top:104px;}
 @media(max-width:768px){
   .announce-item{padding:0 20px;font-size:12px;}
 }
+
+/* ARABIC / RTL */
+html[lang="ar"] *{font-family:'Cairo',sans-serif !important;}
+html[dir="rtl"] .section-row.rev{flex-direction:row;}
+html[dir="rtl"] .hero-inner > div:not(.hero-img),
+html[dir="rtl"] .section-row > .sr-content{text-align:right;}
 </style>
 </head>
 <body class="has-banner">
@@ -201,13 +226,22 @@ body.has-banner .pw{padding-top:104px;}
     return;
   }
   var track = document.getElementById('announce-track');
-  var itemHtml = '<span class="announce-item">Mellow Beta is live - Meet people, not documents. Sign up now - <a href="https://beta.joinmellow.xyz" target="_blank" rel="noopener noreferrer">beta.joinmellow.xyz</a></span>';
-  var group = '';
-  for (var i = 0; i < 8; i++) { group += itemHtml; }
-  track.innerHTML = '<div class="announce-group">' + group + '</div><div class="announce-group" aria-hidden="true">' + group + '</div>';
-  var groupWidth = track.firstElementChild.offsetWidth;
-  var duration = Math.max(groupWidth / 60, 15);
-  track.style.animationDuration = duration + 's';
+  var BANNER_TEXT = {
+    en: 'Mellow Beta is live - Meet people, not documents. Sign up now - ',
+    ar: 'النسخة التجريبية من Mellow متاحة الآن - قابل الناس، لا الوثائق. سجّل الآن - '
+  };
+  function renderBanner(lang) {
+    var text = BANNER_TEXT[lang] || BANNER_TEXT.en;
+    var itemHtml = '<span class="announce-item">' + text + '<a href="https://beta.joinmellow.xyz" target="_blank" rel="noopener noreferrer">beta.joinmellow.xyz</a></span>';
+    var group = '';
+    for (var i = 0; i < 8; i++) { group += itemHtml; }
+    track.innerHTML = '<div class="announce-group">' + group + '</div><div class="announce-group" aria-hidden="true">' + group + '</div>';
+    var groupWidth = track.firstElementChild.offsetWidth;
+    var duration = Math.max(groupWidth / 60, 15);
+    track.style.animationDuration = duration + 's';
+  }
+  window.mellowRenderBanner = renderBanner;
+  renderBanner(localStorage.getItem('mellow_lang') || 'en');
   document.getElementById('announce-close').addEventListener('click', function () {
     localStorage.setItem(KEY, '1');
     banner.parentNode.removeChild(banner);
@@ -221,12 +255,17 @@ body.has-banner .pw{padding-top:104px;}
       <img src="img/mellow_logofont_email.png" alt="Mellow"/>
     </a>
     <div class="nav-links">
-      <a href="index.html">Home</a>
-      <a href="talent.html">For Talent</a>
-      <a href="employers.html">For Employers</a>
-      <a href="about.html">About</a>
-      <a href="index.html#faq">FAQ</a>
-      <a href="index.html#waitlist" class="nav-cta">Get early access</a>
+      <a href="index.html" data-i18n="nav.home">Home</a>
+      <a href="talent.html" data-i18n="nav.talent">For Talent</a>
+      <a href="employers.html" data-i18n="nav.employers">For Employers</a>
+      <a href="about.html" data-i18n="nav.about">About</a>
+      <a href="index.html#faq" data-i18n="nav.faq">FAQ</a>
+      <a href="index.html#waitlist" class="nav-cta" data-i18n="nav.cta">Get early access</a>
+      <span class="lang-switch">
+        <button type="button" class="lang-btn" data-lang="en">EN</button>
+        <span class="lang-sep">|</span>
+        <button type="button" class="lang-btn" data-lang="ar">ع</button>
+      </span>
     </div>
     <button class="hamburger" id="hamburger" aria-label="Menu">
       <span></span><span></span><span></span>
@@ -234,32 +273,37 @@ body.has-banner .pw{padding-top:104px;}
   </div>
 </nav>
 <div class="mobile-menu" id="mobile-menu">
-  <a href="index.html">Home</a>
-  <a href="talent.html">For Talent</a>
-  <a href="employers.html">For Employers</a>
-  <a href="about.html">About</a>
-  <a href="index.html#faq">FAQ</a>
-  <a href="index.html#waitlist" class="mob-cta">Get early access</a>
+  <a href="index.html" data-i18n="nav.home">Home</a>
+  <a href="talent.html" data-i18n="nav.talent">For Talent</a>
+  <a href="employers.html" data-i18n="nav.employers">For Employers</a>
+  <a href="about.html" data-i18n="nav.about">About</a>
+  <a href="index.html#faq" data-i18n="nav.faq">FAQ</a>
+  <a href="index.html#waitlist" class="mob-cta" data-i18n="nav.cta">Get early access</a>
+  <span class="lang-switch">
+    <button type="button" class="lang-btn" data-lang="en">EN</button>
+    <span class="lang-sep">|</span>
+    <button type="button" class="lang-btn" data-lang="ar">ع</button>
+  </span>
 </div>
 <div class="pw">
 
 <section class="hero" style="min-height:60vh">
   <div class="hero-inner">
     <div style="flex:1">
-      <p class="eyebrow">For talent</p>
-      <h1>Your living first impression</h1>
-      <p class="hero-sub">Stop sending CVs into the void. Record one video that shows employers exactly who you are, and apply to every role you want with a single tap.</p>
-      <a href="index.html#waitlist" class="btn btn-solid">Get early access, it's free</a>
+      <p class="eyebrow" data-i18n="t.hero.eyebrow">For talent</p>
+      <h1 data-i18n="t.hero.h1">Your living first impression</h1>
+      <p class="hero-sub" data-i18n="t.hero.sub">Stop sending CVs into the void. Record one video that shows employers exactly who you are, and apply to every role you want with a single tap.</p>
+      <a href="index.html#waitlist" class="btn btn-solid" data-i18n="t.hero.cta">Get early access, it's free</a>
     </div>
     <div class="hero-img"><img src="img/flexible.png" alt=""/></div>
   </section>
 <section class="s-soft">
   <div class="section-row">
       <div class="sr-content">
-        <p class="eyebrow">Record once</p>
-        <h2>One video, done forever</h2>
-        <p class="body-text">60 seconds, three prompts. Who you are, what you're great at, what you're looking for. Your Mellow profile travels to every employer you apply to. One tap, no cover letter, no reformatting, ever again.</p>
-        
+        <p class="eyebrow" data-i18n="t.record.eyebrow">Record once</p>
+        <h2 data-i18n="t.record.h2">One video, done forever</h2>
+        <p class="body-text" data-i18n="t.record.body">60 seconds, three prompts. Who you are, what you're great at, what you're looking for. Your Mellow profile travels to every employer you apply to. One tap, no cover letter, no reformatting, ever again.</p>
+
       </div>
       <div class="sr-img"><img src="img/collaborate.png" alt=""/></div>
     </div>
@@ -267,10 +311,10 @@ body.has-banner .pw{padding-top:104px;}
 <section class="s-white">
   <div class="section-row rev">
       <div class="sr-content">
-        <p class="eyebrow">Apply everywhere</p>
-        <h2>Your profile goes to every opportunity</h2>
-        <p class="body-text">Browse open roles and apply with one tap, or let employers come to you. When a company is interested, they reach out directly through Mellow.</p>
-        
+        <p class="eyebrow" data-i18n="t.apply.eyebrow">Apply everywhere</p>
+        <h2 data-i18n="t.apply.h2">Your profile goes to every opportunity</h2>
+        <p class="body-text" data-i18n="t.apply.body">Browse open roles and apply with one tap, or let employers come to you. When a company is interested, they reach out directly through Mellow.</p>
+
       </div>
       <div class="sr-img"><img src="img/collaborate2.png" alt=""/></div>
     </div>
@@ -278,10 +322,10 @@ body.has-banner .pw{padding-top:104px;}
 <section class="s-soft">
   <div class="section-row">
       <div class="sr-content">
-        <p class="eyebrow">Always free</p>
-        <h2>Completely free for talent, always</h2>
-        <p class="body-text">Mellow is free for job seekers, full stop. We charge employers when they make a hire. Your success is how we make money, so we are completely on your side.</p>
-        
+        <p class="eyebrow" data-i18n="t.free.eyebrow">Always free</p>
+        <h2 data-i18n="t.free.h2">Completely free for talent, always</h2>
+        <p class="body-text" data-i18n="t.free.body">Mellow is free for job seekers, full stop. We charge employers when they make a hire. Your success is how we make money, so we are completely on your side.</p>
+
       </div>
       <div class="sr-img"><img src="img/seeds.png" alt=""/></div>
     </div>
@@ -289,21 +333,21 @@ body.has-banner .pw{padding-top:104px;}
 <section class="s-white">
   <div class="section-row rev">
       <div class="sr-content">
-        <p class="eyebrow">The difference</p>
-        <h2>Be seen for who you actually are</h2>
-        <p class="body-text">The GCC workforce is the youngest in the world. A generation that grew up on social media, that communicates naturally through video, is still being asked to describe themselves in bullet points. Mellow exists because the best hire is always the best conversation.</p>
-        
+        <p class="eyebrow" data-i18n="t.diff.eyebrow">The difference</p>
+        <h2 data-i18n="t.diff.h2">Be seen for who you actually are</h2>
+        <p class="body-text" data-i18n="t.diff.body">The GCC workforce is the youngest in the world. A generation that grew up on social media, that communicates naturally through video, is still being asked to describe themselves in bullet points. Mellow exists because the best hire is always the best conversation.</p>
+
       </div>
       <div class="sr-img"><img src="img/jar.png" alt=""/></div>
     </div>
   </section>
 <section class="s-soft" id="faq">
   <div class="con">
-    <p class="eyebrow" style="text-align:center">FAQ for talent</p>
-    <h2 style="text-align:center;max-width:420px;margin:0 auto 4px">Your questions answered</h2>
-    <div class="faq"><div class="fitem"><div class="fq">Is Mellow really free for talent?<span class="ftoggle">+</span></div><div class="fa">Yes, completely free. Always. Talent never pays anything on Mellow. We charge employers a monthly subscription when they hire regularly. Your side of the platform will always be free.</div></div><div class="fitem"><div class="fq">What do I say in my 60-second video?<span class="ftoggle">+</span></div><div class="fa">We give you three prompts: who you are and your background, what you're genuinely good at, and what kind of role you're looking for. Keep it natural, the best profiles are conversational, not rehearsed.</div></div><div class="fitem"><div class="fq">Can I update my video later?<span class="ftoggle">+</span></div><div class="fa">Yes. Your profile is yours to update whenever you want.</div></div><div class="fitem"><div class="fq">What if I'm not comfortable on camera?<span class="ftoggle">+</span></div><div class="fa">Most people feel that way before they record. The prompts help a lot. You're not performing, you're just having a conversation. Employers actually prefer the authentic version.</div></div><div class="fitem"><div class="fq">Who can see my profile?<span class="ftoggle">+</span></div><div class="fa">Only verified employers on Mellow can view talent profiles.</div></div></div>
+    <p class="eyebrow" style="text-align:center" data-i18n="t.faq.eyebrow">FAQ for talent</p>
+    <h2 style="text-align:center;max-width:420px;margin:0 auto 4px" data-i18n="t.faq.h2">Your questions answered</h2>
+    <div class="faq"><div class="fitem"><div class="fq"><span data-i18n="t.faq.q1">Is Mellow really free for talent?</span><span class="ftoggle">+</span></div><div class="fa" data-i18n="t.faq.a1">Yes, completely free. Always. Talent never pays anything on Mellow. We charge employers a monthly subscription when they hire regularly. Your side of the platform will always be free.</div></div><div class="fitem"><div class="fq"><span data-i18n="t.faq.q2">What do I say in my 60-second video?</span><span class="ftoggle">+</span></div><div class="fa" data-i18n="t.faq.a2">We give you three prompts: who you are and your background, what you're genuinely good at, and what kind of role you're looking for. Keep it natural, the best profiles are conversational, not rehearsed.</div></div><div class="fitem"><div class="fq"><span data-i18n="t.faq.q3">Can I update my video later?</span><span class="ftoggle">+</span></div><div class="fa" data-i18n="t.faq.a3">Yes. Your profile is yours to update whenever you want.</div></div><div class="fitem"><div class="fq"><span data-i18n="t.faq.q4">What if I'm not comfortable on camera?</span><span class="ftoggle">+</span></div><div class="fa" data-i18n="t.faq.a4">Most people feel that way before they record. The prompts help a lot. You're not performing, you're just having a conversation. Employers actually prefer the authentic version.</div></div><div class="fitem"><div class="fq"><span data-i18n="t.faq.q5">Who can see my profile?</span><span class="ftoggle">+</span></div><div class="fa" data-i18n="t.faq.a5">Only verified employers on Mellow can view talent profiles.</div></div></div>
   </section>
-<section class="s-blue"><div class="con cta"><p class="eyebrow">Join the waitlist</p><h2>Your next opportunity is one video away</h2><p>Sign up and we'll notify you the moment we go live.</p><a href="index.html#waitlist" class="btn btn-wh">Get early access, it's free</a></div></section>
+<section class="s-blue"><div class="con cta"><p class="eyebrow" data-i18n="t.cta.eyebrow">Join the waitlist</p><h2 data-i18n="t.cta.h2">Your next opportunity is one video away</h2><p data-i18n="t.cta.p">Sign up and we'll notify you the moment we go live.</p><a href="index.html#waitlist" class="btn btn-wh" data-i18n="t.hero.cta">Get early access, it's free</a></div></section>
 </div>
 <footer>
   <div class="footer-inner">
@@ -312,12 +356,53 @@ body.has-banner .pw{padding-top:104px;}
     </div>
     <span class="fcopy">Proudly built in 🇧🇭 Bahrain · mellow © 2026</span>
     <div class="flinks">
-      <a href="talent.html">For Talent</a>
-      <a href="employers.html">For Employers</a>
-      <a href="about.html">About</a>
+      <a href="talent.html" data-i18n="nav.talent">For Talent</a>
+      <a href="employers.html" data-i18n="nav.employers">For Employers</a>
+      <a href="about.html" data-i18n="nav.about">About</a>
     </div>
   </div>
 </footer>
+<script>
+var MELLOW_I18N = { ar: {
+  'nav.home': 'الرئيسية',
+  'nav.talent': 'للمواهب',
+  'nav.employers': 'لأصحاب العمل',
+  'nav.about': 'من نحن',
+  'nav.faq': 'الأسئلة الشائعة',
+  'nav.cta': 'سجّل الآن',
+  't.hero.eyebrow': 'للمواهب',
+  't.hero.h1': 'انطباعك الأول الحي',
+  't.hero.sub': 'كفى إرسال سِيَر ذاتية إلى الفراغ. سجّل فيديو واحدًا يُظهر لأصحاب العمل حقيقتك، وقدّم لأي وظيفة تريدها بضغطة واحدة.',
+  't.hero.cta': 'سجّل الآن، الأمر مجاني',
+  't.record.eyebrow': 'سجّل مرة واحدة',
+  't.record.h2': 'فيديو واحد، وينتهي الأمر',
+  't.record.body': '60 ثانية، وثلاثة أسئلة توجيهية: من أنت، وما تجيده، وما الذي تبحث عنه. ملفك في Mellow يصل إلى كل صاحب عمل تتقدّم إليه. بضغطة واحدة، بلا رسالة تقديم، وبلا إعادة صياغة، أبدًا مرة أخرى.',
+  't.apply.eyebrow': 'قدّم في كل مكان',
+  't.apply.h2': 'ملفك يصل إلى كل فرصة',
+  't.apply.body': 'تصفّح الوظائف المتاحة وقدّم بضغطة واحدة، أو دع أصحاب العمل يصلون إليك. عندما تهتم شركة بملفك، تتواصل معك مباشرة عبر Mellow.',
+  't.free.eyebrow': 'مجاني دائمًا',
+  't.free.h2': 'مجاني بالكامل للمواهب، دائمًا',
+  't.free.body': 'Mellow مجاني تمامًا للباحثين عن عمل، بلا استثناء. نتقاضى رسومًا من أصحاب العمل فقط عند إتمام التوظيف. نجاحك هو مصدر دخلنا، لذا نحن في صفّك تمامًا.',
+  't.diff.eyebrow': 'الفرق',
+  't.diff.h2': 'كن مرئيًا على حقيقتك',
+  't.diff.body': 'القوى العاملة في دول الخليج هي الأصغر سنًا في العالم. جيل نشأ على وسائل التواصل الاجتماعي ويتواصل بشكل طبيعي عبر الفيديو، لا يزال يُطلب منه وصف نفسه في نقاط مختصرة. يوجد Mellow لأن أفضل توظيف هو دائمًا أفضل محادثة.',
+  't.faq.eyebrow': 'الأسئلة الشائعة للمواهب',
+  't.faq.h2': 'إجابات على أسئلتك',
+  't.faq.q1': 'هل Mellow مجاني فعلاً للمواهب؟',
+  't.faq.a1': 'نعم، مجاني بالكامل. دائمًا. المواهب لا تدفع أي شيء على الإطلاق في Mellow. نتقاضى اشتراكًا شهريًا من أصحاب العمل عندما يوظّفون بانتظام. جانبك من المنصة سيبقى مجانيًا دائمًا.',
+  't.faq.q2': 'ماذا أقول في فيديو الـ60 ثانية؟',
+  't.faq.a2': 'نقدّم لك ثلاثة أسئلة توجيهية: من أنت وما خلفيتك، وما تجيده فعلاً، ونوع الوظيفة التي تبحث عنها. اجعله طبيعيًا وعفويًا، فأفضل الملفات هي التي تشبه حديثًا حقيقيًا لا نصًا محفوظًا.',
+  't.faq.q3': 'هل يمكنني تحديث فيديوي لاحقًا؟',
+  't.faq.a3': 'نعم. ملفك الشخصي ملكك، ويمكنك تحديثه في أي وقت تشاء.',
+  't.faq.q4': 'ماذا لو لم أكن مرتاحًا أمام الكاميرا؟',
+  't.faq.a4': 'معظم الناس يشعرون بذلك قبل التسجيل. الأسئلة التوجيهية تساعد كثيرًا. أنت لا تؤدي دورًا، بل تخوض محادثة فقط. أصحاب العمل يفضّلون في الواقع النسخة الحقيقية منك.',
+  't.faq.q5': 'من يمكنه رؤية ملفي الشخصي؟',
+  't.faq.a5': 'فقط أصحاب العمل الموثّقون على Mellow يمكنهم مشاهدة ملفات المواهب.',
+  't.cta.eyebrow': 'انضم إلى قائمة الانتظار',
+  't.cta.h2': 'فرصتك القادمة تبعد عنك فيديو واحد فقط',
+  't.cta.p': 'سجّل وسنُخبرك فور إطلاق المنصة.'
+} };
+</script>
 <script src="script.js"></script>
 </body>
 </html>
