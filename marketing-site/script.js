@@ -58,6 +58,11 @@ function mellowApplyLanguage(lang) {
     var arText = dict[el.getAttribute('data-i18n')];
     el.innerHTML = isAr && arText ? arText : el.getAttribute('data-i18n-en');
   });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+    if (!el.hasAttribute('data-i18n-ph-en')) el.setAttribute('data-i18n-ph-en', el.getAttribute('placeholder'));
+    var arText = dict[el.getAttribute('data-i18n-placeholder')];
+    el.setAttribute('placeholder', isAr && arText ? arText : el.getAttribute('data-i18n-ph-en'));
+  });
   document.querySelectorAll('.lang-btn').forEach(function (b) {
     b.classList.toggle('active', b.getAttribute('data-lang') === lang);
   });

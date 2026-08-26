@@ -321,7 +321,7 @@ html[dir="rtl"] .hform button{border-radius:7px 0 0 7px;}
       <p class="hero-sub" data-i18n="hero.sub">Mellow replaces the CV with a 60-second video profile. Record once, apply everywhere, and let employers meet the real you before the first interview.</p>
       <form id="wf" action="https://beta.joinmellow.xyz/api/waitlist" method="POST">
         <div class="hform">
-          <input type="email" name="email" placeholder="your@email.com" autocomplete="email" required/>
+          <input type="email" name="email" placeholder="your@email.com" data-i18n-placeholder="hero.email_placeholder" autocomplete="email" required/>
           <button type="submit" data-i18n="hero.cta">Get early access</button>
         </div>
       </form>
@@ -455,7 +455,8 @@ var MELLOW_I18N = { ar: {
   'hero.eyebrow': 'قابل الناس، لا الوثائق',
   'hero.h1': 'أنتَ أكبر من أن تختصرك صفحة واحدة',
   'hero.sub': 'يستبدل Mellow السيرة الذاتية بملف فيديو مدته 60 ثانية. سجّل مرة واحدة، وقدّم في كل مكان، ودع أصحاب العمل يتعرفون على شخصك الحقيقي قبل أول مقابلة.',
-  'hero.cta': 'سجّل الآن',
+  'hero.cta': 'احصل على وصول مبكر',
+  'hero.email_placeholder': 'أدخل بريدك الإلكتروني',
   'hero.note': 'للمواهب وأصحاب العمل',
   'problem.eyebrow': 'المشكلة',
   'problem.h2': 'التوظيف لم يتغيّر منذ 40 عامًا',
@@ -512,6 +513,11 @@ function mellowApplyLanguage(lang) {
     if (!el.hasAttribute('data-i18n-en')) el.setAttribute('data-i18n-en', el.innerHTML);
     var arText = MELLOW_I18N.ar[el.getAttribute('data-i18n')];
     el.innerHTML = isAr && arText ? arText : el.getAttribute('data-i18n-en');
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+    if (!el.hasAttribute('data-i18n-ph-en')) el.setAttribute('data-i18n-ph-en', el.getAttribute('placeholder'));
+    var arText = MELLOW_I18N.ar[el.getAttribute('data-i18n-placeholder')];
+    el.setAttribute('placeholder', isAr && arText ? arText : el.getAttribute('data-i18n-ph-en'));
   });
   document.querySelectorAll('.lang-btn').forEach(function (b) {
     b.classList.toggle('active', b.getAttribute('data-lang') === lang);
