@@ -180,3 +180,9 @@ html[lang="ar"] *{font-family:'Cairo',sans-serif !important;}
 html[dir="rtl"] .section-row.rev{flex-direction:row;}
 html[dir="rtl"] .hero-inner > div:not(.hero-img),
 html[dir="rtl"] .section-row > .sr-content{text-align:right;}
+html[dir="rtl"] .hform input{border-left:none;border-right:1.5px solid var(--blue);border-radius:0 7px 7px 0;}
+html[dir="rtl"] .hform button{border-radius:7px 0 0 7px;}
+@media(max-width:768px){
+  html[dir="rtl"] .hform input{border-left:1.5px solid var(--blue);border-right:1.5px solid var(--blue);border-bottom:none;border-radius:7px 7px 0 0;}
+  html[dir="rtl"] .hform button{border-radius:0 0 7px 7px;}
+}
