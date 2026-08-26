@@ -30,6 +30,9 @@ const { default: videoReminderHandler } = await import('../api/cron/video-remind
 const { default: calendlyWebhookHandler } = await import('../api/calendly-webhook.js')
 const { default: meetingOutcomeHandler } = await import('../api/meeting-outcome.js')
 const { default: meetingFollowUpHandler } = await import('../api/cron/meeting-follow-up.js')
+const { default: calendlyConnectHandler } = await import('../api/calendly-connect.js')
+const { default: calendlyCallbackHandler } = await import('../api/calendly-callback.js')
+const { default: calendlyDisconnectHandler } = await import('../api/calendly-disconnect.js')
 
 const PORT = process.env.ADMIN_API_PORT || 5174
 
@@ -49,6 +52,9 @@ const ROUTES = {
   '/api/calendly-webhook': calendlyWebhookHandler,
   '/api/meeting-outcome': meetingOutcomeHandler,
   '/api/cron/meeting-follow-up': meetingFollowUpHandler,
+  '/api/calendly-connect': calendlyConnectHandler,
+  '/api/calendly-callback': calendlyCallbackHandler,
+  '/api/calendly-disconnect': calendlyDisconnectHandler,
 }
 
 const server = http.createServer(async (req, res) => {

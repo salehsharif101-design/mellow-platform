@@ -2,19 +2,22 @@
 // Handles the "invitee.created" event, which Calendly fires when someone
 // books a meeting through a scheduling link.
 //
-// This project does not register the webhook subscription itself — each
-// candidate's Calendly webhook has to be added manually on Calendly's side,
-// scoped to that candidate's own account (since a meeting is booked on
-// whichever candidate's Calendly the employer is viewing, not on any single
-// shared Mellow account), pointed at this endpoint. See the deploy notes
-// for exact steps and the required CALENDLY_WEBHOOK_SECRET env var.
+// Webhooks are registered per candidate by api/calendly-callback.js when
+// they connect their Calendly account via OAuth, with the callback URL
+// itself carrying `?candidate=<id>` — that's what lets this handler go
+// straight to the right row in calendly_tokens for both the signing key
+// (which candidate's secret to verify against) and the candidate's
+// identity, without needing to parse it back out of the payload. A
+// `candidate` param is required now; CALENDLY_WEBHOOK_SECRET only remains
+// as a fallback for a webhook someone set up manually against the old
+// single-global-secret scheme, before per-candidate OAuth existed.
 //
 // Signature verification follows Calendly's documented scheme: the
 // Calendly-Webhook-Signature header is `t=<unix seconds>,v1=<hex hmac>`,
-// where the hmac is HMAC-SHA256(CALENDLY_WEBHOOK_SECRET, `${t}.${rawBody}`).
-// That requires the exact raw, unparsed request bytes, so Vercel's
-// automatic JSON body parsing is disabled for this function below and the
-// body is read and verified before ever being JSON.parse'd.
+// where the hmac is HMAC-SHA256(<signing key>, `${t}.${rawBody}`). That
+// requires the exact raw, unparsed request bytes, so Vercel's automatic
+// JSON body parsing is disabled for this function below and the body is
+// read and verified before ever being JSON.parse'd.
 
 import crypto from 'node:crypto'
 import { getServiceClient, unwrap } from './_lib/db.js'
@@ -90,26 +93,48 @@ export default async function handler(req, res) {
   }
 
   const rawBody = await readRawBody(req)
+  const candidateIdParam = new URL(req.url, 'http://localhost').searchParams.get('candidate')
 
-  if (process.env.CALENDLY_WEBHOOK_SECRET) {
-    const valid = verifySignature(rawBody, req.headers['calendly-webhook-signature'], process.env.CALENDLY_WEBHOOK_SECRET)
-    if (!valid) {
-      res.statusCode = 401
-      res.end(JSON.stringify({ error: 'Invalid signature' }))
+  try {
+    const supabase = getServiceClient()
+
+    let signingSecret = process.env.CALENDLY_WEBHOOK_SECRET
+    if (candidateIdParam) {
+      const { data: tokenRow, error: tokenRowError } = await supabase
+        .from('calendly_tokens')
+        .select('webhook_signing_key')
+        .eq('candidate_id', candidateIdParam)
+        .maybeSingle()
+      if (tokenRowError) throw new Error(tokenRowError.message)
+      // No connected candidate at this id (disconnected since, or a stale
+      // subscription Calendly never got told to stop calling) — nothing to
+      // verify against, so there's nothing legitimate this request could be.
+      if (!tokenRow?.webhook_signing_key) {
+        res.statusCode = 401
+        res.end(JSON.stringify({ error: 'Unknown or disconnected candidate' }))
+        return
+      }
+      signingSecret = tokenRow.webhook_signing_key
+    }
+
+    if (signingSecret) {
+      const valid = verifySignature(rawBody, req.headers['calendly-webhook-signature'], signingSecret)
+      if (!valid) {
+        res.statusCode = 401
+        res.end(JSON.stringify({ error: 'Invalid signature' }))
+        return
+      }
+    }
+
+    let body
+    try {
+      body = JSON.parse(rawBody)
+    } catch {
+      res.statusCode = 400
+      res.end(JSON.stringify({ error: 'Invalid JSON' }))
       return
     }
-  }
 
-  let body
-  try {
-    body = JSON.parse(rawBody)
-  } catch {
-    res.statusCode = 400
-    res.end(JSON.stringify({ error: 'Invalid JSON' }))
-    return
-  }
-
-  try {
     // Anything other than invitee.created (e.g. invitee.canceled, if that
     // event type is ever subscribed to as well) is acknowledged and
     // dropped rather than erroring — a non-2xx response makes Calendly
@@ -123,36 +148,34 @@ export default async function handler(req, res) {
     const payload = body.payload || {}
     const scheduledEvent = payload.scheduled_event || {}
     const inviteeEmail = payload.email
-    // The candidate is identified by the event's host — whichever
-    // candidate's Calendly account this webhook subscription lives on —
-    // via scheduled_event.event_memberships, per Calendly's documented v2
-    // payload shape. This hasn't been checked against a real payload yet;
-    // if Calendly's actual field names differ, this is the block to fix
-    // once the first real booking comes through (see deploy notes).
-    const hostEmail = scheduledEvent.event_memberships?.[0]?.user_email
     const eventUri = scheduledEvent.uri || payload.event
     const scheduledAt = scheduledEvent.start_time
 
-    if (!inviteeEmail || !hostEmail || !eventUri || !scheduledAt) {
+    // Per how booking actually works in this product: an employer views a
+    // candidate's public profile and books time on the CANDIDATE's own
+    // Calendly link, so the invitee (who filled in the booking form) is the
+    // employer. The candidate is whoever this webhook subscription belongs
+    // to — known directly from the URL's ?candidate= param now, rather than
+    // needing to parse the event host back out of the payload.
+    let candidateId = candidateIdParam
+    if (!candidateId) {
+      // Fallback path for a webhook registered the old way, before
+      // per-candidate OAuth existed — see the file header.
+      const hostEmail = scheduledEvent.event_memberships?.[0]?.user_email
+      if (hostEmail) candidateId = await findCandidateByEmail(supabase, hostEmail)
+    }
+
+    if (!inviteeEmail || !candidateId || !eventUri || !scheduledAt) {
       res.statusCode = 200
       res.end(JSON.stringify({ ignored: true, reason: 'missing expected fields' }))
       return
     }
 
-    const supabase = getServiceClient()
+    const employerId = await findEmployerByEmail(supabase, inviteeEmail)
 
-    // Per how booking actually works in this product: an employer views a
-    // candidate's public profile and books time on the CANDIDATE's own
-    // Calendly link, so the invitee (who filled in the booking form) is the
-    // employer, and the event host (whose calendar it is) is the candidate.
-    const [employerId, candidateId] = await Promise.all([
-      findEmployerByEmail(supabase, inviteeEmail),
-      findCandidateByEmail(supabase, hostEmail),
-    ])
-
-    if (!employerId || !candidateId) {
+    if (!employerId) {
       res.statusCode = 200
-      res.end(JSON.stringify({ ignored: true, reason: 'could not match employer/candidate to a Mellow account' }))
+      res.end(JSON.stringify({ ignored: true, reason: 'could not match employer to a Mellow account' }))
       return
     }
 

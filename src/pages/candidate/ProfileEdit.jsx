@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useHideChrome } from '../../components/Layout.jsx'
 import { supabase } from '../../lib/supabase.js'
@@ -19,6 +19,13 @@ const LAST_STEP = 5
 export default function ProfileEdit() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  // Set by api/calendly-callback.js's redirect after a Calendly OAuth
+  // connection attempt (?calendly=connected|error) — the profile row it
+  // just wrote to (calendly_connected, calendly_username, calendly_url)
+  // needs a re-fetch since this component's `profile` state was loaded
+  // before that round trip and would otherwise be stale.
+  const calendlyStatus = searchParams.get('calendly')
 
   const [profile, setProfile] = useState(null)
   const [step, setStep] = useState(1)
@@ -69,6 +76,21 @@ export default function ProfileEdit() {
 
     loadProfile()
   }, [user])
+
+  useEffect(() => {
+    if (calendlyStatus !== 'connected' || !user) return
+    supabase
+      .from('candidate_profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data) setProfile(data)
+      })
+    // Only needs to react to the redirect landing, not to every subsequent
+    // render — the query param itself is what's being watched for.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calendlyStatus, user])
 
   const isComplete = (profile?.onboarding_step || 1) > LAST_STEP
   // `isComplete` defaults to false while `profile` is still null (loading),
@@ -131,6 +153,37 @@ export default function ProfileEdit() {
     }
   }
 
+  function CalendlyStatusBanner() {
+    if (!calendlyStatus) return null
+    const connected = calendlyStatus === 'connected'
+    return (
+      <div
+        className="card"
+        style={{
+          marginBottom: 20,
+          padding: '14px 18px',
+          background: connected ? '#e3f9e9' : '#fdecea',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 12,
+        }}
+      >
+        <span style={{ fontSize: 14, fontWeight: 600, color: connected ? '#0f7a3d' : '#b3261e' }}>
+          {connected ? 'Calendly connected.' : 'Something went wrong connecting Calendly — please try again.'}
+        </span>
+        <button
+          type="button"
+          onClick={() => setSearchParams({}, { replace: true })}
+          aria-label="Dismiss"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, lineHeight: 1, color: connected ? '#0f7a3d' : '#b3261e' }}
+        >
+          ×
+        </button>
+      </div>
+    )
+  }
+
   if (loading) return null
 
   if (loadError) {
@@ -149,6 +202,7 @@ export default function ProfileEdit() {
       <div className="section">
         <div style={{ maxWidth: 480, margin: '0 auto' }}>
           <h1 style={{ fontSize: 28, marginBottom: 32 }}>Edit your profile</h1>
+          <CalendlyStatusBanner />
           <EditProfileForm profile={profile} userId={user.id} onUpdated={setProfile} />
         </div>
         <HashScroll />
@@ -173,6 +227,7 @@ export default function ProfileEdit() {
         }}
       >
         <div style={{ flex: '1 1 420px', minWidth: 0 }}>
+          <CalendlyStatusBanner />
           <OnboardingProgress step={step} />
 
           {step === 1 && (
