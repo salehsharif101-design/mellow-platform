@@ -16,10 +16,10 @@ export function unwrap({ data, error }) {
 
 export async function getCandidateContact(supabase, candidateId) {
   const candidate = unwrap(
-    await supabase.from('candidate_profiles').select('user_id, username').eq('id', candidateId).single(),
+    await supabase.from('candidate_profiles').select('user_id, username, full_name').eq('id', candidateId).single(),
   )
   const candidateUser = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
-  return { email: candidateUser.email, username: candidate.username }
+  return { email: candidateUser.email, username: candidate.username, fullName: candidate.full_name }
 }
 
 export async function getEmployerContact(supabase, employerId) {

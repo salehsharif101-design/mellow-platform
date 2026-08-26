@@ -8,6 +8,11 @@ export function renderEmailHtml({
   bodyText,
   ctaLabel,
   ctaUrl,
+  // Optional second, side-by-side button (e.g. "Yes, we made a hire" /
+  // "Still deciding") — styled as an outline button so it reads as the
+  // secondary action without competing with the solid primary one.
+  secondaryCtaLabel,
+  secondaryCtaUrl,
   illustration,
   illustrationWidth = 340,
   footerDomain = 'beta.joinmellow.xyz',
@@ -43,11 +48,26 @@ export function renderEmailHtml({
               ctaLabel && ctaUrl
                 ? `<tr>
               <td style="padding-bottom:40px;">
-                <a
-                  href="${ctaUrl}"
-                  style="display:inline-block;background:#005ef5;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 24px;border-radius:7px;"
-                  >${ctaLabel}</a
-                >
+                <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                  <td>
+                    <a
+                      href="${ctaUrl}"
+                      style="display:inline-block;background:#005ef5;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 24px;border-radius:7px;"
+                      >${ctaLabel}</a
+                    >
+                  </td>
+                  ${
+                    secondaryCtaLabel && secondaryCtaUrl
+                      ? `<td style="padding-left:12px;">
+                    <a
+                      href="${secondaryCtaUrl}"
+                      style="display:inline-block;background:#ffffff;color:#005ef5;text-decoration:none;font-weight:700;font-size:14px;padding:12px 24px;border-radius:7px;border:1.5px solid #005ef5;"
+                      >${secondaryCtaLabel}</a
+                    >
+                  </td>`
+                      : ''
+                  }
+                </tr></table>
               </td>
             </tr>`
                 : ''

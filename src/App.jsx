@@ -13,6 +13,9 @@ import Terms from './pages/public/Terms.jsx'
 import Guide from './pages/public/Guide.jsx'
 import RolePublic from './pages/public/RolePublic.jsx'
 import CompanyProfile from './pages/public/CompanyProfile.jsx'
+import HireConfirmed from './pages/public/HireConfirmed.jsx'
+import ThanksForLettingUsKnow from './pages/public/ThanksForLettingUsKnow.jsx'
+import HireAccepted from './pages/public/HireAccepted.jsx'
 import NotFound from './pages/public/NotFound.jsx'
 
 import CandidateDashboard from './pages/candidate/Dashboard.jsx'
@@ -66,6 +69,13 @@ export default function App() {
 
         {/* Company profile pages are publicly shareable */}
         <Route path="/company/:slug" element={<CompanyProfile />} />
+
+        {/* Post-meeting follow-up loop — reached from email links, no
+            session required. */}
+        <Route path="/hire-confirmed" element={<HireConfirmed />} />
+        <Route path="/still-deciding" element={<ThanksForLettingUsKnow />} />
+        <Route path="/hire-accepted" element={<HireAccepted />} />
+        <Route path="/hire-declined" element={<ThanksForLettingUsKnow />} />
 
         {/* Candidate dashboard */}
         <Route

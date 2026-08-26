@@ -6,6 +6,7 @@
     { "path": "/api/cron/profile-view-digest", "schedule": "0 15 * * *" },
     { "path": "/api/cron/weekly-digest", "schedule": "0 6 * * 0" },
     { "path": "/api/cron/work-video-nudge", "schedule": "0 7 * * *" },
-    { "path": "/api/cron/video-reminder", "schedule": "0 8 * * *" }
+    { "path": "/api/cron/video-reminder", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/meeting-follow-up", "schedule": "0 9 * * *" }
   ]
 }
