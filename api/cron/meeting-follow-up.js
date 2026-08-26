@@ -1,11 +1,14 @@
 // Vercel Cron target — see the "crons" entry in vercel.json (runs daily).
-// Two related follow-ups after a Calendly meeting between an employer and
-// a candidate: the "how did it go?" email to the employer 24h after the
-// meeting's actual scheduled time, and a "keep going" nudge to the
-// candidate 7 days after either side signals the hire isn't confirmed yet
-// (employer says "still deciding", or the candidate says "not yet" to the
-// hire-confirmation email). Same runtime shape as the other cron handlers
-// (GET-only, no request body) since Vercel Cron issues a plain GET request.
+// Two related follow-ups between an employer and a candidate: the "how did
+// it go?" email to the employer 7 days after they clicked "Book a
+// meeting" on the candidate's public profile (src/pages/candidate/
+// PublicProfile.jsx — there's no Calendly webhook telling us a meeting
+// actually happened, so the click itself is the trigger), and a "keep
+// going" nudge to the candidate 7 days after either side signals the hire
+// isn't confirmed yet (employer says "still deciding", or the candidate
+// says "not yet" to the hire-confirmation email). Same runtime shape as
+// the other cron handlers (GET-only, no request body) since Vercel Cron
+// issues a plain GET request.
 
 import { sendEmail } from '../_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from '../_lib/email-template.js'
@@ -15,9 +18,13 @@ const HOUR_MS = 60 * 60 * 1000
 const DAY_MS = 24 * HOUR_MS
 
 async function sendMeetingFollowUps(supabase) {
-  const cutoff = new Date(Date.now() - 24 * HOUR_MS).toISOString()
+  // scheduled_at is no longer an actual meeting time from Calendly — it's
+  // stamped at click time as "now + 7 days" (src/pages/candidate/
+  // PublicProfile.jsx's handleBookMeeting), so it already IS the send
+  // time. No extra offset needed here, just "has that moment arrived yet".
+  const now = new Date().toISOString()
   const meetings = unwrap(
-    await supabase.from('meetings').select('id, employer_id, candidate_id').eq('follow_up_sent', false).lte('scheduled_at', cutoff),
+    await supabase.from('meetings').select('id, employer_id, candidate_id').eq('follow_up_sent', false).lte('scheduled_at', now),
   )
 
   let sent = 0
@@ -29,13 +36,13 @@ async function sendMeetingFollowUps(supabase) {
 
     await sendEmail({
       to: employerEmail,
-      subject: `How did your meeting with ${candidateName} go?`,
+      subject: `Your meeting with ${candidateName} — how did it go?`,
       html: renderEmailHtml({
-        heading: 'How did it go?',
-        bodyText: `You recently connected with ${candidateName} through Mellow. We would love to know how it went. Did you make a hire?`,
-        ctaLabel: 'Yes, we made a hire',
+        heading: 'Checking in',
+        bodyText: `You recently connected with ${candidateName} through Mellow. Whether your meeting has already happened or is coming up soon, we wanted to check in. If you have already met — how did it go? Did you make a hire? If your meeting is still ahead — good luck. We hope it goes well.`,
+        ctaLabel: 'We made a hire',
         ctaUrl: `${SITE_URL}/hire-confirmed?candidate=${meeting.candidate_id}&employer=${meeting.employer_id}`,
-        secondaryCtaLabel: 'Still deciding',
+        secondaryCtaLabel: 'Still in progress',
         secondaryCtaUrl: `${SITE_URL}/still-deciding?candidate=${meeting.candidate_id}&employer=${meeting.employer_id}`,
         illustration: 'Collaborate2.png',
       }),

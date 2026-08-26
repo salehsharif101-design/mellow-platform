@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { resolveEmployerId } from '../../lib/employerAccess.js'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import Modal from '../../components/Modal.jsx'
 import CalendlyModal from '../../components/CalendlyModal.jsx'
@@ -68,6 +69,40 @@ export default function PublicProfile() {
   }, [username])
 
   const isOwner = user && profile && user.id === profile.user_id
+
+  // Recorded directly on click rather than waiting to learn whether a
+  // meeting actually got booked in the Calendly iframe — there's no
+  // webhook anymore to tell us that, so the click itself is the trigger
+  // for the 7-days-later follow-up email (api/cron/meeting-follow-up.js).
+  // Guarded against a rapid repeat click creating a second row (and so a
+  // second follow-up email) for the same pair within the same day.
+  async function handleBookMeeting() {
+    setShowCalendly(true)
+    if (!user || userType !== 'employer' || isOwner) return
+    try {
+      const { employerId } = await resolveEmployerId(user.id)
+      if (!employerId) return
+
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      const { data: recent } = await supabase
+        .from('meetings')
+        .select('id')
+        .eq('employer_id', employerId)
+        .eq('candidate_id', profile.id)
+        .gte('booking_created_at', since)
+        .limit(1)
+      if (recent && recent.length > 0) return
+
+      await supabase.from('meetings').insert({
+        employer_id: employerId,
+        candidate_id: profile.id,
+        scheduled_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        follow_up_sent: false,
+      })
+    } catch {
+      // Fire-and-forget — never block opening the booking modal on this.
+    }
+  }
 
   useEffect(() => {
     // Only employer views count toward the "profile views" stat shown on the
@@ -137,7 +172,7 @@ export default function PublicProfile() {
                       />
                       <ShareButton url={`https://beta.joinmellow.xyz/profile/${profile.username || profile.id}`} label="Share profile" size={19} />
                     </div>
-                    {canBookMeeting && <BookMeetingButton onClick={() => setShowCalendly(true)} />}
+                    {canBookMeeting && <BookMeetingButton onClick={handleBookMeeting} />}
                   </div>
                   <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>
                     {profile.current_company ? `${profile.job_title} at ${profile.current_company}` : profile.job_title}

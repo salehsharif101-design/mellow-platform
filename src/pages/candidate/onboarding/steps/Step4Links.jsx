@@ -1,13 +1,10 @@
 import { useState } from 'react'
 import { supabase } from '../../../../lib/supabase.js'
 import { useDraftAutosave } from '../../../../lib/useDraftAutosave.js'
-import CalendlyConnect from '../../../../components/CalendlyConnect.jsx'
 
 export default function Step4Links({ initial, onContinue, onBack, saving }) {
   const [linkedinUrl, setLinkedinUrl] = useState(initial.linkedin_url || '')
   const [calendlyUrl, setCalendlyUrl] = useState(initial.calendly_url || '')
-  const [calendlyConnected, setCalendlyConnected] = useState(initial.calendly_connected || false)
-  const [calendlyUsername, setCalendlyUsername] = useState(initial.calendly_username || '')
   const [websiteUrl, setWebsiteUrl] = useState(initial.website_url || '')
   const [error, setError] = useState('')
 
@@ -64,21 +61,7 @@ export default function Step4Links({ initial, onContinue, onBack, saving }) {
       </div>
 
       <div className="field">
-        <label htmlFor="calendly">Calendly (optional)</label>
-        <p style={{ marginTop: -2, marginBottom: 10, fontSize: 13, color: 'var(--color-text-muted)' }}>
-          Connect Calendly so employers can book a meeting with you directly from your profile.
-        </p>
-        <CalendlyConnect
-          connected={calendlyConnected}
-          username={calendlyUsername}
-          onDisconnected={() => {
-            setCalendlyConnected(false)
-            setCalendlyUsername('')
-          }}
-        />
-        <p style={{ marginTop: 12, marginBottom: 6, fontSize: 13, color: 'var(--color-text-muted)' }}>
-          Or just paste your Calendly link directly:
-        </p>
+        <label htmlFor="calendly">Calendly link (optional)</label>
         <input
           id="calendly"
           className="input"

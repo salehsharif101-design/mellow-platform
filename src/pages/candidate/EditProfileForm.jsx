@@ -5,7 +5,6 @@ import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
 import VideoRecorderModal from '../../components/VideoRecorderModal.jsx'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
-import CalendlyConnect from '../../components/CalendlyConnect.jsx'
 import { deleteAccount } from '../../lib/deleteAccount.js'
 
 const MAX_SKILLS = 10
@@ -37,8 +36,6 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
   const [languages, setLanguages] = useState(profile.languages || [])
   const [linkedinUrl, setLinkedinUrl] = useState(profile.linkedin_url || '')
   const [calendlyUrl, setCalendlyUrl] = useState(profile.calendly_url || '')
-  const [calendlyConnected, setCalendlyConnected] = useState(profile.calendly_connected || false)
-  const [calendlyUsername, setCalendlyUsername] = useState(profile.calendly_username || '')
   const [websiteUrl, setWebsiteUrl] = useState(profile.website_url || '')
   const [introVideoUrl, setIntroVideoUrl] = useState(profile.intro_video_url || null)
 
@@ -187,12 +184,6 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
         setLinkedinUrl={setLinkedinUrl}
         calendlyUrl={calendlyUrl}
         setCalendlyUrl={setCalendlyUrl}
-        calendlyConnected={calendlyConnected}
-        calendlyUsername={calendlyUsername}
-        onCalendlyDisconnected={() => {
-          setCalendlyConnected(false)
-          setCalendlyUsername('')
-        }}
         websiteUrl={websiteUrl}
         setWebsiteUrl={setWebsiteUrl}
         errorField={errorField}
@@ -783,9 +774,6 @@ function LinkedInSection({
   setLinkedinUrl,
   calendlyUrl,
   setCalendlyUrl,
-  calendlyConnected,
-  calendlyUsername,
-  onCalendlyDisconnected,
   websiteUrl,
   setWebsiteUrl,
   errorField,
@@ -808,14 +796,9 @@ function LinkedInSection({
           />
         </div>
         <div className="field">
-          <label>Calendly (optional)</label>
-          <p style={{ marginTop: -2, marginBottom: 10, fontSize: 13, color: 'var(--color-text-muted)' }}>
-            Connect Calendly so employers can book a meeting with you directly from your profile, and Mellow can
-            follow up automatically after the meeting happens.
-          </p>
-          <CalendlyConnect connected={calendlyConnected} username={calendlyUsername} onDisconnected={onCalendlyDisconnected} />
-          <p style={{ marginTop: 12, marginBottom: 6, fontSize: 13, color: 'var(--color-text-muted)' }}>
-            Or just paste your Calendly link directly:
+          <label>Calendly link (optional)</label>
+          <p style={{ marginTop: -2, marginBottom: 6, fontSize: 13, color: 'var(--color-text-muted)' }}>
+            Add your Calendly link so employers can book a meeting with you directly from your profile.
           </p>
           <input
             ref={fieldRefs.calendlyUrl}
