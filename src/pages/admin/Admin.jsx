@@ -7,8 +7,10 @@ import RolesTable from './RolesTable.jsx'
 import ApplicationsTable from './ApplicationsTable.jsx'
 import ConversationsTable from './ConversationsTable.jsx'
 import ActivityFeed from './ActivityFeed.jsx'
+import HiresTable from './HiresTable.jsx'
+import MeetingsTable from './MeetingsTable.jsx'
 
-const TABS = ['Overview', 'Candidates', 'Employers', 'Roles', 'Applications', 'Messages', 'Activity']
+const TABS = ['Overview', 'Candidates', 'Employers', 'Roles', 'Applications', 'Messages', 'Activity', 'Hires', 'Meetings']
 
 export default function Admin() {
   const [authenticated, setAuthenticated] = useState(false)
@@ -26,6 +28,8 @@ export default function Admin() {
   const [applications, setApplications] = useState(null)
   const [conversations, setConversations] = useState(null)
   const [activity, setActivity] = useState(null)
+  const [hires, setHires] = useState(null)
+  const [meetings, setMeetings] = useState(null)
   const [loadError, setLoadError] = useState('')
 
   // If a password is already stashed in this tab's sessionStorage, verify it
@@ -62,6 +66,8 @@ export default function Admin() {
       if (tab === 'Applications' && !applications) setApplications(await callAdminApi('applications'))
       if (tab === 'Messages' && !conversations) setConversations(await callAdminApi('conversations'))
       if (tab === 'Activity' && !activity) setActivity(await callAdminApi('activity'))
+      if (tab === 'Hires' && !hires) setHires(await callAdminApi('hires'))
+      if (tab === 'Meetings' && !meetings) setMeetings(await callAdminApi('meetings'))
     } catch (err) {
       setLoadError(err.message)
     }
@@ -94,6 +100,8 @@ export default function Admin() {
     setApplications(null)
     setConversations(null)
     setActivity(null)
+    setHires(null)
+    setMeetings(null)
     setPasswordInput('')
   }
 
@@ -180,6 +188,8 @@ export default function Admin() {
         {activeTab === 'Applications' && (applications ? <ApplicationsTable applications={applications} /> : <p>Loading…</p>)}
         {activeTab === 'Messages' && (conversations ? <ConversationsTable conversations={conversations} /> : <p>Loading…</p>)}
         {activeTab === 'Activity' && (activity ? <ActivityFeed events={activity} /> : <p>Loading…</p>)}
+        {activeTab === 'Hires' && (hires ? <HiresTable data={hires} /> : <p>Loading…</p>)}
+        {activeTab === 'Meetings' && (meetings ? <MeetingsTable data={meetings} /> : <p>Loading…</p>)}
       </div>
     </div>
   )

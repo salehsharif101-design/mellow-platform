@@ -325,6 +325,101 @@ async function getActivity(supabase) {
   return events.slice(0, 20)
 }
 
+// Confirmed hires, newest first, with the candidate/company identity
+// needed to link out to their profiles and a computed "time to hire" —
+// days between the candidate's first application to this employer (any
+// role) and the confirmed hire date. role_id on hires is often null (there
+// is no reliable way to know which specific role a hire came from once it
+// happens outside the application-status flow), so roleTitle just falls
+// back to "—" in the UI when unknown rather than guessing.
+async function getHires(supabase) {
+  const hires = unwrap(
+    await supabase
+      .from('hires')
+      .select(
+        'id, employer_id, candidate_id, confirmed_at, candidate_profiles(id, username, full_name, avatar_url), employer_profiles(id, company_name, company_slug, logo_url), roles(title)',
+      )
+      .order('confirmed_at', { ascending: false }),
+  )
+  if (hires.length === 0) return { total: 0, hires: [] }
+
+  const candidateIds = [...new Set(hires.map((h) => h.candidate_id))]
+  const apps = unwrap(
+    await supabase.from('applications').select('candidate_id, applied_at, roles(employer_id)').in('candidate_id', candidateIds),
+  )
+
+  // Earliest applied_at per (employer_id, candidate_id) pair — the
+  // candidate's first-ever application to that specific employer.
+  const firstAppliedByPair = new Map()
+  for (const a of apps) {
+    const employerId = a.roles?.employer_id
+    if (!employerId) continue
+    const key = `${employerId}|${a.candidate_id}`
+    const existing = firstAppliedByPair.get(key)
+    if (!existing || new Date(a.applied_at) < new Date(existing)) {
+      firstAppliedByPair.set(key, a.applied_at)
+    }
+  }
+
+  const rows = hires.map((h) => {
+    const firstAppliedAt = firstAppliedByPair.get(`${h.employer_id}|${h.candidate_id}`) || null
+    const daysToHire = firstAppliedAt
+      ? Math.round((new Date(h.confirmed_at) - new Date(firstAppliedAt)) / (24 * 60 * 60 * 1000))
+      : null
+    return {
+      id: h.id,
+      candidateName: h.candidate_profiles?.full_name || null,
+      candidateUsername: h.candidate_profiles?.username || h.candidate_profiles?.id || null,
+      candidateAvatarUrl: h.candidate_profiles?.avatar_url || null,
+      companyName: h.employer_profiles?.company_name || null,
+      companySlug: h.employer_profiles?.company_slug || null,
+      companyLogoUrl: h.employer_profiles?.logo_url || null,
+      roleTitle: h.roles?.title || null,
+      confirmedAt: h.confirmed_at,
+      daysToHire,
+    }
+  })
+
+  return { total: rows.length, hires: rows }
+}
+
+// Every "Book a meeting" click recorded (src/pages/candidate/
+// PublicProfile.jsx), newest first, with the derived outcome for each —
+// "Hired" if a hires row exists for that employer/candidate pair, "Still
+// in progress" if either side has responded to the follow-up without
+// confirming a hire (outcome_recorded_at set), otherwise "Pending
+// follow-up" (covers both "not due yet" and "sent, no response yet").
+async function getMeetings(supabase) {
+  const meetings = unwrap(
+    await supabase
+      .from('meetings')
+      .select('id, employer_id, candidate_id, booking_created_at, follow_up_sent, outcome_recorded_at, employer_profiles(company_name), candidate_profiles(full_name)')
+      .order('booking_created_at', { ascending: false }),
+  )
+  if (meetings.length === 0) return { total: 0, meetings: [] }
+
+  const hires = unwrap(await supabase.from('hires').select('employer_id, candidate_id'))
+  const hiredPairs = new Set(hires.map((h) => `${h.employer_id}|${h.candidate_id}`))
+
+  const rows = meetings.map((m) => {
+    const pairKey = `${m.employer_id}|${m.candidate_id}`
+    let outcome = 'Pending follow-up'
+    if (hiredPairs.has(pairKey)) outcome = 'Hired'
+    else if (m.outcome_recorded_at) outcome = 'Still in progress'
+
+    return {
+      id: m.id,
+      employerName: m.employer_profiles?.company_name || null,
+      candidateName: m.candidate_profiles?.full_name || null,
+      bookedAt: m.booking_created_at,
+      followUpSent: m.follow_up_sent,
+      outcome,
+    }
+  })
+
+  return { total: rows.length, meetings: rows }
+}
+
 async function toggleLive(supabase, candidateId, isLive) {
   if (!candidateId || typeof isLive !== 'boolean') {
     throw new Error('candidateId and isLive (boolean) are required')
@@ -452,6 +547,12 @@ export default async function handler(req, res) {
         break
       case 'activity':
         result = await getActivity(supabase)
+        break
+      case 'hires':
+        result = await getHires(supabase)
+        break
+      case 'meetings':
+        result = await getMeetings(supabase)
         break
       case 'toggle-live':
         result = await toggleLive(supabase, body.candidateId, body.isLive)
