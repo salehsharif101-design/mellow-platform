@@ -16,6 +16,7 @@ import CompanyProfile from './pages/public/CompanyProfile.jsx'
 import HireConfirmed from './pages/public/HireConfirmed.jsx'
 import ThanksForLettingUsKnow from './pages/public/ThanksForLettingUsKnow.jsx'
 import HireAccepted from './pages/public/HireAccepted.jsx'
+import NotThisTime from './pages/public/NotThisTime.jsx'
 import NotFound from './pages/public/NotFound.jsx'
 
 import CandidateDashboard from './pages/candidate/Dashboard.jsx'
@@ -76,6 +77,7 @@ export default function App() {
         <Route path="/still-deciding" element={<ThanksForLettingUsKnow />} />
         <Route path="/hire-accepted" element={<HireAccepted />} />
         <Route path="/hire-declined" element={<ThanksForLettingUsKnow />} />
+        <Route path="/not-this-time" element={<NotThisTime />} />
 
         {/* Candidate dashboard */}
         <Route

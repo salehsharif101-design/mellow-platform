@@ -1,8 +1,8 @@
-// Public, unauthenticated endpoint hit by the four post-meeting landing
-// pages (HireConfirmed, ThanksForLettingUsKnow, HireAccepted) when they
-// mount. The email links themselves only carry ids in the query string —
-// the actual state changes (and the emails that follow from them) happen
-// here rather than as a direct client-side Supabase write, since an
+// Public, unauthenticated endpoint hit by the five post-meeting landing
+// pages (HireConfirmed, ThanksForLettingUsKnow, HireAccepted, NotThisTime)
+// when they mount. The email links themselves only carry ids in the query
+// string, the actual state changes (and the emails that follow from them)
+// happen here rather than as a direct client-side Supabase write, since an
 // anonymous visitor arriving from an email link has no session and
 // shouldn't have RLS permission to write into hires/candidate_profiles
 // directly anyway.
@@ -105,6 +105,32 @@ export default async function handler(req, res) {
           await supabase
             .from('meetings')
             .update({ outcome_recorded_at: new Date().toISOString() })
+            .eq('id', meeting.id),
+        )
+      }
+      // still_deciding (employer only, not hire_declined) also stamps its
+      // own separate timestamp — outcome_recorded_at is shared with the
+      // candidate's "not yet" action and feeds the talent nudge above, so
+      // it can't double as the baseline for the employer-specific second
+      // follow-up (api/cron/meeting-follow-up.js's sendSecondFollowUps)
+      // without also firing that on a candidate decline.
+      if (action === 'still_deciding' && meeting && !meeting.still_in_progress_at) {
+        unwrap(
+          await supabase
+            .from('meetings')
+            .update({ still_in_progress_at: new Date().toISOString() })
+            .eq('id', meeting.id),
+        )
+      }
+    } else if (action === 'not_this_time') {
+      // Employer's response to the second follow-up — closes the loop,
+      // no further emails. Guarded the same way as the others so a repeat
+      // visit is a no-op.
+      if (meeting && !meeting.not_this_time_at) {
+        unwrap(
+          await supabase
+            .from('meetings')
+            .update({ not_this_time_at: new Date().toISOString() })
             .eq('id', meeting.id),
         )
       }
