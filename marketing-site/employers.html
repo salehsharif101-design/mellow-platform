@@ -2,15 +2,6 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<script>
-(function(){
-  try {
-    var l = localStorage.getItem('mellow_lang') || 'en';
-    document.documentElement.lang = l;
-    document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr';
-  } catch (e) {}
-})();
-</script>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Mellow - For Employers</title>
 <meta name="description" content="Browse talent. Pay only when you hire."/>
@@ -28,12 +19,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="main.css"/>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import url('https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -57,14 +46,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 .nav-links a:hover,.nav-links a.active{opacity:1;}
 .nav-cta{background:var(--blue);color:#fff !important;padding:9px 20px;border-radius:7px;font-weight:700;font-size:14px;opacity:1 !important;white-space:nowrap;}
 .nav-cta:hover{background:var(--dark) !important;}
-
-/* LANGUAGE TOGGLE */
-.lang-switch{display:flex;align-items:center;gap:6px;}
-.lang-btn{background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:var(--blue);opacity:0.45;padding:4px 2px;}
-.lang-btn.active{opacity:1;}
-.lang-sep{color:var(--blue);opacity:0.3;font-size:12px;}
-.mobile-menu .lang-switch{margin-top:22px;gap:10px;}
-.mobile-menu .lang-btn{font-size:18px;}
 
 /* HAMBURGER */
 .hamburger{display:none;background:none;border:none;cursor:pointer;padding:4px;flex-direction:column;gap:5px;}
@@ -202,12 +183,6 @@ body.has-banner .pw{padding-top:104px;}
 @media(max-width:768px){
   .announce-item{padding:0 20px;font-size:12px;}
 }
-
-/* ARABIC / RTL */
-html[lang="ar"] *{font-family:'Cairo',sans-serif !important;}
-html[dir="rtl"] .section-row.rev{flex-direction:row;}
-html[dir="rtl"] .hero-inner > div:not(.hero-img),
-html[dir="rtl"] .section-row > .sr-content{text-align:right;}
 </style>
 </head>
 <body class="has-banner">
@@ -226,22 +201,13 @@ html[dir="rtl"] .section-row > .sr-content{text-align:right;}
     return;
   }
   var track = document.getElementById('announce-track');
-  var BANNER_TEXT = {
-    en: 'Mellow Beta is live - Meet people, not documents. Sign up now - ',
-    ar: 'النسخة التجريبية من Mellow متاحة الآن - قابل الناس، لا الوثائق. سجّل الآن - '
-  };
-  function renderBanner(lang) {
-    var text = BANNER_TEXT[lang] || BANNER_TEXT.en;
-    var itemHtml = '<span class="announce-item">' + text + '<a href="https://beta.joinmellow.xyz" target="_blank" rel="noopener noreferrer">beta.joinmellow.xyz</a></span>';
-    var group = '';
-    for (var i = 0; i < 8; i++) { group += itemHtml; }
-    track.innerHTML = '<div class="announce-group">' + group + '</div><div class="announce-group" aria-hidden="true">' + group + '</div>';
-    var groupWidth = track.firstElementChild.offsetWidth;
-    var duration = Math.max(groupWidth / 60, 15);
-    track.style.animationDuration = duration + 's';
-  }
-  window.mellowRenderBanner = renderBanner;
-  renderBanner(localStorage.getItem('mellow_lang') || 'en');
+  var itemHtml = '<span class="announce-item">Mellow Beta is live - Meet people, not documents. Sign up now - <a href="https://beta.joinmellow.xyz" target="_blank" rel="noopener noreferrer">beta.joinmellow.xyz</a></span>';
+  var group = '';
+  for (var i = 0; i < 8; i++) { group += itemHtml; }
+  track.innerHTML = '<div class="announce-group">' + group + '</div><div class="announce-group" aria-hidden="true">' + group + '</div>';
+  var groupWidth = track.firstElementChild.offsetWidth;
+  var duration = Math.max(groupWidth / 60, 15);
+  track.style.animationDuration = duration + 's';
   document.getElementById('announce-close').addEventListener('click', function () {
     localStorage.setItem(KEY, '1');
     banner.parentNode.removeChild(banner);
@@ -255,17 +221,12 @@ html[dir="rtl"] .section-row > .sr-content{text-align:right;}
       <img src="img/mellow_logofont_email.png" alt="Mellow"/>
     </a>
     <div class="nav-links">
-      <a href="index.html" data-i18n="nav.home">Home</a>
-      <a href="talent.html" data-i18n="nav.talent">For Talent</a>
-      <a href="employers.html" data-i18n="nav.employers">For Employers</a>
-      <a href="about.html" data-i18n="nav.about">About</a>
-      <a href="index.html#faq" data-i18n="nav.faq">FAQ</a>
-      <a href="index.html#waitlist" class="nav-cta" data-i18n="nav.cta">Get early access</a>
-      <span class="lang-switch">
-        <button type="button" class="lang-btn" data-lang="en">EN</button>
-        <span class="lang-sep">|</span>
-        <button type="button" class="lang-btn" data-lang="ar">ع</button>
-      </span>
+      <a href="index.html">Home</a>
+      <a href="talent.html">For Talent</a>
+      <a href="employers.html">For Employers</a>
+      <a href="about.html">About</a>
+      <a href="index.html#faq">FAQ</a>
+      <a href="index.html#waitlist" class="nav-cta">Get early access</a>
     </div>
     <button class="hamburger" id="hamburger" aria-label="Menu">
       <span></span><span></span><span></span>
@@ -273,37 +234,32 @@ html[dir="rtl"] .section-row > .sr-content{text-align:right;}
   </div>
 </nav>
 <div class="mobile-menu" id="mobile-menu">
-  <a href="index.html" data-i18n="nav.home">Home</a>
-  <a href="talent.html" data-i18n="nav.talent">For Talent</a>
-  <a href="employers.html" data-i18n="nav.employers">For Employers</a>
-  <a href="about.html" data-i18n="nav.about">About</a>
-  <a href="index.html#faq" data-i18n="nav.faq">FAQ</a>
-  <a href="index.html#waitlist" class="mob-cta" data-i18n="nav.cta">Get early access</a>
-  <span class="lang-switch">
-    <button type="button" class="lang-btn" data-lang="en">EN</button>
-    <span class="lang-sep">|</span>
-    <button type="button" class="lang-btn" data-lang="ar">ع</button>
-  </span>
+  <a href="index.html">Home</a>
+  <a href="talent.html">For Talent</a>
+  <a href="employers.html">For Employers</a>
+  <a href="about.html">About</a>
+  <a href="index.html#faq">FAQ</a>
+  <a href="index.html#waitlist" class="mob-cta">Get early access</a>
 </div>
 <div class="pw">
 
 <section class="hero" style="min-height:60vh">
   <div class="hero-inner">
     <div style="flex:1">
-      <p class="eyebrow" data-i18n="e.hero.eyebrow">For employers</p>
-      <h1 data-i18n="e.hero.h1">Stop reading CVs. Start meeting people.</h1>
-      <p class="hero-sub" data-i18n="e.hero.sub">A scrollable feed of real talent. Watch 60-second videos. Know within a minute if you want to talk. No subscriptions, no upfront cost.</p>
-      <a href="index.html#waitlist" class="btn btn-solid" data-i18n="e.hero.cta">Request early access</a>
+      <p class="eyebrow">For employers</p>
+      <h1>Stop reading CVs. Start meeting people.</h1>
+      <p class="hero-sub">A scrollable feed of real talent. Watch 60-second videos. Know within a minute if you want to talk. No subscriptions, no upfront cost.</p>
+      <a href="index.html#waitlist" class="btn btn-solid">Request early access</a>
     </div>
     <div class="hero-img"><img src="img/creative.png" alt=""/></div>
   </section>
 <section class="s-soft">
   <div class="section-row">
       <div class="sr-content">
-        <p class="eyebrow" data-i18n="e.old.eyebrow">The old way</p>
-        <h2 data-i18n="e.old.h2">Weeks of screening strangers on paper</h2>
-        <p class="body-text" data-i18n="e.old.body">Post a job, receive 200 CVs, spend weeks screening, schedule interviews, discover the person isn't a fit, start again. Most hiring managers can tell within 60 seconds of a real conversation whether someone is right. The problem is getting to that moment takes weeks.</p>
-
+        <p class="eyebrow">The old way</p>
+        <h2>Weeks of screening strangers on paper</h2>
+        <p class="body-text">Post a job, receive 200 CVs, spend weeks screening, schedule interviews, discover the person isn't a fit, start again. Most hiring managers can tell within 60 seconds of a real conversation whether someone is right. The problem is getting to that moment takes weeks.</p>
+        
       </div>
       <div class="sr-img"><img src="img/boring.png" alt=""/></div>
     </div>
@@ -311,10 +267,10 @@ html[dir="rtl"] .section-row > .sr-content{text-align:right;}
 <section class="s-white">
   <div class="section-row rev">
       <div class="sr-content">
-        <p class="eyebrow" data-i18n="e.mellow.eyebrow">The Mellow way</p>
-        <h2 data-i18n="e.mellow.h2">Browse real people, not documents</h2>
-        <p class="body-text" data-i18n="e.mellow.body">Post a role, browse a feed of real people, watch 60-second videos, know who you want to talk to, reach out directly. Mellow moves the moment of human connection to the very beginning of the process.</p>
-
+        <p class="eyebrow">The Mellow way</p>
+        <h2>Browse real people, not documents</h2>
+        <p class="body-text">Post a role, browse a feed of real people, watch 60-second videos, know who you want to talk to, reach out directly. Mellow moves the moment of human connection to the very beginning of the process.</p>
+        
       </div>
       <div class="sr-img"><img src="img/easy.png" alt=""/></div>
     </div>
@@ -322,10 +278,10 @@ html[dir="rtl"] .section-row > .sr-content{text-align:right;}
 <section class="s-soft">
   <div class="section-row">
       <div class="sr-content">
-        <p class="eyebrow" data-i18n="e.result.eyebrow">The result</p>
-        <h2 data-i18n="e.result.h2">Better hires, faster</h2>
-        <p class="body-text" data-i18n="e.result.body">Shorter time to hire, better culture fit, no wrong hires because you actually saw who you were hiring before the first meeting. Companies everywhere are already asking for video introductions informally. Mellow makes that official.</p>
-
+        <p class="eyebrow">The result</p>
+        <h2>Better hires, faster</h2>
+        <p class="body-text">Shorter time to hire, better culture fit, no wrong hires because you actually saw who you were hiring before the first meeting. Companies everywhere are already asking for video introductions informally. Mellow makes that official.</p>
+        
       </div>
       <div class="sr-img"><img src="img/seeds.png" alt=""/></div>
     </div>
@@ -333,9 +289,9 @@ html[dir="rtl"] .section-row > .sr-content{text-align:right;}
 <section class="s-white">
   <div class="section-row rev">
       <div class="sr-content">
-        <p class="eyebrow" data-i18n="e.stand.eyebrow">Stand out</p>
-        <h2 data-i18n="e.stand.h2">Show talent who you really are</h2>
-        <p class="body-text" data-i18n="e.stand.body">The best talent has options. A 60-second company video on your role page shows them your culture, your team, and why they should choose you, before the first conversation even happens. No other hiring tool gives talent this kind of window into who you are.</p>
+        <p class="eyebrow">Stand out</p>
+        <h2>Show talent who you really are</h2>
+        <p class="body-text">The best talent has options. A 60-second company video on your role page shows them your culture, your team, and why they should choose you, before the first conversation even happens. No other hiring tool gives talent this kind of window into who you are.</p>
 
       </div>
       <div class="sr-img"><img src="img/collaborate2.png" alt=""/></div>
@@ -344,13 +300,13 @@ html[dir="rtl"] .section-row > .sr-content{text-align:right;}
 <section class="s-blue">
   <div class="section-row">
       <div class="sr-content">
-        <p class="eyebrow" data-i18n="e.how.eyebrow">How it works</p>
-        <h2 data-i18n="e.how.h2">Hire in three steps</h2>
-        <p class="lead" data-i18n="e.how.lead">From role to hire, without the paper.</p>
+        <p class="eyebrow">How it works</p>
+        <h2>Hire in three steps</h2>
+        <p class="lead">From role to hire, without the paper.</p>
         <div class="steps-col">
-          <div class="step"><div class="snum">01</div><h3 data-i18n="e.how.s1.h">Post your role</h3><p data-i18n="e.how.s1.p">Tell us what you're looking for in under five minutes.</p></div>
-          <div class="step"><div class="snum">02</div><h3 data-i18n="e.how.s2.h">Browse real people</h3><p data-i18n="e.how.s2.p">Scroll through video profiles. Watch, shortlist, move on.</p></div>
-          <div class="step"><div class="snum">03</div><h3 data-i18n="e.how.s3.h">Shortlist, reach out, hire</h3><p data-i18n="e.how.s3.p">Contact talent directly. Schedule the conversation. Make the hire.</p></div>
+          <div class="step"><div class="snum">01</div><h3>Post your role</h3><p>Tell us what you're looking for in under five minutes.</p></div>
+          <div class="step"><div class="snum">02</div><h3>Browse real people</h3><p>Scroll through video profiles. Watch, shortlist, move on.</p></div>
+          <div class="step"><div class="snum">03</div><h3>Shortlist, reach out, hire</h3><p>Contact talent directly. Schedule the conversation. Make the hire.</p></div>
         </div>
       </div>
       <div class="sr-img"><img src="img/collaborate.png" alt=""/></div>
@@ -358,11 +314,11 @@ html[dir="rtl"] .section-row > .sr-content{text-align:right;}
   </section>
 <section class="s-soft" id="faq">
   <div class="con">
-    <p class="eyebrow" style="text-align:center" data-i18n="e.faq.eyebrow">FAQ for employers</p>
-    <h2 style="text-align:center;max-width:420px;margin:0 auto 4px" data-i18n="e.faq.h2">Your questions answered</h2>
-    <div class="faq"><div class="fitem"><div class="fq"><span data-i18n="e.faq.q1">Is there a cost to browse talent?</span><span class="ftoggle">+</span></div><div class="fa" data-i18n="e.faq.a1">Mellow is free to start. Post your first role, browse the full talent feed, and make your first hire at zero cost. No credit card, no commitment. Employers who hire regularly upgrade to a simple monthly subscription for unlimited roles, advanced filters, and team seats.</div></div><div class="fitem"><div class="fq"><span data-i18n="e.faq.q2">What kinds of roles can I hire for?</span><span class="ftoggle">+</span></div><div class="fa" data-i18n="e.faq.a2">Any role where personality and communication matter, client-facing, creative, commercial, and team-lead positions where culture fit is critical.</div></div><div class="fitem"><div class="fq"><span data-i18n="e.faq.q3">How quickly can I start seeing talent?</span><span class="ftoggle">+</span></div><div class="fa" data-i18n="e.faq.a3">Post a role and you have immediate access to the talent feed. Early employer partners get priority access to the first wave of talent profiles.</div></div><div class="fitem"><div class="fq"><span data-i18n="e.faq.q4">Is Mellow only for Bahrain?</span><span class="ftoggle">+</span></div><div class="fa" data-i18n="e.faq.a4">No, Mellow is open to employers everywhere.</div></div></div>
+    <p class="eyebrow" style="text-align:center">FAQ for employers</p>
+    <h2 style="text-align:center;max-width:420px;margin:0 auto 4px">Your questions answered</h2>
+    <div class="faq"><div class="fitem"><div class="fq">Is there a cost to browse talent?<span class="ftoggle">+</span></div><div class="fa">Mellow is free to start. Post your first role, browse the full talent feed, and make your first hire at zero cost. No credit card, no commitment. Employers who hire regularly upgrade to a simple monthly subscription for unlimited roles, advanced filters, and team seats.</div></div><div class="fitem"><div class="fq">What kinds of roles can I hire for?<span class="ftoggle">+</span></div><div class="fa">Any role where personality and communication matter, client-facing, creative, commercial, and team-lead positions where culture fit is critical.</div></div><div class="fitem"><div class="fq">How quickly can I start seeing talent?<span class="ftoggle">+</span></div><div class="fa">Post a role and you have immediate access to the talent feed. Early employer partners get priority access to the first wave of talent profiles.</div></div><div class="fitem"><div class="fq">Is Mellow only for Bahrain?<span class="ftoggle">+</span></div><div class="fa">No, Mellow is open to employers everywhere.</div></div></div>
   </section>
-<section class="s-blue"><div class="con cta"><p class="eyebrow" data-i18n="e.cta.eyebrow">Get started</p><h2 data-i18n="e.cta.h2">Be among Mellow's first employer partners</h2><p data-i18n="e.cta.p">Early employers get priority access to the talent feed. No cost to get started.</p><a href="index.html#waitlist" class="btn btn-wh" data-i18n="e.hero.cta">Request early access</a></div></section>
+<section class="s-blue"><div class="con cta"><p class="eyebrow">Get started</p><h2>Be among Mellow's first employer partners</h2><p>Early employers get priority access to the talent feed. No cost to get started.</p><a href="index.html#waitlist" class="btn btn-wh">Request early access</a></div></section>
 </div>
 <footer>
   <div class="footer-inner">
@@ -371,60 +327,12 @@ html[dir="rtl"] .section-row > .sr-content{text-align:right;}
     </div>
     <span class="fcopy">Proudly built in 🇧🇭 Bahrain · mellow © 2026</span>
     <div class="flinks">
-      <a href="talent.html" data-i18n="nav.talent">For Talent</a>
-      <a href="employers.html" data-i18n="nav.employers">For Employers</a>
-      <a href="about.html" data-i18n="nav.about">About</a>
+      <a href="talent.html">For Talent</a>
+      <a href="employers.html">For Employers</a>
+      <a href="about.html">About</a>
     </div>
   </div>
 </footer>
-<script>
-var MELLOW_I18N = { ar: {
-  'nav.home': 'الرئيسية',
-  'nav.talent': 'للمواهب',
-  'nav.employers': 'لأصحاب العمل',
-  'nav.about': 'من نحن',
-  'nav.faq': 'الأسئلة الشائعة',
-  'nav.cta': 'سجّل الآن',
-  'e.hero.eyebrow': 'لأصحاب العمل',
-  'e.hero.h1': 'كفى قراءة السير الذاتية. ابدأ بلقاء الأشخاص.',
-  'e.hero.sub': 'قائمة تصفّح من مواهب حقيقية. شاهد فيديوهات مدتها 60 ثانية. واعرف خلال دقيقة إن كنت تريد التحدث. بلا اشتراكات، وبلا تكلفة مسبقة.',
-  'e.hero.cta': 'اطلب وصولاً مبكرًا',
-  'e.old.eyebrow': 'الطريقة القديمة',
-  'e.old.h2': 'أسابيع من فرز الغرباء على الورق',
-  'e.old.body': 'انشر وظيفة، استقبل 200 سيرة ذاتية، اقضِ أسابيع في الفرز، حدّد مواعيد المقابلات، اكتشف أن الشخص غير مناسب، وابدأ من جديد. يستطيع معظم مسؤولي التوظيف معرفة الشخص المناسب خلال 60 ثانية من محادثة حقيقية. المشكلة أن الوصول إلى تلك اللحظة يستغرق أسابيع.',
-  'e.mellow.eyebrow': 'طريقة Mellow',
-  'e.mellow.h2': 'تصفّح أشخاصًا حقيقيين، لا مستندات',
-  'e.mellow.body': 'انشر وظيفة، وتصفّح قائمة من أشخاص حقيقيين، وشاهد فيديوهات مدتها 60 ثانية، واعرف من تريد التحدث إليه، وتواصل معه مباشرة. ينقل Mellow لحظة التواصل الإنساني إلى بداية العملية تمامًا.',
-  'e.result.eyebrow': 'النتيجة',
-  'e.result.h2': 'توظيف أفضل، وأسرع',
-  'e.result.body': 'وقت توظيف أقصر، وتوافق أفضل مع ثقافة الشركة، وبلا قرارات توظيف خاطئة لأنك رأيت فعلاً من توظفه قبل أول لقاء. الشركات في كل مكان باتت تطلب مقاطع تعريفية بالفيديو بشكل غير رسمي. يجعل Mellow ذلك رسميًا.',
-  'e.stand.eyebrow': 'تميّز',
-  'e.stand.h2': 'أظهر للمواهب حقيقتك',
-  'e.stand.body': 'أفضل المواهب لديها خيارات. فيديو تعريفي بالشركة مدته 60 ثانية على صفحة وظيفتك يُظهر لها ثقافتك وفريقك وسبب اختيارها لك، حتى قبل أول محادثة. لا توجد أداة توظيف أخرى تمنح المواهب هذه النافذة على حقيقتك.',
-  'e.how.eyebrow': 'كيف يعمل',
-  'e.how.h2': 'وظّف في ثلاث خطوات',
-  'e.how.lead': 'من الوظيفة إلى التوظيف، بلا أوراق.',
-  'e.how.s1.h': 'انشر وظيفتك',
-  'e.how.s1.p': 'أخبرنا بما تبحث عنه في أقل من خمس دقائق.',
-  'e.how.s2.h': 'تصفّح أشخاصًا حقيقيين',
-  'e.how.s2.p': 'تصفّح ملفات الفيديو. شاهد، رشّح، وتابع.',
-  'e.how.s3.h': 'رشّح، تواصل، وظّف',
-  'e.how.s3.p': 'تواصل مع المواهب مباشرة. حدّد موعد المحادثة. أتمم التوظيف.',
-  'e.faq.eyebrow': 'الأسئلة الشائعة لأصحاب العمل',
-  'e.faq.h2': 'إجابات على أسئلتك',
-  'e.faq.q1': 'هل هناك تكلفة لتصفّح المواهب؟',
-  'e.faq.a1': 'Mellow مجاني للبدء. انشر وظيفتك الأولى، وتصفّح قائمة المواهب كاملة، وأتمم أول توظيف دون أي تكلفة. بلا بطاقة ائتمان، وبلا التزام. أصحاب العمل الذين يوظّفون بانتظام يمكنهم الترقية إلى اشتراك شهري بسيط للحصول على وظائف غير محدودة، وفلاتر متقدمة، ومقاعد لفريق العمل.',
-  'e.faq.q2': 'ما أنواع الوظائف التي يمكنني التوظيف لها؟',
-  'e.faq.a2': 'أي وظيفة تكون فيها الشخصية والتواصل مهمَّين، مثل الوظائف المتعاملة مع العملاء، والإبداعية، والتجارية، ووظائف قيادة الفريق حيث التوافق الثقافي أمر أساسي.',
-  'e.faq.q3': 'كم تستغرق البداية برؤية المواهب؟',
-  'e.faq.a3': 'انشر وظيفة وستحصل فورًا على إمكانية الوصول إلى قائمة المواهب. يحصل شركاء العمل الأوائل على أولوية الوصول إلى الدفعة الأولى من ملفات المواهب.',
-  'e.faq.q4': 'هل Mellow مخصص للبحرين فقط؟',
-  'e.faq.a4': 'لا، Mellow متاح لأصحاب العمل في كل مكان.',
-  'e.cta.eyebrow': 'ابدأ الآن',
-  'e.cta.h2': 'كن من أوائل شركاء Mellow لأصحاب العمل',
-  'e.cta.p': 'يحصل أوائل أصحاب العمل على أولوية الوصول إلى قائمة المواهب. بلا تكلفة للبدء.'
-} };
-</script>
 <script src="script.js"></script>
 </body>
 </html>
