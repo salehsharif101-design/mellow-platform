@@ -243,7 +243,7 @@ export default function RolePublic() {
 
   return (
     <div className="section">
-      <div style={{ maxWidth: 820, margin: '0 auto' }}>
+      <div style={{ maxWidth: 760, margin: '0 auto' }}>
         <div className="profile-card">
           {userType === 'candidate' && candidateId && (
             <div className="profile-hero-actions">
