@@ -96,15 +96,17 @@ export default function CompanyProfile() {
               />
             )}
             <div style={{ minWidth: 0 }}>
-              <div className="profile-name-row" style={{ gap: 6 }}>
-                <h1 style={{ fontSize: 28 }}>{company.company_name}</h1>
-                <CompanyLinkIcons
-                  linkedinUrl={company.linkedin_url}
-                  websiteUrl={company.website_url}
-                  label={company.company_name}
-                  size={15}
-                />
-                <ShareButton url={`https://beta.joinmellow.xyz/company/${slug}`} label="Share profile" />
+              <div className="profile-name-row">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <h1 style={{ fontSize: 28 }}>{company.company_name}</h1>
+                  <CompanyLinkIcons
+                    linkedinUrl={company.linkedin_url}
+                    websiteUrl={company.website_url}
+                    label={company.company_name}
+                    size={15}
+                  />
+                  <ShareButton url={`https://beta.joinmellow.xyz/company/${slug}`} label="Share profile" />
+                </div>
               </div>
               {sizeLine && (
                 <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>{sizeLine}</p>

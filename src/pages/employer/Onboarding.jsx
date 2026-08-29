@@ -10,7 +10,7 @@ import ConfirmModal from '../../components/ConfirmModal.jsx'
 import { deleteAccount } from '../../lib/deleteAccount.js'
 import OnboardingWelcome from './OnboardingWelcome.jsx'
 import OnboardingCelebration from './OnboardingCelebration.jsx'
-import { GCC_COUNTRIES, OTHER_COUNTRIES } from '../../lib/countries.js'
+import { COUNTRIES } from '../../lib/countries.js'
 
 const COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-500', '500+']
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']
@@ -306,23 +306,20 @@ export default function EmployerOnboarding() {
             </div>
             <div className="field">
               <label htmlFor="country">Country (optional)</label>
-              <select id="country" className="input" value={country} onChange={(e) => setCountry(e.target.value)}>
-                <option value="">Select a country</option>
-                <optgroup label="GCC">
-                  {GCC_COUNTRIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="Other">
-                  {OTHER_COUNTRIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
+              <input
+                id="country"
+                className="input"
+                list="country-options"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                placeholder="Start typing a country..."
+                autoComplete="off"
+              />
+              <datalist id="country-options">
+                {COUNTRIES.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
             </div>
             <div className="field">
               <label htmlFor="headline">Company headline (optional)</label>
