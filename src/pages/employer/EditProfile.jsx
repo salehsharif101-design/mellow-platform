@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { deleteAccount } from '../../lib/deleteAccount.js'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
+import { GCC_COUNTRIES, OTHER_COUNTRIES } from '../../lib/countries.js'
 
 const COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-500', '500+']
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']
@@ -108,6 +109,7 @@ function EditProfileFormBody({ profile, onUpdated }) {
   const [companyName, setCompanyName] = useState(profile.company_name || '')
   const [industry, setIndustry] = useState(profile.industry || '')
   const [companySize, setCompanySize] = useState(profile.company_size || COMPANY_SIZES[0])
+  const [country, setCountry] = useState(profile.country || '')
   const [headline, setHeadline] = useState(profile.headline || '')
   const [about, setAbout] = useState(profile.about || '')
   const [cultureDescription, setCultureDescription] = useState(profile.culture_description || '')
@@ -169,6 +171,7 @@ function EditProfileFormBody({ profile, onUpdated }) {
         company_name: companyName.trim(),
         industry: industry.trim(),
         company_size: companySize,
+        country: country || null,
         headline: headline.trim() || null,
         about: about.trim() || null,
         culture_description: cultureDescription.trim() || null,
@@ -204,6 +207,8 @@ function EditProfileFormBody({ profile, onUpdated }) {
         setIndustry={setIndustry}
         companySize={companySize}
         setCompanySize={setCompanySize}
+        country={country}
+        setCountry={setCountry}
         headline={headline}
         setHeadline={setHeadline}
         errorField={errorField}
@@ -423,6 +428,8 @@ function CompanyInfoSection({
   setIndustry,
   companySize,
   setCompanySize,
+  country,
+  setCountry,
   headline,
   setHeadline,
   errorField,
@@ -460,6 +467,26 @@ function CompanyInfoSection({
                 {size} employees
               </option>
             ))}
+          </select>
+        </div>
+        <div className="field">
+          <label>Country (optional)</label>
+          <select className="input" value={country} onChange={(e) => setCountry(e.target.value)}>
+            <option value="">Select a country</option>
+            <optgroup label="GCC">
+              {GCC_COUNTRIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Other">
+              {OTHER_COUNTRIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </div>
         <div className="field">

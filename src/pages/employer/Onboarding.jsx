@@ -10,6 +10,7 @@ import ConfirmModal from '../../components/ConfirmModal.jsx'
 import { deleteAccount } from '../../lib/deleteAccount.js'
 import OnboardingWelcome from './OnboardingWelcome.jsx'
 import OnboardingCelebration from './OnboardingCelebration.jsx'
+import { GCC_COUNTRIES, OTHER_COUNTRIES } from '../../lib/countries.js'
 
 const COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-500', '500+']
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']
@@ -34,6 +35,7 @@ export default function EmployerOnboarding() {
   const [companyName, setCompanyName] = useState('')
   const [industry, setIndustry] = useState('')
   const [companySize, setCompanySize] = useState(COMPANY_SIZES[0])
+  const [country, setCountry] = useState('')
   const [headline, setHeadline] = useState('')
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [cultureDescription, setCultureDescription] = useState('')
@@ -92,6 +94,7 @@ export default function EmployerOnboarding() {
         setCompanyName(profile.company_name || '')
         setIndustry(profile.industry || '')
         setCompanySize(profile.company_size || COMPANY_SIZES[0])
+        setCountry(profile.country || '')
         setHeadline(profile.headline || '')
         setWebsiteUrl(profile.website_url || '')
         setCultureDescription(profile.culture_description || '')
@@ -130,6 +133,7 @@ export default function EmployerOnboarding() {
             company_name: companyName.trim(),
             industry: industry.trim(),
             company_size: companySize,
+            country: country || null,
             headline: headline.trim() || null,
             website_url: websiteUrl.trim() || null,
             culture_description: cultureDescription.trim(),
@@ -139,7 +143,7 @@ export default function EmployerOnboarding() {
           { onConflict: 'user_id' },
         )
     },
-    [companyName, industry, companySize, headline, websiteUrl, cultureDescription, typicalRoles, companyHighlight],
+    [companyName, industry, companySize, country, headline, websiteUrl, cultureDescription, typicalRoles, companyHighlight],
     { enabled: draftLoadedRef.current && !loading && !showWelcome && wasIncomplete },
   )
 
@@ -187,6 +191,7 @@ export default function EmployerOnboarding() {
         company_name: companyName.trim(),
         industry: industry.trim(),
         company_size: companySize,
+        country: country || null,
         headline: headline.trim() || null,
         website_url: websiteUrl.trim() || null,
         culture_description: cultureDescription.trim(),
@@ -297,6 +302,26 @@ export default function EmployerOnboarding() {
                     {size} employees
                   </option>
                 ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="country">Country (optional)</label>
+              <select id="country" className="input" value={country} onChange={(e) => setCountry(e.target.value)}>
+                <option value="">Select a country</option>
+                <optgroup label="GCC">
+                  {GCC_COUNTRIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Other">
+                  {OTHER_COUNTRIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </optgroup>
               </select>
             </div>
             <div className="field">
