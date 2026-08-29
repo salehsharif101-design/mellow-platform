@@ -85,7 +85,7 @@ export default function CompanyProfile() {
 
   return (
     <div className="section">
-      <div style={{ maxWidth: 820, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div style={{ maxWidth: 760, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
         <div className="profile-card">
           <div className="profile-hero-avatar-row">
             {company.logo_url && (
@@ -120,7 +120,7 @@ export default function CompanyProfile() {
           {company.intro_video_url && (
             <div style={{ marginTop: 32 }}>
               <h2 style={SECTION_TITLE_STYLE}>Meet the team</h2>
-              <VideoPlayCard url={company.intro_video_url} format="auto" style={{ maxWidth: '100%' }} />
+              <VideoPlayCard url={company.intro_video_url} format="auto" style={{ width: '100%' }} />
             </div>
           )}
 
