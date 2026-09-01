@@ -13,6 +13,11 @@ import ListPageSkeleton from '../../components/ListPageSkeleton.jsx'
 import ViewToggle from '../../components/ViewToggle.jsx'
 
 const MAX_RECOMMENDATIONS = 5
+// Fixed collapsed height for list-view role cards (both Recommended for you
+// and All open roles) so every card lines up regardless of how much
+// optional content (industry, tags, skills, description) a role has —
+// overflow:hidden clips anything past it until the card is expanded.
+const ROLE_CARD_COLLAPSED_HEIGHT = 300
 const VIEW_MODE_KEY = 'mellow_roles_view_mode'
 
 export default function BrowseRoles() {
@@ -38,6 +43,7 @@ export default function BrowseRoles() {
   const [applyingId, setApplyingId] = useState(null)
   const [needsVideoRoleId, setNeedsVideoRoleId] = useState(null)
   const [videoModalEmployer, setVideoModalEmployer] = useState(null)
+  const [expandedIds, setExpandedIds] = useState(new Set())
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState(() => {
     if (typeof window === 'undefined') return 'grid'
@@ -241,11 +247,18 @@ export default function BrowseRoles() {
     const employer = role.employer_profiles
     const deadlineLabel = formatDeadline(role.deadline)
     const salaryLabel = formatSalary(role)
+    const expanded = expandedIds.has(role.id)
+    const hasMore = Boolean(role.description) || Boolean(role.what_matters)
     return (
       <div
         key={role.id}
         className="card role-card"
-        style={{ padding: 24, cursor: 'pointer' }}
+        style={{
+          padding: 24,
+          cursor: 'pointer',
+          height: expanded ? 'auto' : ROLE_CARD_COLLAPSED_HEIGHT,
+          overflow: expanded ? 'visible' : 'hidden',
+        }}
         onClick={() => navigate(`/jobs/${role.slug}`)}
       >
         <div className="role-card-actions">
@@ -362,6 +375,58 @@ export default function BrowseRoles() {
             )}
           </div>
         </div>
+        {role.description && (
+          <div style={{ marginTop: 14 }}>
+            <p
+              style={{
+                fontSize: 15,
+                color: 'var(--color-text-muted)',
+                ...(expanded
+                  ? {}
+                  : {
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }),
+              }}
+            >
+              {role.description}
+            </p>
+          </div>
+        )}
+        {expanded && role.what_matters && (
+          <p style={{ marginTop: 10, fontSize: 13, color: 'var(--color-text-muted)' }}>
+            <strong style={{ color: 'var(--color-text)' }}>What matters most: </strong>
+            {role.what_matters}
+          </p>
+        )}
+        {hasMore && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              setExpandedIds((prev) => {
+                const next = new Set(prev)
+                if (next.has(role.id)) next.delete(role.id)
+                else next.add(role.id)
+                return next
+              })
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--color-primary)',
+              fontSize: 13,
+              fontWeight: 600,
+              padding: 0,
+              marginTop: 8,
+              cursor: 'pointer',
+            }}
+          >
+            {expanded ? 'Show less' : 'Show more'}
+          </button>
+        )}
         {needsVideoRoleId === role.id && (
           <div
             className="card"
