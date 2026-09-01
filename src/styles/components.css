@@ -1031,38 +1031,6 @@ textarea.input:focus {
   min-height: 0;
 }
 
-/* Subtle left/right swipe-direction hints, framing the card — decorative
-   only (aria-hidden, no pointer events), and fade out after the first
-   few swipes once the pattern is learned (see SWIPE_HINT_LIMIT). */
-.swipe-hint {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  color: var(--color-text-muted);
-  font-size: 11px;
-  font-weight: 600;
-  opacity: 0.4;
-  pointer-events: none;
-  transition: opacity 0.5s ease;
-  z-index: 1;
-}
-
-.swipe-hint-left {
-  left: 12px;
-}
-
-.swipe-hint-right {
-  right: 12px;
-}
-
-.swipe-hint-faded {
-  opacity: 0;
-}
-
 .swipe-card {
   width: 100%;
   max-width: 420px;

@@ -38,7 +38,6 @@ export default function BrowseRoles() {
   const [applyingId, setApplyingId] = useState(null)
   const [needsVideoRoleId, setNeedsVideoRoleId] = useState(null)
   const [videoModalEmployer, setVideoModalEmployer] = useState(null)
-  const [expandedIds, setExpandedIds] = useState(new Set())
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState(() => {
     if (typeof window === 'undefined') return 'grid'
@@ -237,14 +236,11 @@ export default function BrowseRoles() {
     )
   }
 
-  function renderRoleCard(role, { compact = false } = {}) {
+  function renderRoleCard(role) {
     const applied = appliedRoleIds.has(role.id)
     const employer = role.employer_profiles
-    const culture = employer?.culture_description
-    const cultureShort = culture && culture.length > 60 ? `${culture.slice(0, 60).trim()}…` : culture
     const deadlineLabel = formatDeadline(role.deadline)
     const salaryLabel = formatSalary(role)
-    const expanded = expandedIds.has(role.id)
     return (
       <div
         key={role.id}
@@ -326,6 +322,11 @@ export default function BrowseRoles() {
                   {salaryLabel}
                 </span>
               )}
+              {role.work_style && (
+                <span className="tag" style={{ fontSize: 12 }}>
+                  {role.work_style}
+                </span>
+              )}
               {deadlineLabel && (
                 <span className="tag" style={{ fontSize: 12 }}>
                   Apply by {deadlineLabel}
@@ -359,65 +360,8 @@ export default function BrowseRoles() {
                 ))}
               </div>
             )}
-            {cultureShort && (
-              <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4, fontStyle: 'italic' }}>
-                “{cultureShort}”
-              </p>
-            )}
           </div>
         </div>
-        {!compact && role.description && (
-          <div style={{ marginTop: 14 }}>
-            <p
-              style={{
-                fontSize: 15,
-                color: 'var(--color-text-muted)',
-                ...(expanded
-                  ? {}
-                  : {
-                      display: '-webkit-box',
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                    }),
-              }}
-            >
-              {role.description}
-            </p>
-            {role.description.length > 180 && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setExpandedIds((prev) => {
-                    const next = new Set(prev)
-                    if (next.has(role.id)) next.delete(role.id)
-                    else next.add(role.id)
-                    return next
-                  })
-                }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--color-primary)',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  padding: 0,
-                  marginTop: 4,
-                  cursor: 'pointer',
-                }}
-              >
-                {expanded ? 'Show less' : 'Show more'}
-              </button>
-            )}
-          </div>
-        )}
-        {!compact && role.what_matters && (
-          <p style={{ marginTop: 10, fontSize: 13, color: 'var(--color-text-muted)' }}>
-            <strong style={{ color: 'var(--color-text)' }}>What matters most: </strong>
-            {role.what_matters}
-          </p>
-        )}
         {needsVideoRoleId === role.id && (
           <div
             className="card"
@@ -440,11 +384,12 @@ export default function BrowseRoles() {
     const applied = appliedRoleIds.has(role.id)
     const employer = role.employer_profiles
     const salaryLabel = formatSalary(role)
-    // One merged row, capped at 3 — enough to give a sense of the role
-    // without pushing the fixed-height card past 180px.
-    const cardTags = [role.location, role.work_style, salaryLabel, ...(role.required_skills || [])]
-      .filter(Boolean)
-      .slice(0, 3)
+    // One merged row, capped at 3. Skills go first so a role with 2+
+    // required_skills always shows at least 2 of them — location/work
+    // style/salary only fill whatever room skills don't use.
+    const skillTags = (role.required_skills || []).slice(0, 3)
+    const infoTags = [role.location, role.work_style, salaryLabel].filter(Boolean)
+    const cardTags = [...skillTags, ...infoTags].slice(0, 3)
     return (
       <div key={role.id} className="card compact-card" style={{ height: 180, cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
         <div className="compact-card-actions">
@@ -681,7 +626,7 @@ export default function BrowseRoles() {
                 <div className="compact-grid">{recommended.map((role) => renderCompactRoleCard(role))}</div>
               ) : (
                 <div className="role-list" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {recommended.map((role) => renderRoleCard(role, { compact: true }))}
+                  {recommended.map((role) => renderRoleCard(role))}
                 </div>
               )}
             </div>
