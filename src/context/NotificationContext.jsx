@@ -120,10 +120,11 @@ export function NotificationProvider({ children }) {
   async function clearApplicationsBadge() {
     setNewApplications(0)
     if (userType === 'employer' && employerIdRef.current) {
-      await supabase
-        .from('employer_profiles')
-        .update({ last_viewed_applications_at: new Date().toISOString() })
-        .eq('id', employerIdRef.current)
+      // A direct .update() here only works for the account owner — RLS on
+      // employer_profiles is owner-only (see migration 0054) so a team
+      // member's write would be silently dropped, freezing the "since last
+      // visit" marker forever for anyone but the owner.
+      await supabase.rpc('mark_applications_viewed', { target_employer_id: employerIdRef.current })
     }
   }
 

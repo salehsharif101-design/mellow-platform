@@ -41,6 +41,8 @@ export default function EmployerDashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { newApplications, clearApplicationsBadge } = useNotifications()
+  const clearApplicationsBadgeRef = useRef(clearApplicationsBadge)
+  clearApplicationsBadgeRef.current = clearApplicationsBadge
 
   const cacheKey = user ? `employer:${user.id}` : null
   const cached = cacheKey ? getCachedDashboard(cacheKey) : null
@@ -119,11 +121,19 @@ export default function EmployerDashboard() {
 
       // "Since last visit," capped to the last 7 days regardless of how
       // long it's actually been. Frozen after the first load — see
-      // sinceMsRef above.
+      // sinceMsRef above. clearApplicationsBadge() (which overwrites
+      // last_viewed_applications_at to now) fires right here, strictly
+      // after that column's pre-update value has been read into sinceMs —
+      // not from a separate effect keyed on `loading`/`employer`, which
+      // raced against this fetch whenever a cached dashboard made `loading`
+      // start out already false: the badge's UPDATE could land before this
+      // SELECT, so sinceMs came back as "now" and the feed looked empty
+      // even with real unseen activity.
       if (sinceMsRef.current === null) {
         const sevenDaysAgoMs = Date.now() - SEVEN_DAYS_MS
         const lastViewedMs = emp.last_viewed_applications_at ? new Date(emp.last_viewed_applications_at).getTime() : 0
         sinceMsRef.current = Math.max(sevenDaysAgoMs, lastViewedMs)
+        clearApplicationsBadgeRef.current()
       }
       const sinceMs = sinceMsRef.current
       const sinceIso = new Date(sinceMs).toISOString()
@@ -229,23 +239,6 @@ export default function EmployerDashboard() {
     return () => clearInterval(interval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
-
-  const hasClearedBadgeRef = useRef(false)
-  useEffect(() => {
-    // The dashboard is where "Applications received" lives, so viewing it
-    // is what clears the unread-applications badge. Also doubles as the
-    // "since you last checked" marker for the activity feed above — read
-    // before this fires, so it always reflects the previous visit. Guarded
-    // to fire once per mount only — `employer` gets a new object reference
-    // on every 30s poll, and re-running this on each of those would keep
-    // resetting the marker to "now," collapsing the feed's window to
-    // almost nothing.
-    if (!loading && employer && !hasClearedBadgeRef.current) {
-      hasClearedBadgeRef.current = true
-      clearApplicationsBadge()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, employer])
 
   const activeNudge = useMemo(() => {
     if (!employer) return null
