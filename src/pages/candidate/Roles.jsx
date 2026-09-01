@@ -440,14 +440,18 @@ export default function BrowseRoles() {
     const applied = appliedRoleIds.has(role.id)
     const employer = role.employer_profiles
     const salaryLabel = formatSalary(role)
-    const topSkills = (role.required_skills || []).slice(0, 2)
+    // One merged row, capped at 3 — enough to give a sense of the role
+    // without pushing the fixed-height card past 180px.
+    const cardTags = [role.location, role.work_style, salaryLabel, ...(role.required_skills || [])]
+      .filter(Boolean)
+      .slice(0, 3)
     return (
-      <div key={role.id} className="card compact-card" style={{ height: 240, cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
+      <div key={role.id} className="card compact-card" style={{ height: 180, cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
         <div className="compact-card-actions">
           <SaveRoleButton saved={savedRoleIds.has(role.id)} onToggle={() => toggleSave(role)} />
         </div>
 
-        <div className="compact-card-body" style={{ flex: 1, padding: 12, overflow: 'hidden' }}>
+        <div className="compact-card-body" style={{ flex: 1, padding: 10, overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
             {employer?.logo_url ? (
               <img
@@ -485,33 +489,11 @@ export default function BrowseRoles() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
-            {role.location && (
-              <span className="tag" style={{ fontSize: 11, padding: '2px 8px' }}>
-                {role.location}
-              </span>
-            )}
-            {role.work_style && (
-              <span className="tag" style={{ fontSize: 11, padding: '2px 8px' }}>
-                {role.work_style}
-              </span>
-            )}
-            {salaryLabel && (
-              <span className="tag" style={{ fontSize: 11, padding: '2px 8px' }}>
-                {salaryLabel}
-              </span>
-            )}
-          </div>
-
-          {topSkills.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
-              {topSkills.map((s) => (
-                <span
-                  key={s}
-                  className="tag"
-                  style={{ fontSize: 11, padding: '2px 8px', background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}
-                >
-                  {s}
+          {cardTags.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+              {cardTags.map((t) => (
+                <span key={t} className="tag" style={{ fontSize: 11, padding: '2px 8px' }}>
+                  {t}
                 </span>
               ))}
             </div>
