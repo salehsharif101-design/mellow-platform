@@ -110,8 +110,16 @@ export default function PublicProfile() {
     // shouldn't inflate that number. Notifications are batched into a daily
     // digest (api/cron/profile-view-digest.js) rather than sent per view.
     if (!profile || !user || isOwner || userType !== 'employer') return
-    // Fire-and-forget view tracking — never block or break the page on failure.
-    supabase.from('profile_views').insert({ candidate_id: profile.id, viewer_id: user.id })
+    // Fire-and-forget view tracking — never block or break the page on
+    // failure, but do surface a failed insert (e.g. an RLS rejection) to
+    // the console instead of swallowing it silently, since this write has
+    // no other visible effect on the page for anyone to notice it failed.
+    supabase
+      .from('profile_views')
+      .insert({ candidate_id: profile.id, viewer_id: user.id })
+      .then(({ error }) => {
+        if (error) console.error('Failed to record profile view:', error)
+      })
   }, [profile, user, isOwner, userType])
 
   if (loading) return null
