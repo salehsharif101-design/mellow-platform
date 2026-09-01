@@ -117,11 +117,24 @@
   position: relative;
 }
 
-/* Collapsed/expanded list-view card height (250px desktop, 200px mobile)
-   is set via inline style in RoleCard (Roles.jsx), not a class here — the
-   two breakpoints use different fixed heights, computed from the same
-   overflow-measurement logic, so a single static CSS value doesn't fit
-   both. */
+/* Collapsed list-view card content — pure CSS, no JS measurement (see
+   RoleCard in Roles.jsx). Wraps header/description/what-matters only —
+   NOT the Show more/less button, which sits outside this div as a
+   sibling so it's never clipped away along with the rest, even on a
+   role whose header content alone already fills the fixed height. 260px
+   desktop, 220px on mobile where cards are narrower. Show more/less just
+   toggles whether this class is applied to that inner wrapper at all;
+   expanded is simply that content's unstyled natural height. */
+.role-card-clip {
+  height: 260px;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .role-card-clip {
+    height: 220px;
+  }
+}
 
 /* Grid (not flex) so mobile can rearrange title/logo/company without
    touching DOM order — see the mobile override below. Desktop keeps the

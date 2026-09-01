@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
@@ -14,42 +14,39 @@ import ViewToggle from '../../components/ViewToggle.jsx'
 
 const MAX_RECOMMENDATIONS = 5
 const VIEW_MODE_KEY = 'mellow_roles_view_mode'
-// Fixed collapsed card height — same logic on both breakpoints (measure
-// real content, only show Show more if it overflows, never shrink below
-// this once expanded), just a smaller number on mobile to suit the
-// narrower screen.
-const DESKTOP_COLLAPSED_HEIGHT = 260
-const MOBILE_COLLAPSED_HEIGHT = 220
-// .role-card's own top+bottom padding at each breakpoint (24px desktop,
-// 20px !important on mobile — see components.css) — subtracted from the
-// collapsed height to get the actual budget the header/description/
-// what-matters content has before it counts as overflowing.
-const DESKTOP_CARD_PADDING = 48
-const MOBILE_CARD_PADDING = 40
-// Same breakpoint components.css uses for .role-card — read via
-// matchMedia (reactive to resize/orientation) rather than a one-off
-// window.innerWidth check, so both the height and the padding it's
-// measured against stay in sync with whichever breakpoint is active.
-const DESKTOP_QUERY = '(min-width: 769px)'
 
-function isDesktopViewport() {
-  return typeof window !== 'undefined' && window.matchMedia(DESKTOP_QUERY).matches
-}
+// Deliberately simple: no JS height measurement, no overflow detection.
+// Collapsed height (260px desktop, 220px mobile) is pure CSS — see
+// .role-card-clip in components.css. Show more/less always renders, and
+// lives OUTSIDE the clipped area (a sibling, not a child of the clipped
+// div) so it's always visible and clickable even when a role's own
+// header content alone fills the whole fixed height — clipping it along
+// with the content would make it invisible on exactly the cards that
+// need it most.
+function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needsVideo, onShowVideo, expanded, onToggleExpanded }) {
+  const navigate = useNavigate()
+  const employer = role.employer_profiles
+  const deadlineLabel = formatDeadline(role.deadline)
+  const salaryLabel = formatSalary(role)
 
-// Standalone component (not an inline render function) so it can hold its
-// own ref + effect: after each render it measures whether the role's real
-// header/description/what-matters content is taller than the collapsed
-// card can show, and only then does a Show more toggle even appear — a
-// short role with nothing left to reveal never gets one. Desktop and
-// mobile run the exact same logic below, just against a different fixed
-// height (250px vs 200px).
-// Header + description + what-matters block, shared between the real
-// (conditionally truncated) content and the always-full hidden clone used
-// purely to measure natural height — see the "why two copies" note on
-// RoleCard below.
-function RoleCardBody({ role, employer, deadlineLabel, salaryLabel, truncateDescription, showWhatMatters, onShowVideo }) {
   return (
-    <>
+    <div className="card role-card" style={{ padding: 24, cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
+      <div className="role-card-actions">
+        <SaveRoleButton saved={saved} onToggle={onToggleSave} />
+        <button
+          type="button"
+          className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
+          disabled={applied || applying}
+          onClick={(e) => {
+            e.stopPropagation()
+            onApply()
+          }}
+          style={{ whiteSpace: 'nowrap' }}
+        >
+          {applied ? 'Applied' : applying ? 'Applying…' : 'Apply'}
+        </button>
+      </div>
+      <div className={expanded ? undefined : 'role-card-clip'}>
       <div className={`role-card-header${employer?.logo_url ? '' : ' no-logo'}`}>
         <h3 className="role-card-title" style={{ fontSize: 19 }}>{role.title}</h3>
         {employer?.logo_url && (
@@ -151,164 +148,35 @@ function RoleCardBody({ role, employer, deadlineLabel, salaryLabel, truncateDesc
       </div>
       {role.description && (
         <div style={{ marginTop: 14 }}>
-          <p
-            style={{
-              fontSize: 15,
-              color: 'var(--color-text-muted)',
-              ...(truncateDescription
-                ? {
-                    display: '-webkit-box',
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                  }
-                : {}),
-            }}
-          >
-            {role.description}
-          </p>
+          <p style={{ fontSize: 15, color: 'var(--color-text-muted)' }}>{role.description}</p>
         </div>
       )}
-      {showWhatMatters && role.what_matters && (
+      {role.what_matters && (
         <p style={{ marginTop: 10, fontSize: 13, color: 'var(--color-text-muted)' }}>
           <strong style={{ color: 'var(--color-text)' }}>What matters most: </strong>
           {role.what_matters}
         </p>
       )}
-    </>
-  )
-}
-
-function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needsVideo, onShowVideo, expanded, onToggleExpanded }) {
-  const navigate = useNavigate()
-  const measureRef = useRef(null)
-  const [isDesktop, setIsDesktop] = useState(isDesktopViewport)
-  const [overflowing, setOverflowing] = useState(false)
-
-  useEffect(() => {
-    const mql = window.matchMedia(DESKTOP_QUERY)
-    const onChange = (e) => setIsDesktop(e.matches)
-    mql.addEventListener('change', onChange)
-    return () => mql.removeEventListener('change', onChange)
-  }, [])
-
-  const collapsedHeight = isDesktop ? DESKTOP_COLLAPSED_HEIGHT : MOBILE_COLLAPSED_HEIGHT
-  const contentBudget = collapsedHeight - (isDesktop ? DESKTOP_CARD_PADDING : MOBILE_CARD_PADDING)
-
-  // Measures a hidden clone that always renders the FULL, untruncated
-  // content (see the always-full <RoleCardBody> below) — never the real,
-  // conditionally-truncated one. Measuring the real content would create
-  // a feedback loop: overflowing=true clamps the description and hides
-  // what_matters, which shrinks that element, which (with a continuously
-  // reactive measurement, or an async re-measure like fonts.ready landing
-  // after the truncated re-render) makes it measure as no-longer-
-  // overflowing, which un-truncates it, which grows it again — the clone
-  // is immune to this since its own markup never changes based on the
-  // state it's used to compute.
-  useLayoutEffect(() => {
-    const el = measureRef.current
-    if (!el) return
-    function measure() {
-      setOverflowing(el.scrollHeight > contentBudget)
-    }
-    measure()
-    window.addEventListener('resize', measure)
-    // Inter/Clash Display load async with font-display:swap (see
-    // index.html), so the very first measurement can land against
-    // fallback-font metrics before the real font swaps in and reflows
-    // the text. Re-measure once fonts have actually finished loading so
-    // the overflow decision reflects what the user ends up seeing.
-    let cancelled = false
-    document.fonts?.ready?.then(() => {
-      if (!cancelled) measure()
-    })
-    return () => {
-      cancelled = true
-      window.removeEventListener('resize', measure)
-    }
-  }, [contentBudget, role.description, role.what_matters])
-
-  const employer = role.employer_profiles
-  const deadlineLabel = formatDeadline(role.deadline)
-  const salaryLabel = formatSalary(role)
-  const truncated = overflowing && !expanded
-  const showToggle = overflowing
-  const showWhatMatters = expanded || !overflowing
-
-  return (
-    <div
-      className="card role-card"
-      style={{
-        padding: 24,
-        cursor: 'pointer',
-        height: expanded ? 'auto' : collapsedHeight,
-        minHeight: expanded ? collapsedHeight : undefined,
-        overflow: expanded ? 'visible' : 'hidden',
-      }}
-      onClick={() => navigate(`/jobs/${role.slug}`)}
-    >
-      <div className="role-card-actions">
-        <SaveRoleButton saved={saved} onToggle={onToggleSave} />
-        <button
-          type="button"
-          className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
-          disabled={applied || applying}
-          onClick={(e) => {
-            e.stopPropagation()
-            onApply()
-          }}
-          style={{ whiteSpace: 'nowrap' }}
-        >
-          {applied ? 'Applied' : applying ? 'Applying…' : 'Apply'}
-        </button>
       </div>
-      <div
-        ref={measureRef}
-        aria-hidden="true"
-        style={{ position: 'absolute', left: 0, right: 0, top: 0, visibility: 'hidden', pointerEvents: 'none', zIndex: -1 }}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          onToggleExpanded()
+        }}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: 'var(--color-primary)',
+          fontSize: 13,
+          fontWeight: 600,
+          padding: 0,
+          marginTop: 8,
+          cursor: 'pointer',
+        }}
       >
-        <RoleCardBody
-          role={role}
-          employer={employer}
-          deadlineLabel={deadlineLabel}
-          salaryLabel={salaryLabel}
-          truncateDescription={false}
-          showWhatMatters
-          onShowVideo={() => {}}
-        />
-      </div>
-      <div>
-        <RoleCardBody
-          role={role}
-          employer={employer}
-          deadlineLabel={deadlineLabel}
-          salaryLabel={salaryLabel}
-          truncateDescription={truncated}
-          showWhatMatters={showWhatMatters}
-          onShowVideo={onShowVideo}
-        />
-      </div>
-      {showToggle && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            onToggleExpanded()
-          }}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--color-primary)',
-            fontSize: 13,
-            fontWeight: 600,
-            padding: 0,
-            marginTop: 8,
-            cursor: 'pointer',
-          }}
-        >
-          {expanded ? 'Show less' : 'Show more'}
-        </button>
-      )}
+        {expanded ? 'Show less' : 'Show more'}
+      </button>
       {needsVideo && (
         <div
           className="card"
