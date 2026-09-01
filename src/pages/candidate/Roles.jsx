@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
@@ -14,6 +14,227 @@ import ViewToggle from '../../components/ViewToggle.jsx'
 
 const MAX_RECOMMENDATIONS = 5
 const VIEW_MODE_KEY = 'mellow_roles_view_mode'
+// Matches .role-card-collapsed's fixed height in components.css, minus the
+// card's own 24px top/bottom padding — the budget the header/description/
+// what-matters content actually has to fit inside before it's truncated.
+const ROLE_CARD_COLLAPSED_HEIGHT = 300
+const ROLE_CARD_CONTENT_BUDGET = ROLE_CARD_COLLAPSED_HEIGHT - 48
+
+// Standalone component (not an inline render function) so it can hold its
+// own ref + effect: after each render it measures whether the role's real
+// header/description/what-matters content is taller than the collapsed
+// card can show, and only then does a Show more toggle even appear — a
+// short role with nothing left to reveal never gets one.
+function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needsVideo, onShowVideo, expanded, onToggleExpanded }) {
+  const navigate = useNavigate()
+  const contentRef = useRef(null)
+  const [overflowing, setOverflowing] = useState(false)
+
+  useLayoutEffect(() => {
+    function measure() {
+      const el = contentRef.current
+      if (!el) return
+      // Mobile drops the fixed collapsed height entirely (see the
+      // @media override on .role-card-collapsed), so there's nothing to
+      // truncate there and no toggle is ever needed.
+      setOverflowing(window.innerWidth > 768 && el.scrollHeight > ROLE_CARD_CONTENT_BUDGET)
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [role.description, role.what_matters])
+
+  const employer = role.employer_profiles
+  const deadlineLabel = formatDeadline(role.deadline)
+  const salaryLabel = formatSalary(role)
+  const truncated = overflowing && !expanded
+
+  return (
+    <div
+      className={`card role-card${truncated ? ' role-card-collapsed' : overflowing && expanded ? ' role-card-expanded' : ''}`}
+      style={{ padding: 24, cursor: 'pointer' }}
+      onClick={() => navigate(`/jobs/${role.slug}`)}
+    >
+      <div className="role-card-actions">
+        <SaveRoleButton saved={saved} onToggle={onToggleSave} />
+        <button
+          type="button"
+          className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
+          disabled={applied || applying}
+          onClick={(e) => {
+            e.stopPropagation()
+            onApply()
+          }}
+          style={{ whiteSpace: 'nowrap' }}
+        >
+          {applied ? 'Applied' : applying ? 'Applying…' : 'Apply'}
+        </button>
+      </div>
+      <div ref={contentRef}>
+        <div className={`role-card-header${employer?.logo_url ? '' : ' no-logo'}`}>
+          <h3 className="role-card-title" style={{ fontSize: 19 }}>{role.title}</h3>
+          {employer?.logo_url && (
+            employer.company_slug ? (
+              <Link
+                to={`/company/${employer.company_slug}`}
+                className="role-card-logo-area"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <img
+                  src={employer.logo_url}
+                  alt=""
+                  className="role-card-logo"
+                  style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
+                />
+              </Link>
+            ) : (
+              <img
+                src={employer.logo_url}
+                alt=""
+                className="role-card-logo role-card-logo-area"
+                style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
+              />
+            )
+          )}
+          <p className="role-card-company" style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
+            {employer?.company_slug ? (
+              <Link
+                to={`/company/${employer.company_slug}`}
+                style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {employer?.company_name}
+              </Link>
+            ) : (
+              employer?.company_name
+            )}{' '}
+            · {role.location} ·{' '}
+            {role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')}
+          </p>
+          <div className="role-card-rest">
+            {(employer?.industry || employer?.company_size) && (
+              <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
+                {[employer?.industry, employer?.company_size && `${employer.company_size} employees`]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+            )}
+            <div className="role-card-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+              {employer?.company_highlight && (
+                <span className="tag" style={{ fontSize: 12 }}>
+                  {employer.company_highlight}
+                </span>
+              )}
+              {salaryLabel && (
+                <span className="tag" style={{ fontSize: 12 }}>
+                  {salaryLabel}
+                </span>
+              )}
+              {role.work_style && (
+                <span className="tag" style={{ fontSize: 12 }}>
+                  {role.work_style}
+                </span>
+              )}
+              {deadlineLabel && (
+                <span className="tag" style={{ fontSize: 12 }}>
+                  Apply by {deadlineLabel}
+                </span>
+              )}
+              {employer?.intro_video_url && (
+                <button
+                  type="button"
+                  className="tag"
+                  style={{ fontSize: 12, border: 'none', cursor: 'pointer', background: '#005ef5', color: '#ffffff' }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onShowVideo(employer)
+                  }}
+                >
+                  <span style={{ fontSize: 9 }} aria-hidden="true">▶</span>
+                  See the team
+                </button>
+              )}
+            </div>
+            {role.required_skills?.length > 0 && (
+              <div className="role-card-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                {role.required_skills.slice(0, 3).map((skill) => (
+                  <span
+                    key={skill}
+                    className="tag"
+                    style={{ fontSize: 12, background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        {role.description && (
+          <div style={{ marginTop: 14 }}>
+            <p
+              style={{
+                fontSize: 15,
+                color: 'var(--color-text-muted)',
+                ...(truncated
+                  ? {
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }
+                  : {}),
+              }}
+            >
+              {role.description}
+            </p>
+          </div>
+        )}
+        {(expanded || !overflowing) && role.what_matters && (
+          <p style={{ marginTop: 10, fontSize: 13, color: 'var(--color-text-muted)' }}>
+            <strong style={{ color: 'var(--color-text)' }}>What matters most: </strong>
+            {role.what_matters}
+          </p>
+        )}
+      </div>
+      {overflowing && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onToggleExpanded()
+          }}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--color-primary)',
+            fontSize: 13,
+            fontWeight: 600,
+            padding: 0,
+            marginTop: 8,
+            cursor: 'pointer',
+          }}
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      )}
+      {needsVideo && (
+        <div
+          className="card"
+          style={{ marginTop: 14, padding: '16px 20px', background: '#fff4e5', border: 'none' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <p style={{ fontSize: 14, fontWeight: 600 }}>
+            Please add your profile video before applying. Employers want to meet you first.
+          </p>
+          <Link to="/profile/edit" className="btn btn-primary" style={{ marginTop: 12, display: 'inline-flex' }}>
+            Add your profile video
+          </Link>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function BrowseRoles() {
   const { user } = useAuth()
@@ -233,204 +454,6 @@ export default function BrowseRoles() {
     return (
       <div className="section">
         <p className="form-error">{error}</p>
-      </div>
-    )
-  }
-
-  function renderRoleCard(role) {
-    const applied = appliedRoleIds.has(role.id)
-    const employer = role.employer_profiles
-    const deadlineLabel = formatDeadline(role.deadline)
-    const salaryLabel = formatSalary(role)
-    const expanded = expandedIds.has(role.id)
-    const hasMore = Boolean(role.description) || Boolean(role.what_matters)
-    return (
-      <div
-        key={role.id}
-        className={`card role-card${expanded ? ' role-card-expanded' : ' role-card-collapsed'}`}
-        style={{ padding: 24, cursor: 'pointer' }}
-        onClick={() => navigate(`/jobs/${role.slug}`)}
-      >
-        <div className="role-card-actions">
-          <SaveRoleButton saved={savedRoleIds.has(role.id)} onToggle={() => toggleSave(role)} />
-          <button
-            type="button"
-            className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
-            disabled={applied || applyingId === role.id}
-            onClick={(e) => {
-              e.stopPropagation()
-              apply(role.id)
-            }}
-            style={{ whiteSpace: 'nowrap' }}
-          >
-            {applied ? 'Applied' : applyingId === role.id ? 'Applying…' : 'Apply'}
-          </button>
-        </div>
-        <div className={`role-card-header${employer?.logo_url ? '' : ' no-logo'}`}>
-          <h3 className="role-card-title" style={{ fontSize: 19 }}>{role.title}</h3>
-          {employer?.logo_url && (
-            employer.company_slug ? (
-              <Link
-                to={`/company/${employer.company_slug}`}
-                className="role-card-logo-area"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <img
-                  src={employer.logo_url}
-                  alt=""
-                  className="role-card-logo"
-                  style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
-                />
-              </Link>
-            ) : (
-              <img
-                src={employer.logo_url}
-                alt=""
-                className="role-card-logo role-card-logo-area"
-                style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
-              />
-            )
-          )}
-          <p className="role-card-company" style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
-            {employer?.company_slug ? (
-              <Link
-                to={`/company/${employer.company_slug}`}
-                style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {employer?.company_name}
-              </Link>
-            ) : (
-              employer?.company_name
-            )}{' '}
-            · {role.location} ·{' '}
-            {role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')}
-          </p>
-          <div className="role-card-rest">
-            {(employer?.industry || employer?.company_size) && (
-              <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
-                {[employer?.industry, employer?.company_size && `${employer.company_size} employees`]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </p>
-            )}
-            <div className="role-card-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-              {employer?.company_highlight && (
-                <span className="tag" style={{ fontSize: 12 }}>
-                  {employer.company_highlight}
-                </span>
-              )}
-              {salaryLabel && (
-                <span className="tag" style={{ fontSize: 12 }}>
-                  {salaryLabel}
-                </span>
-              )}
-              {role.work_style && (
-                <span className="tag" style={{ fontSize: 12 }}>
-                  {role.work_style}
-                </span>
-              )}
-              {deadlineLabel && (
-                <span className="tag" style={{ fontSize: 12 }}>
-                  Apply by {deadlineLabel}
-                </span>
-              )}
-              {employer?.intro_video_url && (
-                <button
-                  type="button"
-                  className="tag"
-                  style={{ fontSize: 12, border: 'none', cursor: 'pointer', background: '#005ef5', color: '#ffffff' }}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setVideoModalEmployer(employer)
-                  }}
-                >
-                  <span style={{ fontSize: 9 }} aria-hidden="true">▶</span>
-                  See the team
-                </button>
-              )}
-            </div>
-            {role.required_skills?.length > 0 && (
-              <div className="role-card-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                {role.required_skills.slice(0, 3).map((skill) => (
-                  <span
-                    key={skill}
-                    className="tag"
-                    style={{ fontSize: 12, background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-        {role.description && (
-          <div style={{ marginTop: 14 }}>
-            <p
-              style={{
-                fontSize: 15,
-                color: 'var(--color-text-muted)',
-                ...(expanded
-                  ? {}
-                  : {
-                      display: '-webkit-box',
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                    }),
-              }}
-            >
-              {role.description}
-            </p>
-          </div>
-        )}
-        {expanded && role.what_matters && (
-          <p style={{ marginTop: 10, fontSize: 13, color: 'var(--color-text-muted)' }}>
-            <strong style={{ color: 'var(--color-text)' }}>What matters most: </strong>
-            {role.what_matters}
-          </p>
-        )}
-        {hasMore && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              setExpandedIds((prev) => {
-                const next = new Set(prev)
-                if (next.has(role.id)) next.delete(role.id)
-                else next.add(role.id)
-                return next
-              })
-            }}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--color-primary)',
-              fontSize: 13,
-              fontWeight: 600,
-              padding: 0,
-              marginTop: 8,
-              cursor: 'pointer',
-            }}
-          >
-            {expanded ? 'Show less' : 'Show more'}
-          </button>
-        )}
-        {needsVideoRoleId === role.id && (
-          <div
-            className="card"
-            style={{ marginTop: 14, padding: '16px 20px', background: '#fff4e5', border: 'none' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p style={{ fontSize: 14, fontWeight: 600 }}>
-              Please add your profile video before applying. Employers want to meet you first.
-            </p>
-            <Link to="/profile/edit" className="btn btn-primary" style={{ marginTop: 12, display: 'inline-flex' }}>
-              Add your profile video
-            </Link>
-          </div>
-        )}
       </div>
     )
   }
@@ -681,7 +704,28 @@ export default function BrowseRoles() {
                 <div className="compact-grid">{recommended.map((role) => renderCompactRoleCard(role))}</div>
               ) : (
                 <div className="role-list" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {recommended.map((role) => renderRoleCard(role))}
+                  {recommended.map((role) => (
+                    <RoleCard
+                      key={role.id}
+                      role={role}
+                      applied={appliedRoleIds.has(role.id)}
+                      applying={applyingId === role.id}
+                      saved={savedRoleIds.has(role.id)}
+                      onToggleSave={() => toggleSave(role)}
+                      onApply={() => apply(role.id)}
+                      needsVideo={needsVideoRoleId === role.id}
+                      onShowVideo={setVideoModalEmployer}
+                      expanded={expandedIds.has(role.id)}
+                      onToggleExpanded={() =>
+                        setExpandedIds((prev) => {
+                          const next = new Set(prev)
+                          if (next.has(role.id)) next.delete(role.id)
+                          else next.add(role.id)
+                          return next
+                        })
+                      }
+                    />
+                  ))}
                 </div>
               )}
             </div>
@@ -692,7 +736,28 @@ export default function BrowseRoles() {
               <div className="compact-grid">{searchedRoles.map((role) => renderCompactRoleCard(role))}</div>
             ) : (
               <div className="role-list" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {searchedRoles.map((role) => renderRoleCard(role))}
+                {searchedRoles.map((role) => (
+                  <RoleCard
+                    key={role.id}
+                    role={role}
+                    applied={appliedRoleIds.has(role.id)}
+                    applying={applyingId === role.id}
+                    saved={savedRoleIds.has(role.id)}
+                    onToggleSave={() => toggleSave(role)}
+                    onApply={() => apply(role.id)}
+                    needsVideo={needsVideoRoleId === role.id}
+                    onShowVideo={setVideoModalEmployer}
+                    expanded={expandedIds.has(role.id)}
+                    onToggleExpanded={() =>
+                      setExpandedIds((prev) => {
+                        const next = new Set(prev)
+                        if (next.has(role.id)) next.delete(role.id)
+                        else next.add(role.id)
+                        return next
+                      })
+                    }
+                  />
+                ))}
               </div>
             )}
           </div>
