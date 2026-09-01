@@ -117,6 +117,28 @@
   position: relative;
 }
 
+/* Collapsed list-view state (see Show more/less in renderRoleCard) — fixed
+   height + clipped overflow so cards line up on desktop, where there's
+   enough width that header content rarely wraps past a couple of lines.
+   Mobile drops the fixed height entirely (see the @media override below):
+   narrower cards wrap title/tags/company across more lines, so a height
+   tuned for desktop was clipping real content instead of just trimming
+   the description. The description itself still line-clamps to 3 lines
+   (inline style in renderRoleCard) regardless of breakpoint, so Show
+   more/less keeps doing real work on mobile even without the fixed
+   height backing it up. */
+.role-card-collapsed {
+  height: 300px;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .role-card-collapsed {
+    height: auto;
+    overflow: visible;
+  }
+}
+
 /* Grid (not flex) so mobile can rearrange title/logo/company without
    touching DOM order — see the mobile override below. Desktop keeps the
    original look: logo on the left spanning the full height, title/company

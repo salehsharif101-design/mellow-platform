@@ -13,11 +13,6 @@ import ListPageSkeleton from '../../components/ListPageSkeleton.jsx'
 import ViewToggle from '../../components/ViewToggle.jsx'
 
 const MAX_RECOMMENDATIONS = 5
-// Fixed collapsed height for list-view role cards (both Recommended for you
-// and All open roles) so every card lines up regardless of how much
-// optional content (industry, tags, skills, description) a role has —
-// overflow:hidden clips anything past it until the card is expanded.
-const ROLE_CARD_COLLAPSED_HEIGHT = 300
 const VIEW_MODE_KEY = 'mellow_roles_view_mode'
 
 export default function BrowseRoles() {
@@ -252,13 +247,8 @@ export default function BrowseRoles() {
     return (
       <div
         key={role.id}
-        className="card role-card"
-        style={{
-          padding: 24,
-          cursor: 'pointer',
-          height: expanded ? 'auto' : ROLE_CARD_COLLAPSED_HEIGHT,
-          overflow: expanded ? 'visible' : 'hidden',
-        }}
+        className={`card role-card${expanded ? '' : ' role-card-collapsed'}`}
+        style={{ padding: 24, cursor: 'pointer' }}
         onClick={() => navigate(`/jobs/${role.slug}`)}
       >
         <div className="role-card-actions">
