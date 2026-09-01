@@ -17,6 +17,10 @@ import HireConfirmed from './pages/public/HireConfirmed.jsx'
 import ThanksForLettingUsKnow from './pages/public/ThanksForLettingUsKnow.jsx'
 import HireAccepted from './pages/public/HireAccepted.jsx'
 import NotThisTime from './pages/public/NotThisTime.jsx'
+import HireIndex from './pages/public/HireIndex.jsx'
+import HireLocationRole from './pages/public/HireLocationRole.jsx'
+import JobsIndex from './pages/public/JobsIndex.jsx'
+import JobsLocation from './pages/public/JobsLocation.jsx'
 import NotFound from './pages/public/NotFound.jsx'
 
 import CandidateDashboard from './pages/candidate/Dashboard.jsx'
@@ -64,6 +68,16 @@ export default function App() {
 
         {/* Candidate profile is publicly shareable */}
         <Route path="/profile/:username" element={<PublicProfile />} />
+
+        {/* SEO landing pages — static paths registered ahead of the dynamic
+            /jobs/:slug below so a location page can never be shadowed by a
+            same-named role slug. */}
+        <Route path="/hire" element={<HireIndex />} />
+        <Route path="/hire/:location/:role" element={<HireLocationRole />} />
+        <Route path="/jobs" element={<JobsIndex />} />
+        <Route path="/jobs/bahrain" element={<JobsLocation location="bahrain" />} />
+        <Route path="/jobs/uae" element={<JobsLocation location="uae" />} />
+        <Route path="/jobs/saudi-arabia" element={<JobsLocation location="saudi-arabia" />} />
 
         {/* Role pages are publicly shareable */}
         <Route path="/jobs/:slug" element={<RolePublic />} />

@@ -1,17 +1,47 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { notify } from '../../lib/notify.js'
 import { getCachedPage, setCachedPage } from '../../lib/dashboardCache.js'
+import { calculateMatchScore } from '../../lib/matchScore.js'
 import EmptyState from '../../components/EmptyState.jsx'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import ListPageSkeleton from '../../components/ListPageSkeleton.jsx'
+import QuickMessageModal from '../../components/QuickMessageModal.jsx'
+import ViewToggle from '../../components/ViewToggle.jsx'
 
 const AVAILABILITY_OPTIONS = ['Immediately', 'Within a month', '1 to 3 months', 'Just exploring']
 const WORK_STYLE_OPTIONS = ['Remote', 'Hybrid', 'On-site']
+const VIEW_MODE_KEY = 'mellow_talent_view_mode'
+const SWIPE_THRESHOLD = 80
+
+function CheckIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  )
+}
+
+function MessageIconSvg() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  )
+}
+
+function XIcon() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  )
+}
 
 export default function TalentFeed() {
   const { user } = useAuth()
@@ -23,6 +53,7 @@ export default function TalentFeed() {
   const [candidates, setCandidates] = useState(cached?.candidates ?? [])
   const [shortlistedIds, setShortlistedIds] = useState(new Set(cached?.shortlistedIds ?? []))
   const [workVideoCounts, setWorkVideoCounts] = useState(cached?.workVideoCounts ?? {})
+  const [myRoles, setMyRoles] = useState(cached?.myRoles ?? [])
   // Only a genuinely cold load (nothing cached yet from an earlier visit
   // this session) shows the skeleton — a return visit renders the cached
   // data immediately while load() quietly refreshes it in the background.
@@ -34,6 +65,21 @@ export default function TalentFeed() {
   const [activeSkills, setActiveSkills] = useState(new Set())
   const [activeAvailability, setActiveAvailability] = useState(new Set())
   const [activeWorkStyle, setActiveWorkStyle] = useState(new Set())
+
+  const [viewMode, setViewMode] = useState(() => {
+    if (typeof window === 'undefined') return 'grid'
+    return localStorage.getItem(VIEW_MODE_KEY) === 'list' ? 'list' : 'grid'
+  })
+  const [selectedRoleId, setSelectedRoleId] = useState('')
+  const [messagingCandidate, setMessagingCandidate] = useState(null)
+
+  const [swipeMode, setSwipeMode] = useState(false)
+  const [swipeIndex, setSwipeIndex] = useState(0)
+  const touchStartXRef = useRef(null)
+
+  useEffect(() => {
+    localStorage.setItem(VIEW_MODE_KEY, viewMode)
+  }, [viewMode])
 
   useEffect(() => {
     if (!user) return
@@ -47,17 +93,23 @@ export default function TalentFeed() {
       }
       setEmployerId(resolvedId)
 
-      const [{ data: liveCandidates, error: candidatesError }, { data: shortlists, error: shortlistError }] =
+      const [{ data: liveCandidates, error: candidatesError }, { data: shortlists, error: shortlistError }, { data: rolesData }] =
         await Promise.all([
           supabase
             .from('candidate_profiles')
             .select(
-              'id, username, full_name, job_title, current_company, years_of_experience, location, skills, availability, work_style, intro_video_url, avatar_url',
+              'id, user_id, username, full_name, job_title, current_company, years_of_experience, location, skills, availability, work_style, intro_video_url, avatar_url',
             )
             .eq('is_live', true)
             .eq('is_open_to_opportunities', true)
             .order('created_at', { ascending: false }),
           supabase.from('shortlists').select('candidate_id').eq('employer_id', resolvedId),
+          supabase
+            .from('roles')
+            .select('id, title, required_skills, role_type')
+            .eq('employer_id', resolvedId)
+            .eq('is_active', true)
+            .order('created_at', { ascending: false }),
         ])
 
       if (candidatesError) {
@@ -69,6 +121,9 @@ export default function TalentFeed() {
 
       const shortlistIds = shortlistError ? [] : shortlists.map((s) => s.candidate_id)
       if (!shortlistError) setShortlistedIds(new Set(shortlistIds))
+
+      const roles = rolesData || []
+      setMyRoles(roles)
 
       const candidateIds = (liveCandidates || []).map((c) => c.id)
       let counts = {}
@@ -91,6 +146,7 @@ export default function TalentFeed() {
           candidates: liveCandidates,
           shortlistedIds: shortlistIds,
           workVideoCounts: counts,
+          myRoles: roles,
         })
       }
     }
@@ -98,6 +154,26 @@ export default function TalentFeed() {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
+
+  // Only roles with required_skills set can produce a meaningful score — the
+  // skills overlap is the highest-weighted signal, so without it the other
+  // three factors alone would be misleadingly precise.
+  const scorableRoles = useMemo(() => myRoles.filter((r) => r.required_skills?.length > 0), [myRoles])
+
+  // Defaults to the first scorable role once roles load, so the score shows
+  // up without the employer needing to touch the dropdown first.
+  useEffect(() => {
+    if (selectedRoleId || scorableRoles.length === 0) return
+    setSelectedRoleId(scorableRoles[0].id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scorableRoles])
+
+  const selectedRole = scorableRoles.find((r) => r.id === selectedRoleId) || null
+
+  function matchScoreFor(candidate) {
+    if (!selectedRole) return null
+    return calculateMatchScore(candidate, selectedRole)
+  }
 
   const allSkills = useMemo(() => {
     const set = new Set()
@@ -164,12 +240,149 @@ export default function TalentFeed() {
     setSavingId(null)
   }
 
+  // Swipe screening mode — same filtered queue as the grid/list, so any
+  // active search/filter carries over into swipe mode too.
+  const swipeQueue = filtered
+  const swipeCandidate = swipeQueue[swipeIndex]
+  const swipeDone = swipeQueue.length > 0 && swipeIndex >= swipeQueue.length
+
+  function openSwipeMode() {
+    setSwipeIndex(0)
+    setSwipeMode(true)
+  }
+
+  function closeSwipeMode() {
+    setSwipeMode(false)
+  }
+
+  async function handleSwipeShortlist() {
+    if (!swipeCandidate) return
+    if (!shortlistedIds.has(swipeCandidate.id)) await shortlist(swipeCandidate.id)
+    setSwipeIndex((i) => i + 1)
+  }
+
+  function handleSwipeSkip() {
+    if (!swipeCandidate) return
+    setSwipeIndex((i) => i + 1)
+  }
+
+  useEffect(() => {
+    if (!swipeMode) return
+    function onKeyDown(e) {
+      if (e.key === 'Escape') {
+        closeSwipeMode()
+        return
+      }
+      const key = e.key.toLowerCase()
+      if (e.key === 'ArrowRight' || key === 'l') handleSwipeShortlist()
+      else if (e.key === 'ArrowLeft' || key === 'j') handleSwipeSkip()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [swipeMode, swipeCandidate, shortlistedIds])
+
+  function handleTouchStart(e) {
+    touchStartXRef.current = e.touches[0].clientX
+  }
+
+  function handleTouchEnd(e) {
+    if (touchStartXRef.current === null) return
+    const deltaX = e.changedTouches[0].clientX - touchStartXRef.current
+    touchStartXRef.current = null
+    if (deltaX > SWIPE_THRESHOLD) handleSwipeShortlist()
+    else if (deltaX < -SWIPE_THRESHOLD) handleSwipeSkip()
+  }
+
   if (loading) return <ListPageSkeleton titleWidth={200} rows={6} cards />
 
   if (error) {
     return (
       <div className="section">
         <p className="form-error">{error}</p>
+      </div>
+    )
+  }
+
+  if (swipeMode) {
+    return (
+      <div className="swipe-overlay">
+        <div className="swipe-topbar">
+          <button type="button" className="btn btn-ghost" onClick={closeSwipeMode} style={{ padding: '7px 14px', fontSize: 13 }}>
+            Exit
+          </button>
+          <div className="swipe-progress-track">
+            <div
+              className="swipe-progress-fill"
+              style={{ width: `${swipeQueue.length > 0 ? Math.min(100, (swipeIndex / swipeQueue.length) * 100) : 0}%` }}
+            />
+          </div>
+          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+            {Math.min(swipeIndex, swipeQueue.length)} / {swipeQueue.length}
+          </p>
+        </div>
+
+        <div className="swipe-stage">
+          {swipeDone || !swipeCandidate ? (
+            <div style={{ textAlign: 'center', maxWidth: 320 }}>
+              <h2 style={{ fontSize: 22 }}>You're all caught up</h2>
+              <p style={{ marginTop: 8, fontSize: 14, color: 'var(--color-text-muted)' }}>
+                You've screened every candidate matching your current filters.
+              </p>
+              <button type="button" className="btn btn-primary" onClick={closeSwipeMode} style={{ marginTop: 20 }}>
+                Back to feed
+              </button>
+            </div>
+          ) : (
+            <div className="swipe-card" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+              <div className="swipe-card-media">
+                {swipeCandidate.intro_video_url ? (
+                  <video key={swipeCandidate.id} src={swipeCandidate.intro_video_url} autoPlay muted loop playsInline controls />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg-soft)' }}>
+                    <CandidateAvatar avatarUrl={swipeCandidate.avatar_url} fullName={swipeCandidate.full_name} size={120} style={{ fontSize: 42 }} />
+                  </div>
+                )}
+              </div>
+              <div className="swipe-card-info">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between' }}>
+                  <h2 style={{ fontSize: 19 }}>{swipeCandidate.full_name}</h2>
+                  {matchScoreFor(swipeCandidate) !== null && (
+                    <span className="tag" style={{ background: 'var(--color-primary)', color: '#fff', fontWeight: 700 }}>
+                      {matchScoreFor(swipeCandidate)}% match
+                    </span>
+                  )}
+                </div>
+                <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                  {swipeCandidate.current_company ? `${swipeCandidate.job_title} at ${swipeCandidate.current_company}` : swipeCandidate.job_title}
+                </p>
+                {swipeCandidate.skills?.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                    {swipeCandidate.skills.slice(0, 3).map((s) => (
+                      <span key={s} className="tag" style={{ fontSize: 12 }}>
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {!swipeDone && swipeCandidate && (
+          <div className="swipe-actions">
+            <button type="button" className="swipe-action-btn skip" onClick={handleSwipeSkip} aria-label="Skip">
+              <XIcon />
+            </button>
+            <button type="button" className="swipe-action-btn shortlist" onClick={handleSwipeShortlist} aria-label="Shortlist">
+              <CheckIcon />
+            </button>
+          </div>
+        )}
+        <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--color-text-muted)', paddingBottom: 14 }}>
+          ← J to skip · L or → to shortlist · swipe on mobile
+        </p>
       </div>
     )
   }
@@ -249,6 +462,36 @@ export default function TalentFeed() {
         </div>
       </div>
 
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between', marginTop: 24 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+          {scorableRoles.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <label htmlFor="match-role" style={{ fontSize: 13, color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                Match against:
+              </label>
+              <select
+                id="match-role"
+                className="input"
+                style={{ width: 'auto', padding: '7px 12px', fontSize: 13 }}
+                value={selectedRoleId}
+                onChange={(e) => setSelectedRoleId(e.target.value)}
+              >
+                {scorableRoles.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <button type="button" className="btn btn-primary" onClick={openSwipeMode} disabled={filtered.length === 0} style={{ fontSize: 13, padding: '9px 16px' }}>
+            ⚡ Quick screen
+          </button>
+        </div>
+
+        <ViewToggle mode={viewMode} onChange={setViewMode} />
+      </div>
+
       {candidates.length === 0 ? (
         <EmptyState
           heading="No talent yet"
@@ -261,102 +504,213 @@ export default function TalentFeed() {
           body="Try a different search term or clear a filter to see more candidates."
           illustration="/Collaborate2.png"
         />
+      ) : viewMode === 'grid' ? (
+        <div className="compact-grid" style={{ marginTop: 24 }}>
+          {filtered.map((c) => {
+            const profileUrl = `/profile/${c.username || c.id}`
+            const topSkills = (c.skills || []).slice(0, 3)
+            const score = matchScoreFor(c)
+            const isShortlisted = shortlistedIds.has(c.id)
+            return (
+              <div key={c.id} className="card compact-card">
+                <div className="compact-card-actions">
+                  <button
+                    type="button"
+                    className={`compact-card-icon-btn${isShortlisted ? ' active' : ''}`}
+                    disabled={isShortlisted || savingId === c.id}
+                    onClick={() => shortlist(c.id)}
+                    aria-label={isShortlisted ? 'Shortlisted' : 'Shortlist'}
+                    title={isShortlisted ? 'Shortlisted' : 'Shortlist'}
+                  >
+                    <CheckIcon />
+                  </button>
+                  <button
+                    type="button"
+                    className="compact-card-icon-btn"
+                    onClick={() => setMessagingCandidate(c)}
+                    aria-label={`Message ${c.full_name}`}
+                    title="Message"
+                  >
+                    <MessageIconSvg />
+                  </button>
+                </div>
+
+                {score !== null && <span className="match-score-badge">{score}% match</span>}
+
+                <div className="compact-card-media">
+                  {c.intro_video_url ? (
+                    <VideoPlayCard
+                      url={c.intro_video_url}
+                      format="auto"
+                      objectFit="cover"
+                      style={{ width: '100%', height: '100%', maxWidth: 'none', aspectRatio: 'auto', borderRadius: 0, margin: 0 }}
+                    />
+                  ) : (
+                    <Link to={profileUrl} className="compact-card-avatar-fallback">
+                      <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={76} style={{ fontSize: 28 }} />
+                    </Link>
+                  )}
+                </div>
+
+                <div className="compact-card-body">
+                  <Link to={profileUrl} style={{ textDecoration: 'none' }}>
+                    <h3 style={{ fontSize: 15, lineHeight: 1.3 }}>{c.full_name}</h3>
+                  </Link>
+                  <p style={{ fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
+                    {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title}
+                  </p>
+
+                  {topSkills.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {topSkills.map((s) => (
+                        <span key={s} className="tag" style={{ fontSize: 11, padding: '2px 8px' }}>
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    {c.availability && (
+                      <span className="tag" style={{ fontSize: 11, padding: '2px 8px', background: '#e3f9e9', color: '#0f7a3d' }}>
+                        {c.availability}
+                      </span>
+                    )}
+                    {c.work_style?.[0] && (
+                      <span className="tag" style={{ fontSize: 11, padding: '2px 8px' }}>
+                        {c.work_style[0]}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       ) : (
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
             gap: 20,
-            marginTop: 32,
+            marginTop: 24,
           }}
         >
-          {filtered.map((c) => (
-            <div key={c.id} className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ position: 'relative' }}>
-                <Link
-                  to={`/profile/${c.username || c.id}`}
-                  style={{ position: 'absolute', top: 10, left: 10, zIndex: 1, lineHeight: 0 }}
-                >
-                  <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} />
-                </Link>
-                {c.intro_video_url ? (
-                  <VideoPlayCard url={c.intro_video_url} />
-                ) : (
-                  <div
-                    style={{
-                      aspectRatio: '9 / 16',
-                      width: '100%',
-                      maxWidth: 400,
-                      margin: '0 auto',
-                      background: 'var(--color-bg-soft)',
-                      borderRadius: 10,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--color-text-muted)',
-                      fontSize: 13,
-                    }}
+          {filtered.map((c) => {
+            const score = matchScoreFor(c)
+            return (
+              <div key={c.id} className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, position: 'relative' }}>
+                {score !== null && (
+                  <span className="tag" style={{ position: 'absolute', top: 14, right: 14, zIndex: 1, background: 'var(--color-primary)', color: '#fff', fontWeight: 700 }}>
+                    {score}% match
+                  </span>
+                )}
+                <div style={{ position: 'relative' }}>
+                  <Link
+                    to={`/profile/${c.username || c.id}`}
+                    style={{ position: 'absolute', top: 10, left: 10, zIndex: 1, lineHeight: 0 }}
                   >
-                    No video yet
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <Link to={`/profile/${c.username || c.id}`} style={{ textDecoration: 'none' }}>
-                  <h3 style={{ fontSize: 17 }}>{c.full_name}</h3>
-                </Link>
-                <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 2 }}>
-                  {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title} · {c.location}
-                </p>
-                {c.years_of_experience && (
-                  <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
-                    {c.years_of_experience} experience
-                  </p>
-                )}
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-                  {c.availability && (
-                    <span className="tag" style={{ display: 'inline-flex', fontSize: 12, background: 'var(--color-bg-soft)' }}>
-                      {c.availability}
-                    </span>
-                  )}
-                  {workVideoCounts[c.id] > 0 && (
-                    <span
+                    <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} />
+                  </Link>
+                  {c.intro_video_url ? (
+                    <VideoPlayCard url={c.intro_video_url} />
+                  ) : (
+                    <div
                       style={{
-                        display: 'inline-flex',
+                        aspectRatio: '9 / 16',
+                        width: '100%',
+                        maxWidth: 400,
+                        margin: '0 auto',
+                        background: 'var(--color-bg-soft)',
+                        borderRadius: 10,
+                        display: 'flex',
                         alignItems: 'center',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: 'var(--color-primary)',
+                        justifyContent: 'center',
+                        color: 'var(--color-text-muted)',
+                        fontSize: 13,
                       }}
                     >
-                      {workVideoCounts[c.id]} work video{workVideoCounts[c.id] === 1 ? '' : 's'}
-                    </span>
+                      No video yet
+                    </div>
                   )}
                 </div>
-              </div>
 
-              {c.skills.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {c.skills.map((s) => (
-                    <span key={s} className="tag" style={{ fontSize: 12 }}>
-                      {s}
-                    </span>
-                  ))}
+                <div>
+                  <Link to={`/profile/${c.username || c.id}`} style={{ textDecoration: 'none' }}>
+                    <h3 style={{ fontSize: 17 }}>{c.full_name}</h3>
+                  </Link>
+                  <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                    {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title} · {c.location}
+                  </p>
+                  {c.years_of_experience && (
+                    <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                      {c.years_of_experience} experience
+                    </p>
+                  )}
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                    {c.availability && (
+                      <span className="tag" style={{ display: 'inline-flex', fontSize: 12, background: 'var(--color-bg-soft)' }}>
+                        {c.availability}
+                      </span>
+                    )}
+                    {workVideoCounts[c.id] > 0 && (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: 'var(--color-primary)',
+                        }}
+                      >
+                        {workVideoCounts[c.id]} work video{workVideoCounts[c.id] === 1 ? '' : 's'}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              )}
 
-              <button
-                type="button"
-                className="btn btn-ghost"
-                disabled={shortlistedIds.has(c.id) || savingId === c.id}
-                onClick={() => shortlist(c.id)}
-              >
-                {shortlistedIds.has(c.id) ? 'Shortlisted' : savingId === c.id ? 'Saving…' : 'Shortlist'}
-              </button>
-            </div>
-          ))}
+                {c.skills.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {c.skills.map((s) => (
+                      <span key={s} className="tag" style={{ fontSize: 12 }}>
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    style={{ flex: 1 }}
+                    disabled={shortlistedIds.has(c.id) || savingId === c.id}
+                    onClick={() => shortlist(c.id)}
+                  >
+                    {shortlistedIds.has(c.id) ? 'Shortlisted' : savingId === c.id ? 'Saving…' : 'Shortlist'}
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    onClick={() => setMessagingCandidate(c)}
+                    aria-label={`Message ${c.full_name}`}
+                    title="Message"
+                  >
+                    <MessageIconSvg />
+                  </button>
+                </div>
+              </div>
+            )
+          })}
         </div>
+      )}
+
+      {messagingCandidate && (
+        <QuickMessageModal
+          recipientUserId={messagingCandidate.user_id}
+          recipientLabel={messagingCandidate.full_name}
+          onClose={() => setMessagingCandidate(null)}
+        />
       )}
     </div>
   )

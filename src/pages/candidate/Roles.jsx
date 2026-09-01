@@ -10,8 +10,10 @@ import Modal from '../../components/Modal.jsx'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import SaveRoleButton from '../../components/SaveRoleButton.jsx'
 import ListPageSkeleton from '../../components/ListPageSkeleton.jsx'
+import ViewToggle from '../../components/ViewToggle.jsx'
 
 const MAX_RECOMMENDATIONS = 5
+const VIEW_MODE_KEY = 'mellow_roles_view_mode'
 
 export default function BrowseRoles() {
   const { user } = useAuth()
@@ -38,6 +40,14 @@ export default function BrowseRoles() {
   const [videoModalEmployer, setVideoModalEmployer] = useState(null)
   const [expandedIds, setExpandedIds] = useState(new Set())
   const [searchQuery, setSearchQuery] = useState('')
+  const [viewMode, setViewMode] = useState(() => {
+    if (typeof window === 'undefined') return 'grid'
+    return localStorage.getItem(VIEW_MODE_KEY) === 'list' ? 'list' : 'grid'
+  })
+
+  useEffect(() => {
+    localStorage.setItem(VIEW_MODE_KEY, viewMode)
+  }, [viewMode])
 
   useEffect(() => {
     if (!user) return
@@ -426,6 +436,97 @@ export default function BrowseRoles() {
     )
   }
 
+  function renderCompactRoleCard(role) {
+    const applied = appliedRoleIds.has(role.id)
+    const employer = role.employer_profiles
+    const salaryLabel = formatSalary(role)
+    const topSkills = (role.required_skills || []).slice(0, 3)
+    return (
+      <div key={role.id} className="card compact-card" style={{ cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
+        <div className="compact-card-actions">
+          <SaveRoleButton saved={savedRoleIds.has(role.id)} onToggle={() => toggleSave(role)} />
+        </div>
+
+        <div
+          className="compact-card-media"
+          style={{ aspectRatio: '16 / 10', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          {employer?.logo_url ? (
+            <img src={employer.logo_url} alt="" style={{ width: '50%', height: '50%', objectFit: 'contain' }} />
+          ) : (
+            <div style={{ fontSize: 36, fontWeight: 700, color: 'var(--color-primary)', opacity: 0.3 }}>
+              {employer?.company_name?.[0]?.toUpperCase() || '?'}
+            </div>
+          )}
+        </div>
+
+        <div className="compact-card-body" style={{ flex: 1 }}>
+          <h3 style={{ fontSize: 16, lineHeight: 1.3 }}>{role.title}</h3>
+          <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{employer?.company_name}</p>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {role.location && (
+              <span className="tag" style={{ fontSize: 11, padding: '2px 8px' }}>
+                {role.location}
+              </span>
+            )}
+            {role.work_style && (
+              <span className="tag" style={{ fontSize: 11, padding: '2px 8px' }}>
+                {role.work_style}
+              </span>
+            )}
+            {salaryLabel && (
+              <span className="tag" style={{ fontSize: 11, padding: '2px 8px' }}>
+                {salaryLabel}
+              </span>
+            )}
+          </div>
+
+          {topSkills.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {topSkills.map((s) => (
+                <span
+                  key={s}
+                  className="tag"
+                  style={{ fontSize: 11, padding: '2px 8px', background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}
+                >
+                  {s}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {employer?.intro_video_url && (
+            <button
+              type="button"
+              className="tag"
+              style={{ fontSize: 11, border: 'none', cursor: 'pointer', background: '#005ef5', color: '#ffffff', width: 'fit-content' }}
+              onClick={(e) => {
+                e.stopPropagation()
+                setVideoModalEmployer(employer)
+              }}
+            >
+              <span style={{ fontSize: 9 }} aria-hidden="true">▶</span> Meet the team
+            </button>
+          )}
+
+          <button
+            type="button"
+            className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
+            disabled={applied || applyingId === role.id}
+            onClick={(e) => {
+              e.stopPropagation()
+              apply(role.id)
+            }}
+            style={{ marginTop: 'auto', width: '100%' }}
+          >
+            {applied ? 'Applied' : applyingId === role.id ? 'Applying…' : 'Apply'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   function renderSavedEntry(entry) {
     const role = entry.roles
     const expired = !role || !role.is_active
@@ -535,13 +636,15 @@ export default function BrowseRoles() {
       </div>
 
       {tab === 'browse' && (
-        <div style={{ marginTop: 20, maxWidth: 720 }}>
+        <div style={{ marginTop: 20, maxWidth: viewMode === 'grid' ? 1100 : 720, display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           <input
             className="input"
+            style={{ flex: 1, minWidth: 240 }}
             placeholder="Search by title, company, skills, or location…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+          <ViewToggle mode={viewMode} onChange={setViewMode} />
         </div>
       )}
 
@@ -570,7 +673,7 @@ export default function BrowseRoles() {
           illustration="/Collaborate2.png"
         />
       ) : (
-        <div style={{ marginTop: 28, maxWidth: 720 }}>
+        <div style={{ marginTop: 28, maxWidth: viewMode === 'grid' ? 1100 : 720 }}>
           {recommended.length > 0 && (
             <div
               className="recommended-section"
@@ -585,16 +688,24 @@ export default function BrowseRoles() {
                 <SparkleIcon />
                 <h3 style={{ fontSize: 18 }}>Recommended for you</h3>
               </div>
-              <div className="role-list" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {recommended.map((role) => renderRoleCard(role, { compact: true }))}
-              </div>
+              {viewMode === 'grid' ? (
+                <div className="compact-grid">{recommended.map((role) => renderCompactRoleCard(role))}</div>
+              ) : (
+                <div className="role-list" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {recommended.map((role) => renderRoleCard(role, { compact: true }))}
+                </div>
+              )}
             </div>
           )}
           <div>
             <h3 style={{ fontSize: 18, marginBottom: 14 }}>All open roles</h3>
-            <div className="role-list" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {searchedRoles.map((role) => renderRoleCard(role))}
-            </div>
+            {viewMode === 'grid' ? (
+              <div className="compact-grid">{searchedRoles.map((role) => renderCompactRoleCard(role))}</div>
+            ) : (
+              <div className="role-list" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {searchedRoles.map((role) => renderRoleCard(role))}
+              </div>
+            )}
           </div>
         </div>
       )}

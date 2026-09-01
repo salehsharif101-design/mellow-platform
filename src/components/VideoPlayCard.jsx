@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 
-export default function VideoPlayCard({ url, style, format = 'vertical' }) {
+export default function VideoPlayCard({ url, style, format = 'vertical', objectFit = 'contain' }) {
   const videoRef = useRef(null)
   const [playing, setPlaying] = useState(false)
   const [naturalSize, setNaturalSize] = useState(null)
@@ -47,7 +47,7 @@ export default function VideoPlayCard({ url, style, format = 'vertical' }) {
         onLoadedMetadata={handleLoadedMetadata}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
-        style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain', background: '#000' }}
+        style={{ width: '100%', height: '100%', display: 'block', objectFit, background: '#000' }}
       />
       {!playing && (
         <button

@@ -857,3 +857,247 @@ textarea.input:focus {
     padding: 0 24px;
   }
 }
+
+/* View toggle (talent feed grid/list, browse roles grid/list) */
+.view-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--color-bg-soft);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.view-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.view-toggle-btn.active {
+  background: var(--color-bg);
+  color: var(--color-primary);
+  box-shadow: 0 1px 3px rgba(10, 10, 10, 0.1);
+}
+
+/* Compact card grids (talent feed, browse roles) */
+.compact-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+@media (max-width: 1024px) {
+  .compact-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .compact-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.compact-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+.compact-card-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  background: var(--color-bg-soft);
+  flex-shrink: 0;
+}
+
+.compact-card-media img,
+.compact-card-media video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.compact-card-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.compact-card-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.compact-card-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 2;
+}
+
+.compact-card:hover .compact-card-actions,
+.compact-card:focus-within .compact-card-actions {
+  opacity: 1;
+}
+
+.compact-card-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 1px 4px rgba(10, 10, 10, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-primary);
+}
+
+.compact-card-icon-btn.active {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.match-score-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  box-shadow: 0 1px 4px rgba(10, 10, 10, 0.2);
+}
+
+/* Swipe screening mode */
+.swipe-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.swipe-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.swipe-progress-track {
+  flex: 1;
+  height: 4px;
+  background: var(--color-bg-soft);
+  border-radius: 2px;
+  margin: 0 16px;
+  overflow: hidden;
+}
+
+.swipe-progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  transition: width 0.2s ease;
+}
+
+.swipe-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 20px;
+  min-height: 0;
+}
+
+.swipe-card {
+  width: 100%;
+  max-width: 420px;
+  height: 100%;
+  max-height: 640px;
+  display: flex;
+  flex-direction: column;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.swipe-card-media {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #000;
+}
+
+.swipe-card-media video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+.swipe-card-info {
+  flex-shrink: 0;
+  padding: 16px 4px 0;
+}
+
+.swipe-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 20px 20px 32px;
+  flex-shrink: 0;
+}
+
+.swipe-action-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(10, 10, 10, 0.15);
+}
+
+.swipe-action-btn.skip {
+  background: #fff;
+  color: #8a8a8a;
+  border: 2px solid var(--color-border);
+}
+
+.swipe-action-btn.shortlist {
+  background: #0f7a3d;
+  color: #fff;
+}
