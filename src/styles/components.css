@@ -117,8 +117,47 @@
   position: relative;
 }
 
+/* Grid (not flex) so mobile can rearrange title/logo/company without
+   touching DOM order — see the mobile override below. Desktop keeps the
+   original look: logo on the left spanning the full height, title/company
+   name/everything else ("rest") stacked in the column beside it. */
 .role-card-header {
   padding-right: 132px;
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  grid-template-areas:
+    'logo title'
+    'logo company'
+    'logo rest';
+  column-gap: 14px;
+  align-items: start;
+}
+
+.role-card-header.no-logo {
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    'title'
+    'company'
+    'rest';
+}
+
+.role-card-logo-area {
+  grid-area: logo;
+}
+
+.role-card-title {
+  grid-area: title;
+  min-width: 0;
+}
+
+.role-card-company {
+  grid-area: company;
+  min-width: 0;
+}
+
+.role-card-rest {
+  grid-area: rest;
+  min-width: 0;
 }
 
 .role-card-actions {
@@ -333,16 +372,65 @@ textarea.input:focus {
   }
 
   .role-card {
-    padding: 16px !important;
+    padding: 20px !important;
   }
 
+  /* Title gets its own full-width row up top (bigger, so it's the first
+     thing the eye lands on); logo + company name share the row below it,
+     vertically centered like a typical avatar-and-name pair; everything
+     else ("rest": industry/size, tags, skills, culture quote) follows,
+     also full-width. Same DOM as desktop — see the grid-template-areas
+     above — just re-mapped to a single-column-of-rows shape. */
   .role-card-header {
-    padding-right: 84px;
+    /* Reset the desktop reservation — only the title row sits beside the
+       pinned actions now, so the reservation moves to .role-card-title
+       instead of shrinking the whole grid (which was starving the company
+       row and tag row of width they don't actually need to avoid). */
+    padding-right: 0;
+    grid-template-columns: 36px 1fr;
+    grid-template-areas:
+      'title title'
+      'logo company'
+      'rest rest';
+    column-gap: 10px;
+  }
+
+  .role-card-header.no-logo {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'title'
+      'company'
+      'rest';
   }
 
   .role-card-header .role-card-logo {
     width: 36px !important;
     height: 36px !important;
+  }
+
+  .role-card-logo-area,
+  .role-card-company {
+    align-self: center;
+  }
+
+  .role-card-title {
+    font-size: 20px !important;
+    line-height: 1.3;
+    margin-bottom: 10px;
+    padding-right: 84px;
+  }
+
+  .role-card-company {
+    margin-top: 0 !important;
+    line-height: 1.5;
+  }
+
+  .role-card-rest {
+    margin-top: 10px;
+  }
+
+  .role-card-tags {
+    gap: 8px !important;
   }
 
   .role-card-actions {
@@ -352,8 +440,22 @@ textarea.input:focus {
   }
 
   .role-card-actions .btn {
-    padding: 6px 10px;
+    padding: 7px 12px;
     font-size: 12px;
+  }
+
+  .role-list {
+    gap: 18px !important;
+  }
+
+  .recommended-section {
+    padding: 16px !important;
+    margin-bottom: 40px !important;
+    background: #f2f6ff !important;
+  }
+
+  .recommended-heading {
+    margin-bottom: 16px !important;
   }
 
   .footer-grid {

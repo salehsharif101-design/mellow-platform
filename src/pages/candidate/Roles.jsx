@@ -257,12 +257,13 @@ export default function BrowseRoles() {
             {applied ? 'Applied' : applyingId === role.id ? 'Applying…' : 'Apply'}
           </button>
         </div>
-        <div className="role-card-header" style={{ display: 'flex', gap: 14 }}>
+        <div className={`role-card-header${employer?.logo_url ? '' : ' no-logo'}`}>
+          <h3 className="role-card-title" style={{ fontSize: 19 }}>{role.title}</h3>
           {employer?.logo_url && (
             employer.company_slug ? (
               <Link
                 to={`/company/${employer.company_slug}`}
-                style={{ flexShrink: 0 }}
+                className="role-card-logo-area"
                 onClick={(e) => e.stopPropagation()}
               >
                 <img
@@ -276,28 +277,27 @@ export default function BrowseRoles() {
               <img
                 src={employer.logo_url}
                 alt=""
-                className="role-card-logo"
-                style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)', flexShrink: 0 }}
+                className="role-card-logo role-card-logo-area"
+                style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
               />
             )
           )}
-          <div style={{ minWidth: 0 }}>
-            <h3 style={{ fontSize: 19 }}>{role.title}</h3>
-            <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
-              {employer?.company_slug ? (
-                <Link
-                  to={`/company/${employer.company_slug}`}
-                  style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {employer?.company_name}
-                </Link>
-              ) : (
-                employer?.company_name
-              )}{' '}
-              · {role.location} ·{' '}
-              {role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')}
-            </p>
+          <p className="role-card-company" style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
+            {employer?.company_slug ? (
+              <Link
+                to={`/company/${employer.company_slug}`}
+                style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {employer?.company_name}
+              </Link>
+            ) : (
+              employer?.company_name
+            )}{' '}
+            · {role.location} ·{' '}
+            {role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')}
+          </p>
+          <div className="role-card-rest">
             {(employer?.industry || employer?.company_size) && (
               <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
                 {[employer?.industry, employer?.company_size && `${employer.company_size} employees`]
@@ -305,7 +305,7 @@ export default function BrowseRoles() {
                   .join(' · ')}
               </p>
             )}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+            <div className="role-card-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
               {employer?.company_highlight && (
                 <span className="tag" style={{ fontSize: 12 }}>
                   {employer.company_highlight}
@@ -337,7 +337,7 @@ export default function BrowseRoles() {
               )}
             </div>
             {role.required_skills?.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+              <div className="role-card-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
                 {role.required_skills.slice(0, 3).map((skill) => (
                   <span
                     key={skill}
@@ -437,15 +437,17 @@ export default function BrowseRoles() {
               Remove
             </button>
           </div>
-          <div className="role-card-header">
-            <h3 style={{ fontSize: 17 }}>{entry.role_title}</h3>
-            <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>{entry.company_name}</p>
-            <span className="tag" style={{ marginTop: 8, display: 'inline-block', fontSize: 12 }}>
-              Expired
-            </span>
-            <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 6 }}>
-              This role is no longer accepting applications.
-            </p>
+          <div className="role-card-header no-logo">
+            <h3 className="role-card-title" style={{ fontSize: 17 }}>{entry.role_title}</h3>
+            <p className="role-card-company" style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>{entry.company_name}</p>
+            <div className="role-card-rest">
+              <span className="tag" style={{ marginTop: 8, display: 'inline-block', fontSize: 12 }}>
+                Expired
+              </span>
+              <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 6 }}>
+                This role is no longer accepting applications.
+              </p>
+            </div>
           </div>
         </div>
       )
@@ -458,12 +460,13 @@ export default function BrowseRoles() {
         <div className="role-card-actions">
           <SaveRoleButton saved onToggle={() => removeSaved(entry.id)} />
         </div>
-        <div className="role-card-header" style={{ display: 'flex', gap: 14 }}>
+        <div className={`role-card-header${employer?.logo_url ? '' : ' no-logo'}`}>
+          <h3 className="role-card-title" style={{ fontSize: 17 }}>{role.title}</h3>
           {employer?.logo_url && (
             employer.company_slug ? (
               <Link
                 to={`/company/${employer.company_slug}`}
-                style={{ flexShrink: 0 }}
+                className="role-card-logo-area"
                 onClick={(e) => e.stopPropagation()}
               >
                 <img
@@ -477,28 +480,27 @@ export default function BrowseRoles() {
               <img
                 src={employer.logo_url}
                 alt=""
-                className="role-card-logo"
-                style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)', flexShrink: 0 }}
+                className="role-card-logo role-card-logo-area"
+                style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
               />
             )
           )}
-          <div style={{ minWidth: 0 }}>
-            <h3 style={{ fontSize: 17 }}>{role.title}</h3>
-            <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
-              {employer?.company_slug ? (
-                <Link
-                  to={`/company/${employer.company_slug}`}
-                  style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {employer?.company_name}
-                </Link>
-              ) : (
-                employer?.company_name
-              )}{' '}
-              · {role.location}
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+          <p className="role-card-company" style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
+            {employer?.company_slug ? (
+              <Link
+                to={`/company/${employer.company_slug}`}
+                style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {employer?.company_name}
+              </Link>
+            ) : (
+              employer?.company_name
+            )}{' '}
+            · {role.location}
+          </p>
+          <div className="role-card-rest">
+            <div className="role-card-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
               {salaryLabel && <span className="tag" style={{ fontSize: 12 }}>{salaryLabel}</span>}
               {deadlineLabel && <span className="tag" style={{ fontSize: 12 }}>Apply by {deadlineLabel}</span>}
             </div>
@@ -551,7 +553,7 @@ export default function BrowseRoles() {
             illustration="/Collaborate2.png"
           />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 28, maxWidth: 720 }}>
+          <div className="role-list" style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 28, maxWidth: 720 }}>
             {savedEntries.map(renderSavedEntry)}
           </div>
         )
@@ -571,6 +573,7 @@ export default function BrowseRoles() {
         <div style={{ marginTop: 28, maxWidth: 720 }}>
           {recommended.length > 0 && (
             <div
+              className="recommended-section"
               style={{
                 marginBottom: 32,
                 padding: 20,
@@ -578,18 +581,18 @@ export default function BrowseRoles() {
                 borderRadius: 12,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <div className="recommended-heading" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                 <SparkleIcon />
                 <h3 style={{ fontSize: 18 }}>Recommended for you</h3>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div className="role-list" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {recommended.map((role) => renderRoleCard(role, { compact: true }))}
               </div>
             </div>
           )}
           <div>
             <h3 style={{ fontSize: 18, marginBottom: 14 }}>All open roles</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="role-list" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {searchedRoles.map((role) => renderRoleCard(role))}
             </div>
           </div>
