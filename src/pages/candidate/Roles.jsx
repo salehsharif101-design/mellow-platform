@@ -19,39 +19,66 @@ const VIEW_MODE_KEY = 'mellow_roles_view_mode'
 // what-matters content actually has to fit inside before it's truncated.
 const ROLE_CARD_COLLAPSED_HEIGHT = 300
 const ROLE_CARD_CONTENT_BUDGET = ROLE_CARD_COLLAPSED_HEIGHT - 48
+// Same breakpoint components.css uses for .role-card — desktop and mobile
+// are two genuinely separate code paths below, gated on this one query
+// rather than a bare window.innerWidth check, so both branches react the
+// same way to a resize or orientation change.
+const DESKTOP_QUERY = '(min-width: 769px)'
+
+function isDesktopViewport() {
+  return typeof window !== 'undefined' && window.matchMedia(DESKTOP_QUERY).matches
+}
 
 // Standalone component (not an inline render function) so it can hold its
 // own ref + effect: after each render it measures whether the role's real
 // header/description/what-matters content is taller than the collapsed
 // card can show, and only then does a Show more toggle even appear — a
 // short role with nothing left to reveal never gets one.
+//
+// Desktop and mobile are deliberately separate here, not one height rule
+// with a media-query fallback: desktop cards are ALWAYS exactly 300px
+// collapsed (uniform whether the content is one line or ten), only
+// growing past that on Show more; mobile never truncates or measures
+// anything at all — it always renders full content at its natural height.
 function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needsVideo, onShowVideo, expanded, onToggleExpanded }) {
   const navigate = useNavigate()
   const contentRef = useRef(null)
+  const [isDesktop, setIsDesktop] = useState(isDesktopViewport)
   const [overflowing, setOverflowing] = useState(false)
 
+  useEffect(() => {
+    const mql = window.matchMedia(DESKTOP_QUERY)
+    const onChange = (e) => setIsDesktop(e.matches)
+    mql.addEventListener('change', onChange)
+    return () => mql.removeEventListener('change', onChange)
+  }, [])
+
   useLayoutEffect(() => {
-    function measure() {
-      const el = contentRef.current
-      if (!el) return
-      // Mobile drops the fixed collapsed height entirely (see the
-      // @media override on .role-card-collapsed), so there's nothing to
-      // truncate there and no toggle is ever needed.
-      setOverflowing(window.innerWidth > 768 && el.scrollHeight > ROLE_CARD_CONTENT_BUDGET)
+    if (!isDesktop) {
+      // Mobile path: no measuring, no truncation — never overflowing.
+      setOverflowing(false)
+      return
     }
-    measure()
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
-  }, [role.description, role.what_matters])
+    const el = contentRef.current
+    if (!el) return
+    setOverflowing(el.scrollHeight > ROLE_CARD_CONTENT_BUDGET)
+  }, [isDesktop, role.description, role.what_matters])
 
   const employer = role.employer_profiles
   const deadlineLabel = formatDeadline(role.deadline)
   const salaryLabel = formatSalary(role)
-  const truncated = overflowing && !expanded
+  // Desktop: collapsed is always fixed-height, expanded always has the
+  // 300px floor — independent of whether this particular role overflows.
+  // Mobile: neither class is ever applied, so the card is always its
+  // natural height.
+  const desktopCardClass = isDesktop ? (expanded ? ' role-card-expanded' : ' role-card-collapsed') : ''
+  const truncated = isDesktop && overflowing && !expanded
+  const showToggle = isDesktop && overflowing
+  const showWhatMatters = !isDesktop || expanded || !overflowing
 
   return (
     <div
-      className={`card role-card${truncated ? ' role-card-collapsed' : overflowing && expanded ? ' role-card-expanded' : ''}`}
+      className={`card role-card${desktopCardClass}`}
       style={{ padding: 24, cursor: 'pointer' }}
       onClick={() => navigate(`/jobs/${role.slug}`)}
     >
@@ -190,14 +217,14 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
             </p>
           </div>
         )}
-        {(expanded || !overflowing) && role.what_matters && (
+        {showWhatMatters && role.what_matters && (
           <p style={{ marginTop: 10, fontSize: 13, color: 'var(--color-text-muted)' }}>
             <strong style={{ color: 'var(--color-text)' }}>What matters most: </strong>
             {role.what_matters}
           </p>
         )}
       </div>
-      {overflowing && (
+      {showToggle && (
         <button
           type="button"
           onClick={(e) => {

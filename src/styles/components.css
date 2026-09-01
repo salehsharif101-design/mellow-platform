@@ -117,38 +117,22 @@
   position: relative;
 }
 
-/* Collapsed list-view state (see Show more/less in renderRoleCard) — fixed
-   height + clipped overflow so cards line up on desktop, where there's
-   enough width that header content rarely wraps past a couple of lines.
-   Mobile drops the fixed height entirely (see the @media override below):
-   narrower cards wrap title/tags/company across more lines, so a height
-   tuned for desktop was clipping real content instead of just trimming
-   the description. The description itself still line-clamps to 3 lines
-   (inline style in renderRoleCard) regardless of breakpoint, so Show
-   more/less keeps doing real work on mobile even without the fixed
-   height backing it up. */
+/* Collapsed/expanded list-view state (see RoleCard in Roles.jsx) — desktop
+   and mobile are separate code paths in JS, not a CSS breakpoint override:
+   RoleCard only ever applies these two classes when it has already
+   detected a desktop viewport, so there's no need for a @media reset here
+   — on mobile neither class is ever added, and the card is simply its
+   natural, unstyled height. Desktop is always a fixed 300px when
+   collapsed, regardless of how little content a given role has, so every
+   card in the list lines up; expanded keeps a 300px floor so a short
+   card's Show more can only grow the card, never shrink it. */
 .role-card-collapsed {
   height: 300px;
   overflow: hidden;
 }
 
-/* Expanded state on desktop keeps a 300px floor so a card with very
-   little content (short description, no what_matters) doesn't shrink
-   when Show more is clicked — it can only grow from the collapsed
-   height, never shrink below it. */
 .role-card-expanded {
   min-height: 300px;
-}
-
-@media (max-width: 768px) {
-  .role-card-collapsed {
-    height: auto;
-    overflow: visible;
-  }
-
-  .role-card-expanded {
-    min-height: 0;
-  }
 }
 
 /* Grid (not flex) so mobile can rearrange title/logo/company without
