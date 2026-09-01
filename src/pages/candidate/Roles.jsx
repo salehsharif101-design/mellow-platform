@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
@@ -15,19 +15,170 @@ import ViewToggle from '../../components/ViewToggle.jsx'
 const MAX_RECOMMENDATIONS = 5
 const VIEW_MODE_KEY = 'mellow_roles_view_mode'
 
-// Deliberately simple: no JS height measurement, no overflow detection.
 // Collapsed height (260px desktop, 220px mobile) is pure CSS — see
-// .role-card-clip in components.css. Show more/less always renders, and
-// lives OUTSIDE the clipped area (a sibling, not a child of the clipped
-// div) so it's always visible and clickable even when a role's own
-// header content alone fills the whole fixed height — clipping it along
-// with the content would make it invisible on exactly the cards that
-// need it most.
+// .role-card-clip in components.css, applied to a wrapper around
+// header/description/what-matters only. Show more/less lives OUTSIDE
+// that wrapper (a sibling, not a child) so it's never clipped away along
+// with the content — a role whose header alone fills the fixed height
+// would otherwise make the button invisible exactly when it's needed
+// most.
+//
+// Whether the button shows at all is decided by measuring a second,
+// hidden copy of the same content that permanently carries
+// .role-card-clip (see the ref'd clone below) — never the visible copy,
+// whose own clip class comes and goes with expanded/collapsed. Measuring
+// the visible copy would be self-referential: once expanded removes the
+// clip class there's nothing left to clip, so scrollHeight and
+// clientHeight go equal and the card would read as "not overflowing"
+// right as the user opens it — which would yank Show less away the
+// instant they click Show more. The hidden clone's content never
+// changes based on the state it's used to compute, so there's no
+// feedback loop either.
 function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needsVideo, onShowVideo, expanded, onToggleExpanded }) {
   const navigate = useNavigate()
+  const clipRef = useRef(null)
+  const [overflowing, setOverflowing] = useState(false)
   const employer = role.employer_profiles
   const deadlineLabel = formatDeadline(role.deadline)
   const salaryLabel = formatSalary(role)
+
+  useLayoutEffect(() => {
+    const el = clipRef.current
+    if (!el) return
+    function measure() {
+      setOverflowing(el.scrollHeight > el.clientHeight)
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    // Inter/Clash Display load async with font-display:swap (see
+    // index.html) — re-measure once fonts actually finish loading so the
+    // decision reflects real metrics, not a fallback-font first paint.
+    let cancelled = false
+    document.fonts?.ready?.then(() => {
+      if (!cancelled) measure()
+    })
+    return () => {
+      cancelled = true
+      window.removeEventListener('resize', measure)
+    }
+  }, [role.description, role.what_matters])
+
+  function renderBody() {
+    return (
+      <>
+        <div className={`role-card-header${employer?.logo_url ? '' : ' no-logo'}`}>
+          <h3 className="role-card-title" style={{ fontSize: 19 }}>{role.title}</h3>
+          {employer?.logo_url && (
+            employer.company_slug ? (
+              <Link
+                to={`/company/${employer.company_slug}`}
+                className="role-card-logo-area"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <img
+                  src={employer.logo_url}
+                  alt=""
+                  className="role-card-logo"
+                  style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
+                />
+              </Link>
+            ) : (
+              <img
+                src={employer.logo_url}
+                alt=""
+                className="role-card-logo role-card-logo-area"
+                style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
+              />
+            )
+          )}
+          <p className="role-card-company" style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
+            {employer?.company_slug ? (
+              <Link
+                to={`/company/${employer.company_slug}`}
+                style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {employer?.company_name}
+              </Link>
+            ) : (
+              employer?.company_name
+            )}{' '}
+            · {role.location} ·{' '}
+            {role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')}
+          </p>
+          <div className="role-card-rest">
+            {(employer?.industry || employer?.company_size) && (
+              <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
+                {[employer?.industry, employer?.company_size && `${employer.company_size} employees`]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+            )}
+            <div className="role-card-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+              {employer?.company_highlight && (
+                <span className="tag" style={{ fontSize: 12 }}>
+                  {employer.company_highlight}
+                </span>
+              )}
+              {salaryLabel && (
+                <span className="tag" style={{ fontSize: 12 }}>
+                  {salaryLabel}
+                </span>
+              )}
+              {role.work_style && (
+                <span className="tag" style={{ fontSize: 12 }}>
+                  {role.work_style}
+                </span>
+              )}
+              {deadlineLabel && (
+                <span className="tag" style={{ fontSize: 12 }}>
+                  Apply by {deadlineLabel}
+                </span>
+              )}
+              {employer?.intro_video_url && (
+                <button
+                  type="button"
+                  className="tag"
+                  style={{ fontSize: 12, border: 'none', cursor: 'pointer', background: '#005ef5', color: '#ffffff' }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onShowVideo(employer)
+                  }}
+                >
+                  <span style={{ fontSize: 9 }} aria-hidden="true">▶</span>
+                  See the team
+                </button>
+              )}
+            </div>
+            {role.required_skills?.length > 0 && (
+              <div className="role-card-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                {role.required_skills.slice(0, 3).map((skill) => (
+                  <span
+                    key={skill}
+                    className="tag"
+                    style={{ fontSize: 12, background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        {role.description && (
+          <div style={{ marginTop: 14 }}>
+            <p style={{ fontSize: 15, color: 'var(--color-text-muted)' }}>{role.description}</p>
+          </div>
+        )}
+        {role.what_matters && (
+          <p style={{ marginTop: 10, fontSize: 13, color: 'var(--color-text-muted)' }}>
+            <strong style={{ color: 'var(--color-text)' }}>What matters most: </strong>
+            {role.what_matters}
+          </p>
+        )}
+      </>
+    )
+  }
 
   return (
     <div className="card role-card" style={{ padding: 24, cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
@@ -46,137 +197,36 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
           {applied ? 'Applied' : applying ? 'Applying…' : 'Apply'}
         </button>
       </div>
-      <div className={expanded ? undefined : 'role-card-clip'}>
-      <div className={`role-card-header${employer?.logo_url ? '' : ' no-logo'}`}>
-        <h3 className="role-card-title" style={{ fontSize: 19 }}>{role.title}</h3>
-        {employer?.logo_url && (
-          employer.company_slug ? (
-            <Link
-              to={`/company/${employer.company_slug}`}
-              className="role-card-logo-area"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <img
-                src={employer.logo_url}
-                alt=""
-                className="role-card-logo"
-                style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
-              />
-            </Link>
-          ) : (
-            <img
-              src={employer.logo_url}
-              alt=""
-              className="role-card-logo role-card-logo-area"
-              style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
-            />
-          )
-        )}
-        <p className="role-card-company" style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
-          {employer?.company_slug ? (
-            <Link
-              to={`/company/${employer.company_slug}`}
-              style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {employer?.company_name}
-            </Link>
-          ) : (
-            employer?.company_name
-          )}{' '}
-          · {role.location} ·{' '}
-          {role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')}
-        </p>
-        <div className="role-card-rest">
-          {(employer?.industry || employer?.company_size) && (
-            <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
-              {[employer?.industry, employer?.company_size && `${employer.company_size} employees`]
-                .filter(Boolean)
-                .join(' · ')}
-            </p>
-          )}
-          <div className="role-card-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-            {employer?.company_highlight && (
-              <span className="tag" style={{ fontSize: 12 }}>
-                {employer.company_highlight}
-              </span>
-            )}
-            {salaryLabel && (
-              <span className="tag" style={{ fontSize: 12 }}>
-                {salaryLabel}
-              </span>
-            )}
-            {role.work_style && (
-              <span className="tag" style={{ fontSize: 12 }}>
-                {role.work_style}
-              </span>
-            )}
-            {deadlineLabel && (
-              <span className="tag" style={{ fontSize: 12 }}>
-                Apply by {deadlineLabel}
-              </span>
-            )}
-            {employer?.intro_video_url && (
-              <button
-                type="button"
-                className="tag"
-                style={{ fontSize: 12, border: 'none', cursor: 'pointer', background: '#005ef5', color: '#ffffff' }}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onShowVideo(employer)
-                }}
-              >
-                <span style={{ fontSize: 9 }} aria-hidden="true">▶</span>
-                See the team
-              </button>
-            )}
-          </div>
-          {role.required_skills?.length > 0 && (
-            <div className="role-card-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-              {role.required_skills.slice(0, 3).map((skill) => (
-                <span
-                  key={skill}
-                  className="tag"
-                  style={{ fontSize: 12, background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}
-                >
-                  {skill}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-      {role.description && (
-        <div style={{ marginTop: 14 }}>
-          <p style={{ fontSize: 15, color: 'var(--color-text-muted)' }}>{role.description}</p>
-        </div>
-      )}
-      {role.what_matters && (
-        <p style={{ marginTop: 10, fontSize: 13, color: 'var(--color-text-muted)' }}>
-          <strong style={{ color: 'var(--color-text)' }}>What matters most: </strong>
-          {role.what_matters}
-        </p>
-      )}
-      </div>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation()
-          onToggleExpanded()
-        }}
-        style={{
-          background: 'none',
-          border: 'none',
-          color: 'var(--color-primary)',
-          fontSize: 13,
-          fontWeight: 600,
-          padding: 0,
-          marginTop: 8,
-          cursor: 'pointer',
-        }}
+      <div
+        ref={clipRef}
+        className="role-card-clip"
+        aria-hidden="true"
+        style={{ position: 'absolute', left: 0, right: 0, top: 0, visibility: 'hidden', pointerEvents: 'none', zIndex: -1 }}
       >
-        {expanded ? 'Show less' : 'Show more'}
-      </button>
+        {renderBody()}
+      </div>
+      <div className={expanded ? undefined : 'role-card-clip'}>{renderBody()}</div>
+      {overflowing && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onToggleExpanded()
+          }}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--color-primary)',
+            fontSize: 13,
+            fontWeight: 600,
+            padding: 0,
+            marginTop: 8,
+            cursor: 'pointer',
+          }}
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      )}
       {needsVideo && (
         <div
           className="card"
