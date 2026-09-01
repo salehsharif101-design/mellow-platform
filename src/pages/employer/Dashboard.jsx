@@ -155,7 +155,7 @@ export default function EmployerDashboard() {
       // all goes out in one batch instead of one round trip at a time.
       // Applications are filtered by employer via the embedded roles join
       // rather than a separate "get my role ids first" query.
-      const [rolesResult, applicationsResult, shortlistResult, companyViewsResult, senderProfilesResult, hiresResult] = await Promise.all([
+      const [rolesResult, applicationsResult, shortlistResult, companyViewsResult, senderProfilesResult] = await Promise.all([
         supabase.from('roles').select('id, title, is_active, created_at, view_count').eq('employer_id', emp.id).order('created_at', { ascending: false }),
         supabase
           .from('applications')
@@ -166,11 +166,6 @@ export default function EmployerDashboard() {
         senderIds.length > 0
           ? supabase.from('candidate_profiles').select('user_id, full_name').in('user_id', senderIds)
           : Promise.resolve({ data: [] }),
-        supabase
-          .from('hires')
-          .select('id, candidate_id, confirmed_at, candidate_profiles(username, full_name)')
-          .eq('employer_id', emp.id)
-          .gt('confirmed_at', sinceIso),
       ])
 
       const myRoles = rolesResult.data || []
@@ -178,7 +173,6 @@ export default function EmployerDashboard() {
       const shortlistTotal = shortlistResult.count || 0
       const views = companyViewsResult.data || []
       const namesBySenderId = Object.fromEntries((senderProfilesResult.data || []).map((p) => [p.user_id, p.full_name]))
-      const newHires = hiresResult.data || []
 
       const newApps = apps.filter((a) => a.applied_at && new Date(a.applied_at).getTime() > sinceMs)
       const newAppsByRole = new Map()
@@ -218,19 +212,6 @@ export default function EmployerDashboard() {
           timestamp: latestView,
         })
       }
-      // A candidate confirmed "yes, I got the role" after a meeting —
-      // api/meeting-outcome.js's hire_accepted action, which is what
-      // actually inserts into hires (hire_confirmed alone, the employer's
-      // side of that exchange, doesn't).
-      newHires.forEach((h) => {
-        const candidateSlug = h.candidate_profiles?.username || h.candidate_id
-        items.push({
-          id: `hire-${h.id}`,
-          text: `${h.candidate_profiles?.full_name || 'A candidate'} accepted the meeting outcome and confirmed the hire`,
-          link: `/profile/${candidateSlug}`,
-          timestamp: h.confirmed_at,
-        })
-      })
       items.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
 
       setEmployer(emp)
