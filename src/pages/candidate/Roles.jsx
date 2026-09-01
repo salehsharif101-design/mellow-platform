@@ -205,7 +205,7 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
       >
         {renderBody()}
       </div>
-      <div className={expanded ? undefined : 'role-card-clip'}>{renderBody()}</div>
+      <div className={expanded ? undefined : `role-card-clip${overflowing ? ' role-card-fade' : ''}`}>{renderBody()}</div>
       {overflowing && (
         <button
           type="button"
