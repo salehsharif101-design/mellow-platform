@@ -173,17 +173,19 @@ export default function CandidateDashboard() {
       const bySender = groupBySender(newMessages)
       const senderIds = [...bySender.keys()]
 
-      // Profile-viewer names and message-sender names both come from
+      // Profile-viewer names/slugs and message-sender names both come from
       // employer_profiles, keyed the same way — one combined lookup covers
       // both instead of two separate ones.
       const employerIdsToLookUp = [...new Set([...viewerIds, ...senderIds])]
       let nameByEmployerUserId = {}
+      let slugByEmployerUserId = {}
       if (employerIdsToLookUp.length > 0) {
         const { data: employerRows } = await supabase
           .from('employer_profiles')
-          .select('user_id, company_name')
+          .select('user_id, company_name, company_slug')
           .in('user_id', employerIdsToLookUp)
         nameByEmployerUserId = Object.fromEntries((employerRows || []).map((e) => [e.user_id, e.company_name]))
+        slugByEmployerUserId = Object.fromEntries((employerRows || []).map((e) => [e.user_id, e.company_slug]))
       }
 
       if (viewerIds.length > 0) {
@@ -193,10 +195,13 @@ export default function CandidateDashboard() {
           if (!existing || v.viewed_at > existing) latestByViewer.set(v.viewer_id, v.viewed_at)
         })
         latestByViewer.forEach((timestamp, viewerId) => {
+          // Links to the viewing employer's own company page — not the
+          // candidate's profile, which is what they're already looking at.
+          const slug = slugByEmployerUserId[viewerId]
           items.push({
             id: `view-${viewerId}`,
             text: `${nameByEmployerUserId[viewerId] || 'An employer'} viewed your profile`,
-            link: `/profile/${candidate.username || candidate.id}`,
+            link: slug ? `/company/${slug}` : '/profile-views',
             timestamp,
           })
         })

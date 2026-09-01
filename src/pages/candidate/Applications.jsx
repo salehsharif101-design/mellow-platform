@@ -11,6 +11,7 @@ const STATUS_LABEL_STYLES = {
   Applied: { background: 'var(--color-bg-soft)', color: 'var(--color-primary)' },
   'Under review': { background: '#fff6e0', color: '#8a6100' },
   Shortlisted: { background: '#e3f9e9', color: '#0f7a3d' },
+  'Not selected': { background: 'var(--color-bg-soft)', color: 'var(--color-text-muted)' },
 }
 
 function StatusTag({ status }) {
@@ -30,7 +31,7 @@ function formatDate(dateString) {
 function Timeline({ application }) {
   const steps = [{ label: 'Applied', date: application.applied_at, done: true }]
   steps.push({ label: 'Profile viewed by employer', date: application.viewed_at, done: Boolean(application.viewed_at) })
-  if (['reviewing', 'shortlisted'].includes(application.status) && application.status_changed_at) {
+  if (['reviewing', 'shortlisted', 'rejected'].includes(application.status) && application.status_changed_at) {
     steps.push({
       label: `Status update — ${getCandidateStatusLabel(application.status)}`,
       date: application.status_changed_at,

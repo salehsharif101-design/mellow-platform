@@ -47,12 +47,14 @@ export function formatRelativeTime(dateString) {
   return `${years}y ago`
 }
 
-// Candidates never see the internal "reviewing"/"rejected" statuses used by
-// employers — a rejection is only visible to a candidate if the employer
-// separately chooses to send a rejection email, never as a dashboard label.
+// Candidates never see the internal "reviewing" status used by employers —
+// it collapses into "Under review" like "applied" does. "rejected" gets its
+// own honest-but-gentle label rather than folding into "Under review" too,
+// so a candidate isn't left thinking a closed application is still active.
 export function getCandidateStatusLabel(status) {
   if (status === 'shortlisted') return 'Shortlisted'
   if (status === 'applied') return 'Applied'
+  if (status === 'rejected') return 'Not selected'
   return 'Under review'
 }
 
