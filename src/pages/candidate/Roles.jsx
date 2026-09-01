@@ -442,12 +442,12 @@ export default function BrowseRoles() {
     const salaryLabel = formatSalary(role)
     const topSkills = (role.required_skills || []).slice(0, 2)
     return (
-      <div key={role.id} className="card compact-card" style={{ cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
+      <div key={role.id} className="card compact-card" style={{ height: 240, cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
         <div className="compact-card-actions">
           <SaveRoleButton saved={savedRoleIds.has(role.id)} onToggle={() => toggleSave(role)} />
         </div>
 
-        <div className="compact-card-body" style={{ flex: 1, padding: 12 }}>
+        <div className="compact-card-body" style={{ flex: 1, padding: 12, overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
             {employer?.logo_url ? (
               <img
@@ -525,7 +525,7 @@ export default function BrowseRoles() {
               e.stopPropagation()
               apply(role.id)
             }}
-            style={{ marginTop: 'auto', alignSelf: 'center', fontSize: 13, padding: '7px 18px' }}
+            style={{ marginTop: 'auto', alignSelf: 'center', fontSize: 13, padding: '8px 28px' }}
           >
             {applied ? 'Applied' : applyingId === role.id ? 'Applying…' : 'Apply'}
           </button>
