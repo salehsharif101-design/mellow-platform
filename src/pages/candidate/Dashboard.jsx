@@ -139,9 +139,25 @@ export default function CandidateDashboard() {
 
       const items = []
 
-      // Application status updates (moved to Reviewing or Shortlisted).
+      // Application submitted confirmations since last visit.
       apps
-        .filter((a) => a.status_changed_at && new Date(a.status_changed_at).getTime() > sinceMs && ['reviewing', 'shortlisted'].includes(a.status))
+        .filter((a) => a.applied_at && new Date(a.applied_at).getTime() > sinceMs)
+        .forEach((a) => {
+          items.push({
+            id: `applied-${a.id}`,
+            text: `You applied to ${a.roles?.title} at ${a.roles?.employer_profiles?.company_name}`,
+            link: '/applications',
+            timestamp: a.applied_at,
+          })
+        })
+
+      // Application status updates (moved to Reviewing, Shortlisted, or
+      // Rejected — shown to candidates as "Not selected", see
+      // getCandidateStatusLabel).
+      apps
+        .filter(
+          (a) => a.status_changed_at && new Date(a.status_changed_at).getTime() > sinceMs && ['reviewing', 'shortlisted', 'rejected'].includes(a.status),
+        )
         .forEach((a) => {
           items.push({
             id: `status-${a.id}`,
@@ -152,14 +168,16 @@ export default function CandidateDashboard() {
         })
 
       // Shortlist notifications since last visit — added to an employer's
-      // personal shortlist, independent of any specific application.
+      // personal shortlist, independent of any specific application. Links
+      // to the shortlisted-by list itself, not the applications list, since
+      // a shortlist entry isn't necessarily tied to any one application.
       shortlistRows
         .filter((s) => new Date(s.created_at).getTime() > sinceMs)
         .forEach((s) => {
           items.push({
             id: `shortlist-${s.id}`,
             text: `You were shortlisted by ${s.employer_profiles?.company_name || 'an employer'}`,
-            link: '/applications',
+            link: '/shortlisted',
             timestamp: s.created_at,
           })
         })
