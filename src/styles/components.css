@@ -117,23 +117,11 @@
   position: relative;
 }
 
-/* Collapsed/expanded list-view state (see RoleCard in Roles.jsx) — desktop
-   and mobile are separate code paths in JS, not a CSS breakpoint override:
-   RoleCard only ever applies these two classes when it has already
-   detected a desktop viewport, so there's no need for a @media reset here
-   — on mobile neither class is ever added, and the card is simply its
-   natural, unstyled height. Desktop is always a fixed 300px when
-   collapsed, regardless of how little content a given role has, so every
-   card in the list lines up; expanded keeps a 300px floor so a short
-   card's Show more can only grow the card, never shrink it. */
-.role-card-collapsed {
-  height: 300px;
-  overflow: hidden;
-}
-
-.role-card-expanded {
-  min-height: 300px;
-}
+/* Collapsed/expanded list-view card height (250px desktop, 200px mobile)
+   is set via inline style in RoleCard (Roles.jsx), not a class here — the
+   two breakpoints use different fixed heights, computed from the same
+   overflow-measurement logic, so a single static CSS value doesn't fit
+   both. */
 
 /* Grid (not flex) so mobile can rearrange title/logo/company without
    touching DOM order — see the mobile override below. Desktop keeps the

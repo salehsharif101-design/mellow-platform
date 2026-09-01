@@ -14,15 +14,22 @@ import ViewToggle from '../../components/ViewToggle.jsx'
 
 const MAX_RECOMMENDATIONS = 5
 const VIEW_MODE_KEY = 'mellow_roles_view_mode'
-// Matches .role-card-collapsed's fixed height in components.css, minus the
-// card's own 24px top/bottom padding — the budget the header/description/
-// what-matters content actually has to fit inside before it's truncated.
-const ROLE_CARD_COLLAPSED_HEIGHT = 300
-const ROLE_CARD_CONTENT_BUDGET = ROLE_CARD_COLLAPSED_HEIGHT - 48
-// Same breakpoint components.css uses for .role-card — desktop and mobile
-// are two genuinely separate code paths below, gated on this one query
-// rather than a bare window.innerWidth check, so both branches react the
-// same way to a resize or orientation change.
+// Fixed collapsed card height — same logic on both breakpoints (measure
+// real content, only show Show more if it overflows, never shrink below
+// this once expanded), just a smaller number on mobile to suit the
+// narrower screen.
+const DESKTOP_COLLAPSED_HEIGHT = 250
+const MOBILE_COLLAPSED_HEIGHT = 200
+// .role-card's own top+bottom padding at each breakpoint (24px desktop,
+// 20px !important on mobile — see components.css) — subtracted from the
+// collapsed height to get the actual budget the header/description/
+// what-matters content has before it counts as overflowing.
+const DESKTOP_CARD_PADDING = 48
+const MOBILE_CARD_PADDING = 40
+// Same breakpoint components.css uses for .role-card — read via
+// matchMedia (reactive to resize/orientation) rather than a one-off
+// window.innerWidth check, so both the height and the padding it's
+// measured against stay in sync with whichever breakpoint is active.
 const DESKTOP_QUERY = '(min-width: 769px)'
 
 function isDesktopViewport() {
@@ -33,13 +40,9 @@ function isDesktopViewport() {
 // own ref + effect: after each render it measures whether the role's real
 // header/description/what-matters content is taller than the collapsed
 // card can show, and only then does a Show more toggle even appear — a
-// short role with nothing left to reveal never gets one.
-//
-// Desktop and mobile are deliberately separate here, not one height rule
-// with a media-query fallback: desktop cards are ALWAYS exactly 300px
-// collapsed (uniform whether the content is one line or ten), only
-// growing past that on Show more; mobile never truncates or measures
-// anything at all — it always renders full content at its natural height.
+// short role with nothing left to reveal never gets one. Desktop and
+// mobile run the exact same logic below, just against a different fixed
+// height (250px vs 200px).
 function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needsVideo, onShowVideo, expanded, onToggleExpanded }) {
   const navigate = useNavigate()
   const contentRef = useRef(null)
@@ -53,33 +56,32 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
     return () => mql.removeEventListener('change', onChange)
   }, [])
 
+  const collapsedHeight = isDesktop ? DESKTOP_COLLAPSED_HEIGHT : MOBILE_COLLAPSED_HEIGHT
+  const contentBudget = collapsedHeight - (isDesktop ? DESKTOP_CARD_PADDING : MOBILE_CARD_PADDING)
+
   useLayoutEffect(() => {
-    if (!isDesktop) {
-      // Mobile path: no measuring, no truncation — never overflowing.
-      setOverflowing(false)
-      return
-    }
     const el = contentRef.current
     if (!el) return
-    setOverflowing(el.scrollHeight > ROLE_CARD_CONTENT_BUDGET)
-  }, [isDesktop, role.description, role.what_matters])
+    setOverflowing(el.scrollHeight > contentBudget)
+  }, [contentBudget, role.description, role.what_matters])
 
   const employer = role.employer_profiles
   const deadlineLabel = formatDeadline(role.deadline)
   const salaryLabel = formatSalary(role)
-  // Desktop: collapsed is always fixed-height, expanded always has the
-  // 300px floor — independent of whether this particular role overflows.
-  // Mobile: neither class is ever applied, so the card is always its
-  // natural height.
-  const desktopCardClass = isDesktop ? (expanded ? ' role-card-expanded' : ' role-card-collapsed') : ''
-  const truncated = isDesktop && overflowing && !expanded
-  const showToggle = isDesktop && overflowing
-  const showWhatMatters = !isDesktop || expanded || !overflowing
+  const truncated = overflowing && !expanded
+  const showToggle = overflowing
+  const showWhatMatters = expanded || !overflowing
 
   return (
     <div
-      className={`card role-card${desktopCardClass}`}
-      style={{ padding: 24, cursor: 'pointer' }}
+      className="card role-card"
+      style={{
+        padding: 24,
+        cursor: 'pointer',
+        height: expanded ? 'auto' : collapsedHeight,
+        minHeight: expanded ? collapsedHeight : undefined,
+        overflow: expanded ? 'visible' : 'hidden',
+      }}
       onClick={() => navigate(`/jobs/${role.slug}`)}
     >
       <div className="role-card-actions">
