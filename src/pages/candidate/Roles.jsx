@@ -247,7 +247,7 @@ export default function BrowseRoles() {
     return (
       <div
         key={role.id}
-        className={`card role-card${expanded ? '' : ' role-card-collapsed'}`}
+        className={`card role-card${expanded ? ' role-card-expanded' : ' role-card-collapsed'}`}
         style={{ padding: 24, cursor: 'pointer' }}
         onClick={() => navigate(`/jobs/${role.slug}`)}
       >

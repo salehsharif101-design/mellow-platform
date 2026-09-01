@@ -132,10 +132,22 @@
   overflow: hidden;
 }
 
+/* Expanded state on desktop keeps a 300px floor so a card with very
+   little content (short description, no what_matters) doesn't shrink
+   when Show more is clicked — it can only grow from the collapsed
+   height, never shrink below it. */
+.role-card-expanded {
+  min-height: 300px;
+}
+
 @media (max-width: 768px) {
   .role-card-collapsed {
     height: auto;
     overflow: visible;
+  }
+
+  .role-card-expanded {
+    min-height: 0;
   }
 }
 
