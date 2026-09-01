@@ -29,6 +29,7 @@ const { default: workVideoNudgeHandler } = await import('../api/cron/work-video-
 const { default: videoReminderHandler } = await import('../api/cron/video-reminder.js')
 const { default: meetingOutcomeHandler } = await import('../api/meeting-outcome.js')
 const { default: meetingFollowUpHandler } = await import('../api/cron/meeting-follow-up.js')
+const { default: sitemapHandler } = await import('../api/sitemap.js')
 
 const PORT = process.env.ADMIN_API_PORT || 5174
 
@@ -47,6 +48,7 @@ const ROUTES = {
   '/api/cron/video-reminder': videoReminderHandler,
   '/api/meeting-outcome': meetingOutcomeHandler,
   '/api/cron/meeting-follow-up': meetingFollowUpHandler,
+  '/sitemap.xml': sitemapHandler,
 }
 
 const server = http.createServer(async (req, res) => {

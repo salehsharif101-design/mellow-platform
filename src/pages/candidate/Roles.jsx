@@ -525,7 +525,7 @@ export default function BrowseRoles() {
               e.stopPropagation()
               apply(role.id)
             }}
-            style={{ marginTop: 10, width: '100%', fontSize: 13, padding: '7px 14px' }}
+            style={{ marginTop: 'auto', width: '100%', fontSize: 13, padding: '7px 14px' }}
           >
             {applied ? 'Applied' : applyingId === role.id ? 'Applying…' : 'Apply'}
           </button>

@@ -539,7 +539,7 @@ export default function TalentFeed() {
                     <VideoPlayCard
                       url={c.intro_video_url}
                       format="auto"
-                      objectFit="cover"
+                      objectFit="contain"
                       style={{ position: 'absolute', inset: 0, maxWidth: 'none', aspectRatio: 'auto', borderRadius: 0, margin: 0 }}
                     />
                   ) : (
@@ -551,7 +551,7 @@ export default function TalentFeed() {
 
                 <div className="compact-card-body">
                   <Link to={profileUrl} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
-                    <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={22} style={{ fontSize: 10 }} />
+                    <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={30} style={{ fontSize: 13 }} />
                     <h3 style={{ fontSize: 14, lineHeight: 1.3, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {c.full_name}
                     </h3>
@@ -688,7 +688,7 @@ export default function TalentFeed() {
                   <button
                     type="button"
                     className="btn btn-ghost"
-                    style={{ flex: 1 }}
+                    style={{ height: 32, padding: '0 14px', fontSize: 13 }}
                     disabled={shortlistedIds.has(c.id) || savingId === c.id}
                     onClick={() => shortlist(c.id)}
                   >

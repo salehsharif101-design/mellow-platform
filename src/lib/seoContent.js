@@ -72,7 +72,7 @@ export function getAllHirePages() {
 }
 
 export const JOBS_LOCATIONS = {
-  bahrain: { name: 'Bahrain', matchTerms: ['bahrain'] },
-  uae: { name: 'the UAE', matchTerms: ['uae', 'united arab emirates', 'dubai', 'abu dhabi'] },
-  'saudi-arabia': { name: 'Saudi Arabia', matchTerms: ['saudi', 'ksa', 'riyadh', 'jeddah'] },
+  bahrain: { name: 'Bahrain', locationLabel: 'in Bahrain', matchTerms: ['bahrain'] },
+  uae: { name: 'the UAE', locationLabel: 'in the UAE', matchTerms: ['uae', 'united arab emirates', 'dubai', 'abu dhabi'] },
+  'saudi-arabia': { name: 'Saudi Arabia', locationLabel: 'in Saudi Arabia', matchTerms: ['saudi', 'ksa', 'riyadh', 'jeddah'] },
 }
