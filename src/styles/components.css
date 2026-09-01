@@ -888,23 +888,14 @@ textarea.input:focus {
   box-shadow: 0 1px 3px rgba(10, 10, 10, 0.1);
 }
 
-/* Compact card grids (talent feed, browse roles) */
+/* Compact card grids (talent feed, browse roles). auto-fill/minmax rather
+   than a fixed column count — matches the column-width the original
+   (pre-toggle) candidate grid used, so cards are exactly as wide as they
+   were before this toggle existed regardless of how many fit per row. */
 .compact-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 18px;
-}
-
-@media (max-width: 1024px) {
-  .compact-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 640px) {
-  .compact-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 .compact-card {
@@ -1030,6 +1021,7 @@ textarea.input:focus {
 }
 
 .swipe-stage {
+  position: relative;
   flex: 1;
   display: flex;
   align-items: center;
@@ -1037,6 +1029,38 @@ textarea.input:focus {
   overflow: hidden;
   padding: 20px;
   min-height: 0;
+}
+
+/* Subtle left/right swipe-direction hints, framing the card — decorative
+   only (aria-hidden, no pointer events), and fade out after the first
+   few swipes once the pattern is learned (see SWIPE_HINT_LIMIT). */
+.swipe-hint {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.4;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+  z-index: 1;
+}
+
+.swipe-hint-left {
+  left: 12px;
+}
+
+.swipe-hint-right {
+  right: 12px;
+}
+
+.swipe-hint-faded {
+  opacity: 0;
 }
 
 .swipe-card {

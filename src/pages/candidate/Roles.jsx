@@ -525,7 +525,7 @@ export default function BrowseRoles() {
               e.stopPropagation()
               apply(role.id)
             }}
-            style={{ marginTop: 'auto', width: '100%', fontSize: 13, padding: '7px 14px' }}
+            style={{ marginTop: 'auto', alignSelf: 'center', fontSize: 13, padding: '7px 18px' }}
           >
             {applied ? 'Applied' : applyingId === role.id ? 'Applying…' : 'Apply'}
           </button>
@@ -643,7 +643,7 @@ export default function BrowseRoles() {
       </div>
 
       {tab === 'browse' && (
-        <div style={{ marginTop: 20, maxWidth: viewMode === 'grid' ? 1100 : 720, display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ marginTop: 20, maxWidth: 720, display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           <input
             className="input"
             style={{ flex: 1, minWidth: 240 }}
@@ -680,7 +680,7 @@ export default function BrowseRoles() {
           illustration="/Collaborate2.png"
         />
       ) : (
-        <div style={{ marginTop: 28, maxWidth: viewMode === 'grid' ? 1100 : 720 }}>
+        <div style={{ marginTop: 28, maxWidth: 720 }}>
           {recommended.length > 0 && (
             <div
               className="recommended-section"
