@@ -380,9 +380,6 @@ export default function TalentFeed() {
             </button>
           </div>
         )}
-        <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--color-text-muted)', paddingBottom: 14 }}>
-          ← J to skip · L or → to shortlist · swipe on mobile
-        </p>
       </div>
     )
   }
@@ -485,7 +482,7 @@ export default function TalentFeed() {
             </div>
           )}
           <button type="button" className="btn btn-primary" onClick={openSwipeMode} disabled={filtered.length === 0} style={{ fontSize: 13, padding: '9px 16px' }}>
-            ⚡ Quick screen
+            Quick screen
           </button>
         </div>
 
@@ -508,7 +505,7 @@ export default function TalentFeed() {
         <div className="compact-grid" style={{ marginTop: 24 }}>
           {filtered.map((c) => {
             const profileUrl = `/profile/${c.username || c.id}`
-            const topSkills = (c.skills || []).slice(0, 3)
+            const topSkills = (c.skills || []).slice(0, 2)
             const score = matchScoreFor(c)
             const isShortlisted = shortlistedIds.has(c.id)
             return (
@@ -543,7 +540,7 @@ export default function TalentFeed() {
                       url={c.intro_video_url}
                       format="auto"
                       objectFit="cover"
-                      style={{ width: '100%', height: '100%', maxWidth: 'none', aspectRatio: 'auto', borderRadius: 0, margin: 0 }}
+                      style={{ position: 'absolute', inset: 0, maxWidth: 'none', aspectRatio: 'auto', borderRadius: 0, margin: 0 }}
                     />
                   ) : (
                     <Link to={profileUrl} className="compact-card-avatar-fallback">
@@ -553,10 +550,22 @@ export default function TalentFeed() {
                 </div>
 
                 <div className="compact-card-body">
-                  <Link to={profileUrl} style={{ textDecoration: 'none' }}>
-                    <h3 style={{ fontSize: 15, lineHeight: 1.3 }}>{c.full_name}</h3>
+                  <Link to={profileUrl} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                    <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={22} style={{ fontSize: 10 }} />
+                    <h3 style={{ fontSize: 14, lineHeight: 1.3, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {c.full_name}
+                    </h3>
                   </Link>
-                  <p style={{ fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
+                  <p
+                    style={{
+                      fontSize: 12,
+                      color: 'var(--color-text-muted)',
+                      lineHeight: 1.4,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
                     {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title}
                   </p>
 
@@ -570,18 +579,14 @@ export default function TalentFeed() {
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                    {c.availability && (
-                      <span className="tag" style={{ fontSize: 11, padding: '2px 8px', background: '#e3f9e9', color: '#0f7a3d' }}>
-                        {c.availability}
-                      </span>
-                    )}
-                    {c.work_style?.[0] && (
-                      <span className="tag" style={{ fontSize: 11, padding: '2px 8px' }}>
-                        {c.work_style[0]}
-                      </span>
-                    )}
-                  </div>
+                  {c.availability && (
+                    <span
+                      className="tag"
+                      style={{ fontSize: 11, padding: '2px 8px', background: '#e3f9e9', color: '#0f7a3d', width: 'fit-content' }}
+                    >
+                      {c.availability}
+                    </span>
+                  )}
                 </div>
               </div>
             )

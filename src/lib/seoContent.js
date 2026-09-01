@@ -13,7 +13,12 @@ export const HIRE_ROLES = {
   'video-editors': {
     plural: 'Video Editors',
     singular: 'a video editor',
-    tagline: 'Watch real work samples and a 60-second intro before you ever schedule a call — no more guessing from a portfolio link.',
+    tagline: 'Watch real work samples and a 60-second intro before you ever schedule a call, no more guessing from a portfolio link.',
+  },
+  'software-engineers': {
+    plural: 'Software Engineers',
+    singular: 'a software engineer',
+    tagline: 'Watch a short walkthrough of real projects before you ever schedule a technical interview, so you know how someone communicates as well as what they have built.',
   },
   'graphic-designers': {
     plural: 'Graphic Designers',
@@ -35,17 +40,16 @@ export const HIRE_ROLES = {
 // Which role pages exist for which location — matches the specific URLs
 // requested (not every role is offered in every location).
 export const HIRE_LOCATION_ROLES = {
-  bahrain: ['video-editors', 'graphic-designers', 'marketing-managers'],
-  uae: ['video-editors', 'graphic-designers', 'social-media-managers'],
+  bahrain: ['video-editors', 'graphic-designers', 'marketing-managers', 'software-engineers'],
+  uae: ['video-editors', 'graphic-designers', 'social-media-managers', 'software-engineers'],
   'saudi-arabia': ['video-editors', 'marketing-managers'],
 }
 
 export const HIRE_BENEFITS = [
   'Watch a 60-second video before you ever schedule a call, so you know who you are talking to',
-  'No CVs to screen — browse real people, not documents',
+  'No CVs to screen, browse real people, not documents',
   'Post a role and start browsing candidates in minutes, not weeks',
-  'Pay only when you hire — no subscriptions, no upfront cost to get started',
-  'Built for the GCC, with talent who already understand the market you are hiring in',
+  'Built for Bahrain, the UAE, and Saudi Arabia, with talent who already understand the market you are hiring in',
 ]
 
 // Every entry HIRE_LOCATION_ROLES points at must resolve to a real page —

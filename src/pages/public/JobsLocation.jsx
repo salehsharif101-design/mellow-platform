@@ -16,7 +16,7 @@ export default function JobsLocation({ location }) {
 
   useSeoMeta({
     title: `Jobs in ${loc.name} | Mellow`,
-    description: `Browse open roles in ${loc.name} on Mellow. Apply with a 60-second video instead of a CV — no cover letter, ever.`,
+    description: `Browse open roles in ${loc.name} on Mellow. Apply with a 60-second video instead of a CV, no cover letter, ever.`,
   })
 
   useEffect(() => {
@@ -63,10 +63,10 @@ export default function JobsLocation({ location }) {
           <h2 style={{ fontSize: 20 }}>Why job seekers use Mellow</h2>
           <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[
-              'Record your intro video once — it applies to every role you go for',
+              'Record your intro video once, then it applies to every role you go for',
               'No CV, no cover letter, ever again',
-              'Completely free for job seekers, always',
-              `Built for the GCC, with employers already hiring in ${loc.name}`,
+              'Get matched to roles that fit your skills and availability',
+              `Made for job seekers in ${loc.name}, where employers are already hiring`,
             ].map((benefit) => (
               <div key={benefit} className="card" style={{ padding: '14px 18px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                 <span aria-hidden="true" style={{ color: '#0f7a3d', fontWeight: 700, flexShrink: 0 }}>
@@ -84,7 +84,7 @@ export default function JobsLocation({ location }) {
             <p style={{ marginTop: 12, fontSize: 14, color: 'var(--color-text-muted)' }}>Loading open roles…</p>
           ) : roles.length === 0 ? (
             <p style={{ marginTop: 12, fontSize: 14, color: 'var(--color-text-muted)' }}>
-              No open roles in {loc.name} right now — check back soon, or{' '}
+              No open roles in {loc.name} right now, check back soon, or{' '}
               <a href="https://beta.joinmellow.xyz" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
                 sign up
               </a>{' '}

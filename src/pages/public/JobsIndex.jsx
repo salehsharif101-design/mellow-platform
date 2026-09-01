@@ -4,14 +4,14 @@ import { JOBS_LOCATIONS } from '../../lib/seoContent.js'
 
 export default function JobsIndex() {
   useSeoMeta({
-    title: 'Find Jobs in the GCC | Mellow',
-    description: 'Browse open roles across Bahrain, the UAE, and Saudi Arabia on Mellow — apply with a 60-second video instead of a CV.',
+    title: 'Find Jobs in Bahrain, the UAE and Saudi Arabia | Mellow',
+    description: 'Browse open roles across Bahrain, the UAE, and Saudi Arabia on Mellow, apply with a 60-second video instead of a CV.',
   })
 
   return (
     <div className="section">
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        <h1 style={{ fontSize: 32 }}>Find your next role in the GCC</h1>
+        <h1 style={{ fontSize: 32 }}>Find your next role in Bahrain, the UAE, and Saudi Arabia</h1>
         <p style={{ marginTop: 12, fontSize: 16, color: 'var(--color-text-muted)', maxWidth: 600 }}>
           Browse open roles by location. Apply once with a video, and employers meet the real you before the
           first interview.
@@ -33,7 +33,7 @@ export default function JobsIndex() {
         <div className="card" style={{ marginTop: 40, padding: 24, textAlign: 'center', background: 'var(--color-bg-soft)', border: 'none' }}>
           <h2 style={{ fontSize: 18 }}>Ready to apply with video, not paper?</h2>
           <p style={{ marginTop: 8, fontSize: 14, color: 'var(--color-text-muted)' }}>
-            Sign up free and record your profile once — it goes to every role you apply to.
+            Sign up and record your profile once, it goes to every role you apply to.
           </p>
           <a
             href="https://beta.joinmellow.xyz"

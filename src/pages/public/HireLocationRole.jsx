@@ -10,7 +10,7 @@ export default function HireLocationRole() {
     page
       ? {
           title: `Hire ${page.roleInfo.plural} in ${page.loc.name} | Mellow`,
-          description: `Hire ${page.roleInfo.plural.toLowerCase()} ${page.loc.locationLabel} on Mellow. Watch 60-second video profiles, skip the CV pile, and pay only when you hire.`,
+          description: `Hire ${page.roleInfo.plural.toLowerCase()} ${page.loc.locationLabel} on Mellow. Watch 60-second video profiles and skip the CV pile.`,
         }
       : { title: 'Hire on Mellow' },
   )
@@ -40,7 +40,7 @@ export default function HireLocationRole() {
         <p style={{ marginTop: 16, fontSize: 17, lineHeight: 1.7, color: 'var(--color-text-muted)', maxWidth: 640 }}>
           Mellow makes it fast to hire {roleInfo.plural.toLowerCase()} {loc.locationLabel}. Post a role, browse a
           feed of real candidates who introduce themselves on video, and reach out directly to the ones you want
-          to talk to — no CVs, no cover letters, no weeks of screening before the first real conversation.{' '}
+          to talk to, no CVs, no cover letters, no weeks of screening before the first real conversation.{' '}
           {roleInfo.tagline}
         </p>
         <a
@@ -70,7 +70,7 @@ export default function HireLocationRole() {
         <div className="card" style={{ marginTop: 40, padding: 28, textAlign: 'center', background: 'var(--color-bg-soft)', border: 'none' }}>
           <h2 style={{ fontSize: 20 }}>Ready to hire {roleInfo.singular}?</h2>
           <p style={{ marginTop: 8, fontSize: 14, color: 'var(--color-text-muted)' }}>
-            Free to get started. No cost until you make a hire.
+            Post a role and start browsing real candidates today.
           </p>
           <a
             href="https://beta.joinmellow.xyz"

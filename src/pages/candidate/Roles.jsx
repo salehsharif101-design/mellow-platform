@@ -440,31 +440,52 @@ export default function BrowseRoles() {
     const applied = appliedRoleIds.has(role.id)
     const employer = role.employer_profiles
     const salaryLabel = formatSalary(role)
-    const topSkills = (role.required_skills || []).slice(0, 3)
+    const topSkills = (role.required_skills || []).slice(0, 2)
     return (
       <div key={role.id} className="card compact-card" style={{ cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
         <div className="compact-card-actions">
           <SaveRoleButton saved={savedRoleIds.has(role.id)} onToggle={() => toggleSave(role)} />
         </div>
 
-        <div
-          className="compact-card-media"
-          style={{ aspectRatio: '16 / 10', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >
-          {employer?.logo_url ? (
-            <img src={employer.logo_url} alt="" style={{ width: '50%', height: '50%', objectFit: 'contain' }} />
-          ) : (
-            <div style={{ fontSize: 36, fontWeight: 700, color: 'var(--color-primary)', opacity: 0.3 }}>
-              {employer?.company_name?.[0]?.toUpperCase() || '?'}
+        <div className="compact-card-body" style={{ flex: 1, padding: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            {employer?.logo_url ? (
+              <img
+                src={employer.logo_url}
+                alt=""
+                style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 7, background: 'var(--color-bg-soft)', flexShrink: 0 }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 7,
+                  background: 'var(--color-bg-soft)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 15,
+                  fontWeight: 700,
+                  color: 'var(--color-primary)',
+                  opacity: 0.6,
+                  flexShrink: 0,
+                }}
+              >
+                {employer?.company_name?.[0]?.toUpperCase() || '?'}
+              </div>
+            )}
+            <div style={{ minWidth: 0 }}>
+              <h3 style={{ fontSize: 15, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {role.title}
+              </h3>
+              <p style={{ fontSize: 12, color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {employer?.company_name}
+              </p>
             </div>
-          )}
-        </div>
+          </div>
 
-        <div className="compact-card-body" style={{ flex: 1 }}>
-          <h3 style={{ fontSize: 16, lineHeight: 1.3 }}>{role.title}</h3>
-          <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{employer?.company_name}</p>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
             {role.location && (
               <span className="tag" style={{ fontSize: 11, padding: '2px 8px' }}>
                 {role.location}
@@ -483,7 +504,7 @@ export default function BrowseRoles() {
           </div>
 
           {topSkills.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
               {topSkills.map((s) => (
                 <span
                   key={s}
@@ -496,20 +517,6 @@ export default function BrowseRoles() {
             </div>
           )}
 
-          {employer?.intro_video_url && (
-            <button
-              type="button"
-              className="tag"
-              style={{ fontSize: 11, border: 'none', cursor: 'pointer', background: '#005ef5', color: '#ffffff', width: 'fit-content' }}
-              onClick={(e) => {
-                e.stopPropagation()
-                setVideoModalEmployer(employer)
-              }}
-            >
-              <span style={{ fontSize: 9 }} aria-hidden="true">▶</span> Meet the team
-            </button>
-          )}
-
           <button
             type="button"
             className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
@@ -518,7 +525,7 @@ export default function BrowseRoles() {
               e.stopPropagation()
               apply(role.id)
             }}
-            style={{ marginTop: 'auto', width: '100%' }}
+            style={{ marginTop: 10, width: '100%', fontSize: 13, padding: '7px 14px' }}
           >
             {applied ? 'Applied' : applyingId === role.id ? 'Applying…' : 'Apply'}
           </button>

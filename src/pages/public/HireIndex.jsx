@@ -4,15 +4,15 @@ import { HIRE_LOCATIONS, HIRE_ROLES, HIRE_LOCATION_ROLES } from '../../lib/seoCo
 
 export default function HireIndex() {
   useSeoMeta({
-    title: 'Hire Talent in the GCC | Mellow',
+    title: 'Hire Talent in Bahrain, the UAE and Saudi Arabia | Mellow',
     description:
-      'Hire video editors, graphic designers, marketing managers, and more across Bahrain, the UAE, and Saudi Arabia — browse video profiles on Mellow instead of screening CVs.',
+      'Hire video editors, graphic designers, marketing managers, and more across Bahrain, the UAE, and Saudi Arabia, browse video profiles on Mellow instead of screening CVs.',
   })
 
   return (
     <div className="section">
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        <h1 style={{ fontSize: 32 }}>Hire talent across the GCC</h1>
+        <h1 style={{ fontSize: 32 }}>Hire talent across Bahrain, the UAE, and Saudi Arabia</h1>
         <p style={{ marginTop: 12, fontSize: 16, color: 'var(--color-text-muted)', maxWidth: 600 }}>
           Browse candidates by role and location. Every Mellow profile starts with a 60-second video, so you meet
           the person before you ever read a resume.
@@ -41,7 +41,7 @@ export default function HireIndex() {
         <div className="card" style={{ marginTop: 40, padding: 24, textAlign: 'center', background: 'var(--color-bg-soft)', border: 'none' }}>
           <h2 style={{ fontSize: 18 }}>Don't see your role or location?</h2>
           <p style={{ marginTop: 8, fontSize: 14, color: 'var(--color-text-muted)' }}>
-            Mellow is open to employers everywhere — post any role and start browsing talent today.
+            Mellow is open to employers everywhere, post any role and start browsing talent today.
           </p>
           <a
             href="https://beta.joinmellow.xyz"
