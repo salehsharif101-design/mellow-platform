@@ -7,6 +7,7 @@ import { getCachedPage, setCachedPage } from '../../lib/dashboardCache.js'
 import MessageThread from '../../components/MessageThread.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
 import MessagesSkeleton from '../../components/MessagesSkeleton.jsx'
+import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 
 export default function EmployerMessages() {
   const { user } = useAuth()
@@ -53,19 +54,22 @@ export default function EmployerMessages() {
 
       const { data: candidates } = await supabase
         .from('candidate_profiles')
-        .select('id, user_id, username, full_name')
+        .select('id, user_id, username, full_name, avatar_url')
         .in('user_id', otherIds)
 
       const infoByUserId = Object.fromEntries(
-        (candidates || []).map((c) => [c.user_id, { name: c.full_name, candidateId: c.username || c.id }]),
+        (candidates || []).map((c) => [c.user_id, { name: c.full_name, candidateId: c.username || c.id, avatarUrl: c.avatar_url }]),
       )
 
       const convos = otherIds.map((otherId) => {
         const lastMessage = messages.find((m) => m.sender_id === otherId || m.recipient_id === otherId)
+        const info = infoByUserId[otherId]
         return {
           otherId,
-          label: infoByUserId[otherId]?.name || 'Talent',
-          candidateId: infoByUserId[otherId]?.candidateId,
+          label: info?.name || 'Talent',
+          candidateId: info?.candidateId,
+          avatarUrl: info?.avatarUrl || null,
+          profileUrl: info?.candidateId ? `/profile/${info.candidateId}` : null,
           lastBody: lastMessage?.body,
         }
       })
@@ -96,10 +100,12 @@ export default function EmployerMessages() {
         <div className="messages-layout" style={{ display: 'flex', gap: 32, marginTop: 28, alignItems: 'flex-start' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220 }}>
             {conversations.map((c) => (
-              <button
+              <div
                 key={c.otherId}
-                type="button"
                 onClick={() => setSelected(c.otherId)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && setSelected(c.otherId)}
                 className="card"
                 style={{
                   textAlign: 'left',
@@ -109,31 +115,40 @@ export default function EmployerMessages() {
                   background: '#fff',
                 }}
               >
-                <p style={{ fontWeight: 700, fontSize: 14 }}>{c.label}</p>
-                <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {c.profileUrl ? (
+                    <Link
+                      to={c.profileUrl}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'inherit', minWidth: 0 }}
+                    >
+                      <CandidateAvatar avatarUrl={c.avatarUrl} fullName={c.label} size={36} />
+                      <p style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.label}</p>
+                    </Link>
+                  ) : (
+                    <>
+                      <CandidateAvatar avatarUrl={c.avatarUrl} fullName={c.label} size={36} />
+                      <p style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.label}</p>
+                    </>
+                  )}
+                </div>
+                <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {c.lastBody}
                 </p>
-              </button>
+              </div>
             ))}
           </div>
 
           <div className="card" style={{ flex: 1, padding: 24, maxWidth: 480 }}>
             {selected ? (
-              <>
-                <MessageThread
-                  otherUserId={selected}
-                  otherUserLabel={conversations.find((c) => c.otherId === selected)?.label}
-                  myIds={myIds}
-                />
-                {conversations.find((c) => c.otherId === selected)?.candidateId && (
-                  <Link
-                    to={`/profile/${conversations.find((c) => c.otherId === selected).candidateId}`}
-                    style={{ display: 'inline-block', marginTop: 16, fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}
-                  >
-                    View profile →
-                  </Link>
-                )}
-              </>
+              <MessageThread
+                otherUserId={selected}
+                otherUserLabel={conversations.find((c) => c.otherId === selected)?.label}
+                myIds={myIds}
+                otherAvatarUrl={conversations.find((c) => c.otherId === selected)?.avatarUrl}
+                otherAvatarType="candidate"
+                otherProfileUrl={conversations.find((c) => c.otherId === selected)?.profileUrl}
+              />
             ) : (
               <p style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>Select a conversation to view messages.</p>
             )}

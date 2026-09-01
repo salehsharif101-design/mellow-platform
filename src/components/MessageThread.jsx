@@ -1,14 +1,28 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotifications } from '../context/NotificationContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { notify } from '../lib/notify.js'
+import CandidateAvatar from './CandidateAvatar.jsx'
+import CompanyAvatar from './CompanyAvatar.jsx'
 
 // `myIds` lets a shared company inbox (multiple team members) see and mark
 // read the same conversation regardless of which teammate a past message
 // was sent to/from — defaults to just the current user for the normal
 // one-person-per-account case (candidates, or an employer with no team).
-export default function MessageThread({ otherUserId, otherUserLabel, myIds }) {
+//
+// `otherAvatarUrl`/`otherAvatarType`/`otherProfileUrl` are all optional —
+// callers that don't pass them (e.g. the contact modal on a public profile)
+// get the original avatar-less thread unchanged.
+export default function MessageThread({
+  otherUserId,
+  otherUserLabel,
+  myIds,
+  otherAvatarUrl,
+  otherAvatarType = 'candidate',
+  otherProfileUrl,
+}) {
   const { user } = useAuth()
   const { refresh: refreshNotifications } = useNotifications()
   const [messages, setMessages] = useState([])
@@ -75,10 +89,25 @@ export default function MessageThread({ otherUserId, otherUserLabel, myIds }) {
 
   if (loading) return null
 
+  const AvatarComponent = otherAvatarType === 'company' ? CompanyAvatar : CandidateAvatar
+  const avatarProps =
+    otherAvatarType === 'company' ? { logoUrl: otherAvatarUrl, companyName: otherUserLabel } : { avatarUrl: otherAvatarUrl, fullName: otherUserLabel }
+
+  const headerContent = otherUserLabel && (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      {(otherAvatarUrl !== undefined || otherProfileUrl) && <AvatarComponent {...avatarProps} size={36} />}
+      <p style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>Conversation with {otherUserLabel}</p>
+    </div>
+  )
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {otherUserLabel && (
-        <p style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>Conversation with {otherUserLabel}</p>
+      {otherProfileUrl ? (
+        <Link to={otherProfileUrl} style={{ textDecoration: 'none', color: 'inherit', width: 'fit-content' }}>
+          {headerContent}
+        </Link>
+      ) : (
+        headerContent
       )}
 
       <div
@@ -96,20 +125,31 @@ export default function MessageThread({ otherUserId, otherUserLabel, myIds }) {
         )}
         {messages.map((m) => {
           const fromMe = myIdList.includes(m.sender_id)
+          const showAvatar = !fromMe && (otherAvatarUrl !== undefined || otherProfileUrl)
           return (
             <div
               key={m.id}
               style={{
+                display: 'flex',
+                alignItems: 'flex-end',
+                gap: 8,
                 alignSelf: fromMe ? 'flex-end' : 'flex-start',
                 maxWidth: '80%',
-                background: fromMe ? 'var(--color-primary)' : 'var(--color-bg-soft)',
-                color: fromMe ? '#fff' : 'var(--color-text)',
-                borderRadius: 12,
-                padding: '8px 14px',
-                fontSize: 14,
+                flexDirection: fromMe ? 'row-reverse' : 'row',
               }}
             >
-              {m.body}
+              {showAvatar && <AvatarComponent {...avatarProps} size={26} style={{ border: 'none', boxShadow: 'none' }} />}
+              <div
+                style={{
+                  background: fromMe ? 'var(--color-primary)' : 'var(--color-bg-soft)',
+                  color: fromMe ? '#fff' : 'var(--color-text)',
+                  borderRadius: 12,
+                  padding: '8px 14px',
+                  fontSize: 14,
+                }}
+              >
+                {m.body}
+              </div>
             </div>
           )
         })}
