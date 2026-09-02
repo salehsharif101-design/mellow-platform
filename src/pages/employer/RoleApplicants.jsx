@@ -231,25 +231,53 @@ export default function RoleApplicants() {
   // show up in every applicant card's dropdown on this role immediately,
   // and this candidate is moved into it right away since that's the
   // natural intent of adding a stage from a specific candidate's dropdown.
+  //
+  // The id is generated client-side and sent explicitly on insert (Postgres
+  // only applies a column's default when it's omitted, so this is a normal,
+  // valid insert) specifically so pipelineStages and this candidate's
+  // custom_stage_id can both be set optimistically, in the same synchronous
+  // update, the moment Enter is pressed — without it, there's a real gap
+  // (the insert, then a separate update) during which the dropdown falls
+  // back to showing the underlying status ("Reviewing") until both
+  // requests resolve, which is what this fixes.
   async function submitNewStage(applicationId) {
     const name = newStageDraft.trim()
     setAddingStageId(null)
     setNewStageDraft('')
     if (!name) return
+
+    const application = applications.find((a) => a.id === applicationId)
+    const originalStatus = application?.status
+    const originalCustomStageId = application?.custom_stage_id ?? null
+
     const nextPosition = pipelineStages.length > 0 ? Math.max(...pipelineStages.map((s) => s.position)) + 1 : 0
-    const { data, error } = await supabase
+    const stageId = crypto.randomUUID()
+
+    setPipelineStages((prev) => [...prev, { id: stageId, name, position: nextPosition }])
+    setApplications((prev) =>
+      prev.map((a) => (a.id === applicationId ? { ...a, status: 'reviewing', custom_stage_id: stageId } : a)),
+    )
+
+    const { error: insertError } = await supabase
       .from('role_pipeline_stages')
-      .insert({ role_id: role.id, name, position: nextPosition })
-      .select('id, name, position')
-      .single()
-    if (error) return
-    setPipelineStages((prev) => [...prev, data])
-    await changeStatus(applicationId, `custom:${data.id}`)
+      .insert({ id: stageId, role_id: role.id, name, position: nextPosition })
+
+    if (insertError) {
+      setPipelineStages((prev) => prev.filter((s) => s.id !== stageId))
+      setApplications((prev) =>
+        prev.map((a) =>
+          a.id === applicationId ? { ...a, status: originalStatus, custom_stage_id: originalCustomStageId } : a,
+        ),
+      )
+      return
+    }
+
+    await changeStatus(applicationId, `custom:${stageId}`, { previousStatus: originalStatus })
   }
 
-  async function changeStatus(applicationId, rawValue) {
+  async function changeStatus(applicationId, rawValue, options = {}) {
     const application = applications.find((a) => a.id === applicationId)
-    const previousStatus = application?.status
+    const previousStatus = options.previousStatus ?? application?.status
     const { status, customStageId } = parseStageValue(rawValue)
     setUpdatingId(applicationId)
     const { data, error: updateError } = await supabase
