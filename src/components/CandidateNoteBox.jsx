@@ -9,9 +9,13 @@ const SAVE_DELAY = 1200
 // candidate_notes' (employer_id, candidate_id, role_id) unique key — a
 // DB trigger turns each save into a "note added"/"note edited" activity log
 // entry, so this component only needs to own the debounce and the textarea.
-export default function CandidateNoteBox({ employerId, candidateId, roleId, userId, initialBody, initialUpdatedAt }) {
+export default function CandidateNoteBox({ employerId, candidateId, roleId, userId, initialBody, initialUpdatedAt, onSaved }) {
   const [body, setBody] = useState(initialBody || '')
   const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt || null)
+  // Whether a candidate_notes row already existed when this mounted — not
+  // just whether it had text — so a note that was typed, cleared, and now
+  // gets typed again still counts as an edit rather than a fresh "added".
+  const hadExistingRow = useRef(!!initialUpdatedAt)
   const [saving, setSaving] = useState(false)
   const timeoutRef = useRef(null)
   const latestBodyRef = useRef(body)
@@ -41,6 +45,8 @@ export default function CandidateNoteBox({ employerId, candidateId, roleId, user
     // "Last edited" timestamp with a stale one.
     if (!error && latestBodyRef.current === value) {
       setUpdatedAt(data.updated_at)
+      onSaved?.({ body: value, updatedAt: data.updated_at, isFirstSave: !hadExistingRow.current })
+      hadExistingRow.current = true
     }
     setSaving(false)
   }

@@ -162,14 +162,31 @@ export default function RoleApplicants() {
     })
   }
 
+  // Prepends a synthetic activity-log entry to a candidate's timeline the
+  // moment an action succeeds, so the panel reflects it immediately instead
+  // of only after the next full page load (the real row — inserted by a DB
+  // trigger, see migration 0057 — is what a reload will show; this is just
+  // client-side to close that gap for the rest of the current session).
+  function prependActivity(candidateId, event) {
+    setActivityByCandidate((prev) => ({
+      ...prev,
+      [candidateId]: [
+        { id: `local-${Date.now()}-${Math.random()}`, created_at: new Date().toISOString(), ...event },
+        ...(prev[candidateId] || []),
+      ],
+    }))
+  }
+
   // The employer's personal shortlist (used by Talent Feed and
   // /employer/shortlist) is a separate table from an application's status.
   // Setting an application to "Shortlisted" here — or moving it away from
   // that status — keeps the shortlist table in sync so both reflect the
   // same state. Custom pipeline stages never touch this: they only ever set
   // status back to 'reviewing', which this already treats as "not shortlisted".
+  // Returns which of the two (if either) actually happened, so the caller
+  // can reflect it in the activity timeline right away.
   async function syncShortlist(candidateId, newStatus, previousStatus) {
-    if (!role?.employer_id || !candidateId) return
+    if (!role?.employer_id || !candidateId) return null
     if (newStatus === 'shortlisted' && previousStatus !== 'shortlisted') {
       const { data } = await supabase
         .from('shortlists')
@@ -183,7 +200,11 @@ export default function RoleApplicants() {
       // bounced through "reviewing" and back) returns no row here, so this
       // only ever fires for a genuinely new shortlist entry — otherwise
       // they'd get a duplicate notification every time.
-      if (data) notify('shortlist-notification', { shortlistId: data.id })
+      if (data) {
+        notify('shortlist-notification', { shortlistId: data.id })
+        return 'shortlisted'
+      }
+      return null
     } else if (previousStatus === 'shortlisted' && newStatus !== 'shortlisted') {
       await supabase
         .from('shortlists')
@@ -191,7 +212,9 @@ export default function RoleApplicants() {
         .eq('employer_id', role.employer_id)
         .eq('candidate_id', candidateId)
         .eq('role_id', role.id)
+      return 'unshortlisted'
     }
+    return null
   }
 
   async function changeStatus(applicationId, rawValue) {
@@ -209,7 +232,17 @@ export default function RoleApplicants() {
       setApplications((prev) =>
         prev.map((a) => (a.id === applicationId ? { ...a, status: data.status, custom_stage_id: data.custom_stage_id } : a)),
       )
-      await syncShortlist(application?.candidate_profiles?.id, status, previousStatus)
+      const candidateId = application?.candidate_profiles?.id
+      if (candidateId) {
+        const stageLabel = customStageId
+          ? pipelineStages.find((s) => s.id === customStageId)?.name || STATUS_LABELS[status]
+          : STATUS_LABELS[status]
+        prependActivity(candidateId, { event_type: 'status_changed', detail: stageLabel })
+      }
+      const shortlistChange = await syncShortlist(candidateId, status, previousStatus)
+      if (candidateId && shortlistChange) {
+        prependActivity(candidateId, { event_type: shortlistChange })
+      }
     }
     setUpdatingId(null)
   }
@@ -445,6 +478,10 @@ export default function RoleApplicants() {
                           userId={user.id}
                           initialBody={note?.body || ''}
                           initialUpdatedAt={note?.updated_at || null}
+                          onSaved={({ body, updatedAt, isFirstSave }) => {
+                            setNotesByCandidate((prev) => ({ ...prev, [c.id]: { ...prev[c.id], body, updated_at: updatedAt } }))
+                            prependActivity(c.id, { event_type: isFirstSave ? 'note_added' : 'note_updated', detail: body.slice(0, 140) })
+                          }}
                         />
                       </div>
                     )}
@@ -501,9 +538,13 @@ export default function RoleApplicants() {
           recipientUserId={messagingApplication.candidate_profiles?.user_id}
           recipientLabel={messagingApplication.candidate_profiles?.full_name}
           onClose={() => setMessagingApplication(null)}
-          onSent={() => {
+          onSent={(message) => {
             setMessageSent(true)
             setTimeout(() => setMessageSent(false), 3000)
+            const candidateId = messagingApplication?.candidate_profiles?.id
+            if (candidateId) {
+              prependActivity(candidateId, { event_type: 'message_sent', detail: (message?.body || '').slice(0, 140) })
+            }
           }}
         />
       )}

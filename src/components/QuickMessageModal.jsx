@@ -28,7 +28,7 @@ export default function QuickMessageModal({ recipientUserId, recipientLabel, onC
     }
     notify('message-notification', { messageId: data.id })
     setSent(true)
-    onSent?.()
+    onSent?.(data)
     setTimeout(onClose, 1200)
   }
 
