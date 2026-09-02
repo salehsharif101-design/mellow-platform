@@ -5,8 +5,10 @@ const EVENT_LABELS = {
   status_changed: (detail) => `Status changed to ${detail || 'a new stage'}`,
   shortlisted: () => 'Shortlisted',
   unshortlisted: () => 'Removed from shortlist',
-  note_added: () => 'Note added',
-  note_updated: () => 'Note edited',
+  // detail is "<author email>: <note preview>" (see migration 0058's
+  // log_note_activity trigger) — notes are posted, never edited, so there's
+  // no separate "note edited" event any more.
+  note_added: (detail) => `Note posted${detail ? ` — ${detail}` : ''}`,
   message_sent: (detail) => `Message sent${detail ? `: "${detail}"` : ''}`,
 }
 

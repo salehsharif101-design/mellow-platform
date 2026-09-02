@@ -2,6 +2,11 @@ import { useMemo } from 'react'
 
 const DAYS_SHOWN = 30
 
+const STAT_LABEL_STYLE = { fontSize: 12, color: 'var(--color-text-muted)', fontWeight: 600 }
+// Matches the dashboard's own stat-card number styling (Dashboard.jsx hardcodes
+// this same #005ef5, one shade of Mellow blue, rather than the CSS var).
+const STAT_NUMBER_STYLE = { fontSize: 28, fontWeight: 700, marginTop: 4, color: '#005ef5' }
+
 function buildDailyBuckets(applications) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -53,43 +58,47 @@ export default function RoleAnalyticsPanel({ role, applications, hires }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 20, marginTop: 16 }}>
         <div>
-          <p style={{ fontSize: 12, color: 'var(--color-text-muted)', fontWeight: 600 }}>Role page views</p>
-          <p style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>{views}</p>
+          <p style={STAT_LABEL_STYLE}>Role page views</p>
+          <p style={STAT_NUMBER_STYLE}>{views}</p>
         </div>
         <div>
-          <p style={{ fontSize: 12, color: 'var(--color-text-muted)', fontWeight: 600 }}>Total applicants</p>
-          <p style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>{totalApplicants}</p>
+          <p style={STAT_LABEL_STYLE}>Total applicants</p>
+          <p style={STAT_NUMBER_STYLE}>{totalApplicants}</p>
         </div>
         <div>
-          <p style={{ fontSize: 12, color: 'var(--color-text-muted)', fontWeight: 600 }}>View → apply rate</p>
-          <p style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>{conversion !== null ? `${conversion}%` : '—'}</p>
+          <p style={STAT_LABEL_STYLE}>View → apply rate</p>
+          <p style={STAT_NUMBER_STYLE}>{conversion !== null ? `${conversion}%` : '—'}</p>
         </div>
         {avgTimeToHireDays !== null && (
           <div>
-            <p style={{ fontSize: 12, color: 'var(--color-text-muted)', fontWeight: 600 }}>Avg. time to hire</p>
-            <p style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>{avgTimeToHireDays}d</p>
+            <p style={STAT_LABEL_STYLE}>Avg. time to hire</p>
+            <p style={STAT_NUMBER_STYLE}>{avgTimeToHireDays}d</p>
           </div>
         )}
       </div>
 
       {totalApplicants > 0 && (
-        <div style={{ marginTop: 24 }}>
-          <p style={{ fontSize: 12, color: 'var(--color-text-muted)', fontWeight: 600, marginBottom: 8 }}>
-            Applications over the last {DAYS_SHOWN} days
-          </p>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 60 }}>
+        <div style={{ marginTop: 28 }}>
+          <p style={{ ...STAT_LABEL_STYLE, marginBottom: 12 }}>Applications over the last {DAYS_SHOWN} days</p>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 56, borderBottom: '1px solid var(--color-border)' }}>
             {dailyBuckets.map((d) => (
               <div
                 key={d.key}
                 title={`${d.date.toLocaleDateString()}: ${d.count} application${d.count === 1 ? '' : 's'}`}
                 style={{
                   flex: 1,
-                  height: `${Math.max(3, (d.count / maxCount) * 100)}%`,
-                  background: d.count > 0 ? 'var(--color-primary)' : 'var(--color-bg-soft)',
-                  borderRadius: 2,
+                  height: d.count > 0 ? `${Math.max(6, (d.count / maxCount) * 100)}%` : 2,
+                  background: d.count > 0 ? '#005ef5' : 'var(--color-border)',
+                  borderRadius: '2px 2px 0 0',
                 }}
               />
             ))}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+            <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
+              {dailyBuckets[0].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </span>
+            <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>Today</span>
           </div>
         </div>
       )}

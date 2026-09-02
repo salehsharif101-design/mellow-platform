@@ -8,7 +8,7 @@ import { formatRelativeTime } from '../../lib/roleFormat.js'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
 import QuickMessageModal from '../../components/QuickMessageModal.jsx'
-import CandidateNoteBox from '../../components/CandidateNoteBox.jsx'
+import CandidateNotesThread from '../../components/CandidateNotesThread.jsx'
 import CandidateActivityTimeline from '../../components/CandidateActivityTimeline.jsx'
 import RoleAnalyticsPanel from '../../components/RoleAnalyticsPanel.jsx'
 
@@ -20,6 +20,7 @@ const STATUS_COLORS = {
   rejected: { background: '#fdeceb', color: '#d92d20' },
 }
 const CUSTOM_STAGE_COLOR = { background: '#f1e8fd', color: '#6b21a8' }
+const ADD_CUSTOM_STAGE_VALUE = '__add_custom_stage__'
 
 // A custom pipeline stage is layered on top of the 'reviewing' status
 // rather than replacing it (see migration 0056) — this turns a raw <select>
@@ -55,6 +56,8 @@ export default function RoleApplicants() {
   const [messageSent, setMessageSent] = useState(false)
   const [notesOpenIds, setNotesOpenIds] = useState(new Set())
   const [activityOpenIds, setActivityOpenIds] = useState(new Set())
+  const [addingStageId, setAddingStageId] = useState(null)
+  const [newStageDraft, setNewStageDraft] = useState('')
 
   useEffect(() => {
     if (!user) return
@@ -97,7 +100,11 @@ export default function RoleApplicants() {
       const [{ data: stages }, { data: notes }, { data: activity }, { data: hireRows }] = await Promise.all([
         supabase.from('role_pipeline_stages').select('id, name, position').eq('role_id', roleId).order('position', { ascending: true }),
         candidateIds.length > 0
-          ? supabase.from('candidate_notes').select('id, candidate_id, body, updated_at').eq('role_id', roleId)
+          ? supabase
+              .from('candidate_notes')
+              .select('id, candidate_id, author_email, body, created_at')
+              .eq('role_id', roleId)
+              .order('created_at', { ascending: false })
           : Promise.resolve({ data: [] }),
         candidateIds.length > 0
           ? supabase
@@ -115,7 +122,8 @@ export default function RoleApplicants() {
 
       const noteMap = {}
       ;(notes || []).forEach((n) => {
-        noteMap[n.candidate_id] = n
+        if (!noteMap[n.candidate_id]) noteMap[n.candidate_id] = []
+        noteMap[n.candidate_id].push(n)
       })
       setNotesByCandidate(noteMap)
 
@@ -217,6 +225,28 @@ export default function RoleApplicants() {
     return null
   }
 
+  // Creates a custom stage from the "+ Add custom stage" option in an
+  // applicant card's dropdown (see the select's onChange below) — the new
+  // stage is appended to the shared pipelineStages list, which makes it
+  // show up in every applicant card's dropdown on this role immediately,
+  // and this candidate is moved into it right away since that's the
+  // natural intent of adding a stage from a specific candidate's dropdown.
+  async function submitNewStage(applicationId) {
+    const name = newStageDraft.trim()
+    setAddingStageId(null)
+    setNewStageDraft('')
+    if (!name) return
+    const nextPosition = pipelineStages.length > 0 ? Math.max(...pipelineStages.map((s) => s.position)) + 1 : 0
+    const { data, error } = await supabase
+      .from('role_pipeline_stages')
+      .insert({ role_id: role.id, name, position: nextPosition })
+      .select('id, name, position')
+      .single()
+    if (error) return
+    setPipelineStages((prev) => [...prev, data])
+    await changeStatus(applicationId, `custom:${data.id}`)
+  }
+
   async function changeStatus(applicationId, rawValue) {
     const application = applications.find((a) => a.id === applicationId)
     const previousStatus = application?.status
@@ -288,21 +318,12 @@ export default function RoleApplicants() {
     )
   }
 
-  const shortlistedCount = applications.filter((a) => a.status === 'shortlisted').length
-  const rejectedCount = applications.filter((a) => a.status === 'rejected').length
-  const views = role.view_count || 0
-  const conversion = views > 0 ? Math.round((applications.length / views) * 100) : null
-
   return (
     <div className="section">
       <Link to="/employer/roles" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}>
         ← Manage roles
       </Link>
       <h1 style={{ fontSize: 28, marginTop: 8 }}>Applicants for {role.title}</h1>
-      <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 6 }}>
-        {views} view{views === 1 ? '' : 's'} · {applications.length} applied · {shortlistedCount} shortlisted · {rejectedCount} rejected
-        {conversion !== null && ` · ${conversion}% view-to-apply`}
-      </p>
 
       <RoleAnalyticsPanel role={role} applications={applications} hires={hires} />
 
@@ -351,7 +372,7 @@ export default function RoleApplicants() {
                 const customStage = a.custom_stage_id ? pipelineStages.find((s) => s.id === a.custom_stage_id) : null
                 const badgeLabel = customStage ? customStage.name : STATUS_LABELS[a.status]
                 const badgeColors = customStage ? CUSTOM_STAGE_COLOR : STATUS_COLORS[a.status]
-                const note = notesByCandidate[c.id]
+                const candidateNotes = notesByCandidate[c.id] || []
                 const events = activityByCandidate[c.id] || []
                 const notesOpen = notesOpenIds.has(a.id)
                 const activityOpen = activityOpenIds.has(a.id)
@@ -424,23 +445,55 @@ export default function RoleApplicants() {
                         >
                           Message
                         </button>
-                        <select
-                          className="input"
-                          value={pendingRejectionId === a.id ? 'rejected' : stageValueFor(a)}
-                          disabled={updatingId === a.id}
-                          onChange={(e) => handleStatusSelect(a.id, e.target.value)}
-                          style={{ width: 'auto', padding: '8px 12px' }}
-                        >
-                          <option value="applied">{STATUS_LABELS.applied}</option>
-                          <option value="reviewing">{STATUS_LABELS.reviewing}</option>
-                          {pipelineStages.map((s) => (
-                            <option key={s.id} value={`custom:${s.id}`}>
-                              {s.name}
-                            </option>
-                          ))}
-                          <option value="shortlisted">{STATUS_LABELS.shortlisted}</option>
-                          <option value="rejected">{STATUS_LABELS.rejected}</option>
-                        </select>
+                        {addingStageId === a.id ? (
+                          <input
+                            autoFocus
+                            className="input"
+                            placeholder="New stage name…"
+                            value={newStageDraft}
+                            onChange={(e) => setNewStageDraft(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                submitNewStage(a.id)
+                              } else if (e.key === 'Escape') {
+                                setAddingStageId(null)
+                                setNewStageDraft('')
+                              }
+                            }}
+                            onBlur={() => {
+                              setAddingStageId(null)
+                              setNewStageDraft('')
+                            }}
+                            style={{ width: 160, padding: '8px 12px' }}
+                          />
+                        ) : (
+                          <select
+                            className="input"
+                            value={pendingRejectionId === a.id ? 'rejected' : stageValueFor(a)}
+                            disabled={updatingId === a.id}
+                            onChange={(e) => {
+                              if (e.target.value === ADD_CUSTOM_STAGE_VALUE) {
+                                setAddingStageId(a.id)
+                                setNewStageDraft('')
+                                return
+                              }
+                              handleStatusSelect(a.id, e.target.value)
+                            }}
+                            style={{ width: 'auto', padding: '8px 12px' }}
+                          >
+                            <option value="applied">{STATUS_LABELS.applied}</option>
+                            <option value="reviewing">{STATUS_LABELS.reviewing}</option>
+                            {pipelineStages.map((s) => (
+                              <option key={s.id} value={`custom:${s.id}`}>
+                                {s.name}
+                              </option>
+                            ))}
+                            <option value="shortlisted">{STATUS_LABELS.shortlisted}</option>
+                            <option value="rejected">{STATUS_LABELS.rejected}</option>
+                            <option value={ADD_CUSTOM_STAGE_VALUE}>+ Add custom stage</option>
+                          </select>
+                        )}
                       </div>
                     </div>
 
@@ -454,7 +507,7 @@ export default function RoleApplicants() {
                         style={{ padding: '6px 10px', fontSize: 12 }}
                         onClick={() => toggleOpen(setNotesOpenIds, a.id)}
                       >
-                        {notesOpen ? 'Hide note' : note?.body ? 'View note' : 'Add note'}
+                        {notesOpen ? 'Hide notes' : `Notes${candidateNotes.length > 0 ? ` (${candidateNotes.length})` : ''}`}
                       </button>
                       <button
                         type="button"
@@ -471,16 +524,19 @@ export default function RoleApplicants() {
                         onClick={(e) => e.stopPropagation()}
                         style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--color-border)' }}
                       >
-                        <CandidateNoteBox
+                        <CandidateNotesThread
                           employerId={role.employer_id}
                           candidateId={c.id}
                           roleId={role.id}
                           userId={user.id}
-                          initialBody={note?.body || ''}
-                          initialUpdatedAt={note?.updated_at || null}
-                          onSaved={({ body, updatedAt, isFirstSave }) => {
-                            setNotesByCandidate((prev) => ({ ...prev, [c.id]: { ...prev[c.id], body, updated_at: updatedAt } }))
-                            prependActivity(c.id, { event_type: isFirstSave ? 'note_added' : 'note_updated', detail: body.slice(0, 140) })
+                          userEmail={user.email}
+                          notes={candidateNotes}
+                          onPosted={(posted) => {
+                            setNotesByCandidate((prev) => ({ ...prev, [c.id]: [posted, ...(prev[c.id] || [])] }))
+                            prependActivity(c.id, {
+                              event_type: 'note_added',
+                              detail: `${posted.author_email}: ${posted.body.slice(0, 120)}`,
+                            })
                           }}
                         />
                       </div>
