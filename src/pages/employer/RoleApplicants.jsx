@@ -272,9 +272,17 @@ export default function RoleApplicants() {
       return
     }
 
-    await changeStatus(applicationId, `custom:${stageId}`, { previousStatus: originalStatus })
+    await changeStatus(applicationId, `custom:${stageId}`, { previousStatus: originalStatus, customStageName: name })
   }
 
+  // stageName lets a caller that already knows the target stage's name
+  // (submitNewStage, right after creating it) pass it through directly
+  // instead of this looking it up in pipelineStages — that lookup would
+  // otherwise run against a stale closure of pipelineStages captured
+  // before the new stage's own setPipelineStages call had actually been
+  // rendered (there's no await between the two calls), so the activity
+  // log entry would fall back to the underlying status ("Reviewing")
+  // and stay wrong until a reload re-read the correct label from the DB.
   async function changeStatus(applicationId, rawValue, options = {}) {
     const application = applications.find((a) => a.id === applicationId)
     const previousStatus = options.previousStatus ?? application?.status
@@ -293,7 +301,7 @@ export default function RoleApplicants() {
       const candidateId = application?.candidate_profiles?.id
       if (candidateId) {
         const stageLabel = customStageId
-          ? pipelineStages.find((s) => s.id === customStageId)?.name || STATUS_LABELS[status]
+          ? options.customStageName || pipelineStages.find((s) => s.id === customStageId)?.name || STATUS_LABELS[status]
           : STATUS_LABELS[status]
         prependActivity(candidateId, { event_type: 'status_changed', detail: stageLabel })
       }
