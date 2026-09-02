@@ -7,6 +7,7 @@ import MessageThread from '../../components/MessageThread.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
 import MessagesSkeleton from '../../components/MessagesSkeleton.jsx'
 import CompanyAvatar from '../../components/CompanyAvatar.jsx'
+import UnreadDot from '../../components/UnreadDot.jsx'
 
 export default function CandidateMessages() {
   const { user } = useAuth()
@@ -54,6 +55,7 @@ export default function CandidateMessages() {
       const convos = otherIds.map((otherId) => {
         const lastMessage = messages.find((m) => m.sender_id === otherId || m.recipient_id === otherId)
         const info = infoByUserId[otherId]
+        const unread = messages.some((m) => m.sender_id === otherId && m.recipient_id === user.id && !m.read_at)
         return {
           otherId,
           label: info?.name || 'Employer',
@@ -61,6 +63,7 @@ export default function CandidateMessages() {
           profileUrl: info?.companySlug ? `/company/${info.companySlug}` : null,
           lastBody: lastMessage?.body,
           lastAt: lastMessage?.sent_at,
+          unread,
         }
       })
 
@@ -89,7 +92,19 @@ export default function CandidateMessages() {
       ) : (
         <div className="messages-layout" style={{ display: 'flex', gap: 32, marginTop: 28, alignItems: 'flex-start' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220 }}>
-            {conversations.map((c) => (
+            {conversations.map((c) => {
+              // Marking read happens inside MessageThread once opened, but
+              // that's an async DB write — selecting the conversation is
+              // what should make the dot disappear right away rather than
+              // waiting on that round trip.
+              const showUnreadDot = c.unread && selected !== c.otherId
+              const avatar = (
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <CompanyAvatar logoUrl={c.logoUrl} companyName={c.label} size={36} />
+                  {showUnreadDot && <UnreadDot label="Unread messages" />}
+                </div>
+              )
+              return (
               <div
                 key={c.otherId}
                 onClick={() => setSelected(c.otherId)}
@@ -112,12 +127,12 @@ export default function CandidateMessages() {
                       onClick={(e) => e.stopPropagation()}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'inherit', minWidth: 0 }}
                     >
-                      <CompanyAvatar logoUrl={c.logoUrl} companyName={c.label} size={36} />
+                      {avatar}
                       <p style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.label}</p>
                     </Link>
                   ) : (
                     <>
-                      <CompanyAvatar logoUrl={c.logoUrl} companyName={c.label} size={36} />
+                      {avatar}
                       <p style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.label}</p>
                     </>
                   )}
@@ -126,7 +141,8 @@ export default function CandidateMessages() {
                   {c.lastBody}
                 </p>
               </div>
-            ))}
+              )
+            })}
           </div>
 
           <div className="card" style={{ flex: 1, padding: 24, maxWidth: 480 }}>
