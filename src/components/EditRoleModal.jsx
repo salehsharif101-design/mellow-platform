@@ -99,7 +99,10 @@ export default function EditRoleModal({ role, onClose, onSaved }) {
           </label>
         </div>
         <div className="field">
-          <SkillsPicker label="Skills required" value={requiredSkills} onChange={setRequiredSkills} />
+          <SkillsPicker label="Skills required" value={requiredSkills} onChange={setRequiredSkills} required />
+          <p style={{ marginTop: 4, fontSize: 12, color: 'var(--color-text-muted)' }}>
+            Candidates in your talent feed are scored against these skills, so add at least one to see match scores.
+          </p>
         </div>
         <div className="field">
           <label>What does the role involve?</label>
@@ -147,7 +150,12 @@ export default function EditRoleModal({ role, onClose, onSaved }) {
           </div>
         </div>
         {error && <p className="form-error">{error}</p>}
-        <button className="btn btn-primary" type="submit" disabled={saving} style={{ alignSelf: 'flex-start' }}>
+        <button
+          className="btn btn-primary"
+          type="submit"
+          disabled={saving || requiredSkills.length === 0}
+          style={{ alignSelf: 'flex-start' }}
+        >
           {saving ? 'Saving…' : 'Save changes'}
         </button>
       </form>

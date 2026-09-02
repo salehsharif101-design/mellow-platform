@@ -493,6 +493,24 @@ export default function TalentFeed() {
         </div>
       </div>
 
+      {myRoles.length > 0 && scorableRoles.length === 0 && (
+        <p
+          style={{
+            marginTop: 20,
+            fontSize: 13,
+            color: 'var(--color-text-muted)',
+            background: 'var(--color-bg-soft)',
+            borderRadius: 8,
+            padding: '10px 14px',
+          }}
+        >
+          Add required skills to your active roles to see match scores here.{' '}
+          <Link to="/employer/roles" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+            Edit your roles →
+          </Link>
+        </p>
+      )}
+
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between', marginTop: 24 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
           {scorableRoles.length > 0 && (

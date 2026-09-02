@@ -94,7 +94,7 @@ export default function NewRole() {
 
   if (loading) return <FormPageSkeleton fields={7} />
 
-  const isValid = title.trim() && location.trim() && description.trim()
+  const isValid = title.trim() && location.trim() && description.trim() && requiredSkills.length > 0
 
   return (
     <div className="section">
@@ -188,7 +188,11 @@ export default function NewRole() {
               />
             </div>
             <div className="field">
-              <SkillsPicker label="Skills required" value={requiredSkills} onChange={setRequiredSkills} />
+              <SkillsPicker label="Skills required" value={requiredSkills} onChange={setRequiredSkills} required />
+              <p style={{ marginTop: 4, fontSize: 12, color: 'var(--color-text-muted)' }}>
+                Candidates in your talent feed are scored against these skills, so add at least one to see match
+                scores.
+              </p>
             </div>
             <div className="field">
               <label htmlFor="what_matters">What matters most in a hire?</label>
