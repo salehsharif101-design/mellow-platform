@@ -471,19 +471,20 @@ export default function BrowseRoles() {
     const applied = appliedRoleIds.has(role.id)
     const employer = role.employer_profiles
     const salaryLabel = formatSalary(role)
-    // One merged row, capped at 3. Skills go first so a role with 2+
-    // required_skills always shows at least 2 of them — location/work
-    // style/salary only fill whatever room skills don't use.
+    // Work style and location always appear together as one line (e.g.
+    // "Remote · Bahrain") rather than competing with salary/skills for a
+    // shared, capped tag row — every field below gets its own dedicated
+    // spot so a role with 3 skills and a salary doesn't silently push
+    // location out. Top 2-3 required skills, per the design.
     const skillTags = (role.required_skills || []).slice(0, 3)
-    const infoTags = [role.location, role.work_style, salaryLabel].filter(Boolean)
-    const cardTags = [...skillTags, ...infoTags].slice(0, 3)
+    const workStyleLocation = [role.work_style, role.location].filter(Boolean).join(' · ')
     return (
-      <div key={role.id} className="card compact-card" style={{ height: 180, cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
+      <div key={role.id} className="card compact-card" style={{ cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
         <div className="compact-card-actions">
           <SaveRoleButton saved={savedRoleIds.has(role.id)} onToggle={() => toggleSave(role)} />
         </div>
 
-        <div className="compact-card-body" style={{ flex: 1, padding: 10, overflow: 'hidden' }}>
+        <div className="compact-card-body" style={{ flex: 1, padding: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
             {employer?.logo_url ? (
               <img
@@ -521,11 +522,32 @@ export default function BrowseRoles() {
             </div>
           </div>
 
-          {cardTags.length > 0 && (
+          {workStyleLocation && (
+            <p
+              style={{
+                fontSize: 12,
+                color: 'var(--color-text-muted)',
+                marginTop: 6,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {workStyleLocation}
+            </p>
+          )}
+
+          {salaryLabel && (
+            <span className="tag" style={{ fontSize: 11, padding: '2px 8px', marginTop: 6, width: 'fit-content' }}>
+              {salaryLabel}
+            </span>
+          )}
+
+          {skillTags.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
-              {cardTags.map((t) => (
-                <span key={t} className="tag" style={{ fontSize: 11, padding: '2px 8px' }}>
-                  {t}
+              {skillTags.map((s) => (
+                <span key={s} className="tag" style={{ fontSize: 11, padding: '2px 8px' }}>
+                  {s}
                 </span>
               ))}
             </div>
