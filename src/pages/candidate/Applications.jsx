@@ -28,17 +28,19 @@ function formatDate(dateString) {
   return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+// Only steps that have actually happened appear here — an unviewed
+// profile or a status still sitting at "applied" simply isn't a step yet,
+// rather than a step shown with a "Not yet" placeholder.
 function Timeline({ application }) {
-  const steps = [{ label: 'Applied', date: application.applied_at, done: true }]
-  steps.push({ label: 'Profile viewed by employer', date: application.viewed_at, done: Boolean(application.viewed_at) })
+  const steps = [{ label: 'Applied', date: application.applied_at }]
+  if (application.viewed_at) {
+    steps.push({ label: 'Profile viewed by employer', date: application.viewed_at })
+  }
   if (['reviewing', 'shortlisted', 'rejected'].includes(application.status) && application.status_changed_at) {
     steps.push({
       label: `Status update — ${getCandidateStatusLabel(application.status)}`,
       date: application.status_changed_at,
-      done: true,
     })
-  } else {
-    steps.push({ label: 'Status update', date: null, done: false })
   }
 
   return (
@@ -53,18 +55,14 @@ function Timeline({ application }) {
                 height: 12,
                 borderRadius: '50%',
                 flexShrink: 0,
-                background: step.done ? 'var(--color-primary)' : 'var(--color-border)',
+                background: 'var(--color-primary)',
               }}
             />
             {i < steps.length - 1 && <span style={{ width: 2, flex: 1, minHeight: 24, background: 'var(--color-border)' }} />}
           </div>
           <div style={{ paddingBottom: 18 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: step.done ? 'var(--color-text)' : 'var(--color-text-muted)' }}>
-              {step.label}
-            </p>
-            <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
-              {step.date ? formatDate(step.date) : 'Not yet'}
-            </p>
+            <p style={{ fontSize: 13, fontWeight: 600 }}>{step.label}</p>
+            <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>{formatDate(step.date)}</p>
           </div>
         </div>
       ))}
