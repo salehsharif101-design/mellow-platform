@@ -793,6 +793,28 @@ export default function BrowseRoles() {
           <VideoPlayCard url={videoModalEmployer.intro_video_url} format="horizontal" />
         </Modal>
       )}
+
+      {/* Grid cards have no room for RoleCard's inline "add a video" block
+          (see needsVideo there), so the same block-and-explain flow shows
+          as a modal here instead — same message, same link, just a
+          container that fits a 180px compact card. Only relevant in grid
+          mode: list mode's needsVideoRoleId is handled per-card by
+          RoleCard already, and viewMode is mutually exclusive with it. */}
+      {viewMode === 'grid' && needsVideoRoleId && (
+        <Modal title="Add your profile video" onClose={() => setNeedsVideoRoleId(null)} width={420}>
+          <p style={{ fontSize: 14, fontWeight: 600 }}>
+            Please add your profile video before applying. Employers want to meet you first.
+          </p>
+          <Link
+            to="/profile/edit"
+            className="btn btn-primary"
+            style={{ marginTop: 16, display: 'inline-flex' }}
+            onClick={() => setNeedsVideoRoleId(null)}
+          >
+            Add your profile video
+          </Link>
+        </Modal>
+      )}
     </div>
   )
 }
