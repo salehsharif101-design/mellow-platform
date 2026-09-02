@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Modal from './Modal.jsx'
 import { supabase } from '../lib/supabase.js'
 import SkillsPicker from './SkillsPicker.jsx'
+import PipelineStagesEditor from './PipelineStagesEditor.jsx'
 
 const ROLE_TYPES = ['full-time', 'part-time', 'contract', 'freelance']
 const CURRENCIES = ['BHD', 'AED', 'SAR', 'USD']
@@ -104,6 +105,7 @@ export default function EditRoleModal({ role, onClose, onSaved }) {
             Candidates in your talent feed are scored against these skills, so add at least one to see match scores.
           </p>
         </div>
+        <PipelineStagesEditor roleId={role.id} />
         <div className="field">
           <label>What does the role involve?</label>
           <textarea className="input" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} required />

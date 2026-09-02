@@ -8,14 +8,31 @@ import { formatRelativeTime } from '../../lib/roleFormat.js'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
 import QuickMessageModal from '../../components/QuickMessageModal.jsx'
+import CandidateNoteBox from '../../components/CandidateNoteBox.jsx'
+import CandidateActivityTimeline from '../../components/CandidateActivityTimeline.jsx'
+import RoleAnalyticsPanel from '../../components/RoleAnalyticsPanel.jsx'
 
-const STATUSES = ['applied', 'reviewing', 'shortlisted', 'rejected']
 const STATUS_LABELS = { applied: 'New', reviewing: 'Reviewing', shortlisted: 'Shortlisted', rejected: 'Rejected' }
 const STATUS_COLORS = {
   applied: { background: 'var(--color-bg-soft)', color: 'var(--color-primary)' },
   reviewing: { background: '#fff6e0', color: '#8a6100' },
   shortlisted: { background: '#e3f9e9', color: '#0f7a3d' },
   rejected: { background: '#fdeceb', color: '#d92d20' },
+}
+const CUSTOM_STAGE_COLOR = { background: '#f1e8fd', color: '#6b21a8' }
+
+// A custom pipeline stage is layered on top of the 'reviewing' status
+// rather than replacing it (see migration 0056) — this turns a raw <select>
+// value ('applied' | 'reviewing' | 'shortlisted' | 'rejected' |
+// `custom:<stage id>`) into the { status, customStageId } pair applications
+// actually stores.
+function parseStageValue(value) {
+  if (value.startsWith('custom:')) return { status: 'reviewing', customStageId: value.slice(7) }
+  return { status: value, customStageId: null }
+}
+
+function stageValueFor(application) {
+  return application.custom_stage_id ? `custom:${application.custom_stage_id}` : application.status
 }
 
 export default function RoleApplicants() {
@@ -25,6 +42,10 @@ export default function RoleApplicants() {
 
   const [role, setRole] = useState(null)
   const [applications, setApplications] = useState([])
+  const [pipelineStages, setPipelineStages] = useState([])
+  const [notesByCandidate, setNotesByCandidate] = useState({})
+  const [activityByCandidate, setActivityByCandidate] = useState({})
+  const [hires, setHires] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [updatingId, setUpdatingId] = useState(null)
@@ -32,6 +53,8 @@ export default function RoleApplicants() {
   const [pendingRejectionId, setPendingRejectionId] = useState(null)
   const [messagingApplication, setMessagingApplication] = useState(null)
   const [messageSent, setMessageSent] = useState(false)
+  const [notesOpenIds, setNotesOpenIds] = useState(new Set())
+  const [activityOpenIds, setActivityOpenIds] = useState(new Set())
 
   useEffect(() => {
     if (!user) return
@@ -57,13 +80,53 @@ export default function RoleApplicants() {
       const { data: apps, error: appsError } = await supabase
         .from('applications')
         .select(
-          'id, status, applied_at, viewed_at, candidate_profiles(id, user_id, username, full_name, avatar_url, job_title, current_company, skills, years_of_experience, availability)',
+          'id, status, custom_stage_id, applied_at, viewed_at, candidate_profiles(id, user_id, username, full_name, avatar_url, job_title, current_company, skills, years_of_experience, availability)',
         )
         .eq('role_id', roleId)
         .order('applied_at', { ascending: false })
 
-      if (appsError) setError(appsError.message)
-      else setApplications(apps || [])
+      if (appsError) {
+        setError(appsError.message)
+        setLoading(false)
+        return
+      }
+      setApplications(apps || [])
+
+      const candidateIds = (apps || []).map((a) => a.candidate_profiles?.id).filter(Boolean)
+
+      const [{ data: stages }, { data: notes }, { data: activity }, { data: hireRows }] = await Promise.all([
+        supabase.from('role_pipeline_stages').select('id, name, position').eq('role_id', roleId).order('position', { ascending: true }),
+        candidateIds.length > 0
+          ? supabase.from('candidate_notes').select('id, candidate_id, body, updated_at').eq('role_id', roleId)
+          : Promise.resolve({ data: [] }),
+        candidateIds.length > 0
+          ? supabase
+              .from('candidate_activity_log')
+              .select('id, candidate_id, event_type, detail, created_at')
+              .eq('employer_id', roleRow.employer_id)
+              .in('candidate_id', candidateIds)
+              .or(`role_id.eq.${roleId},role_id.is.null`)
+              .order('created_at', { ascending: false })
+          : Promise.resolve({ data: [] }),
+        supabase.from('hires').select('candidate_id, confirmed_at').eq('role_id', roleId),
+      ])
+
+      setPipelineStages(stages || [])
+
+      const noteMap = {}
+      ;(notes || []).forEach((n) => {
+        noteMap[n.candidate_id] = n
+      })
+      setNotesByCandidate(noteMap)
+
+      const activityMap = {}
+      ;(activity || []).forEach((e) => {
+        if (!activityMap[e.candidate_id]) activityMap[e.candidate_id] = []
+        activityMap[e.candidate_id].push(e)
+      })
+      setActivityByCandidate(activityMap)
+
+      setHires(hireRows || [])
       setLoading(false)
     }
 
@@ -90,11 +153,21 @@ export default function RoleApplicants() {
     })
   }
 
+  function toggleOpen(setter, id) {
+    setter((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
   // The employer's personal shortlist (used by Talent Feed and
   // /employer/shortlist) is a separate table from an application's status.
   // Setting an application to "Shortlisted" here — or moving it away from
   // that status — keeps the shortlist table in sync so both reflect the
-  // same state.
+  // same state. Custom pipeline stages never touch this: they only ever set
+  // status back to 'reviewing', which this already treats as "not shortlisted".
   async function syncShortlist(candidateId, newStatus, previousStatus) {
     if (!role?.employer_id || !candidateId) return
     if (newStatus === 'shortlisted' && previousStatus !== 'shortlisted') {
@@ -121,30 +194,34 @@ export default function RoleApplicants() {
     }
   }
 
-  async function changeStatus(applicationId, status) {
+  async function changeStatus(applicationId, rawValue) {
     const application = applications.find((a) => a.id === applicationId)
     const previousStatus = application?.status
+    const { status, customStageId } = parseStageValue(rawValue)
     setUpdatingId(applicationId)
     const { data, error: updateError } = await supabase
       .from('applications')
-      .update({ status })
+      .update({ status, custom_stage_id: customStageId })
       .eq('id', applicationId)
       .select()
       .single()
     if (!updateError) {
-      setApplications((prev) => prev.map((a) => (a.id === applicationId ? { ...a, status: data.status } : a)))
+      setApplications((prev) =>
+        prev.map((a) => (a.id === applicationId ? { ...a, status: data.status, custom_stage_id: data.custom_stage_id } : a)),
+      )
       await syncShortlist(application?.candidate_profiles?.id, status, previousStatus)
     }
     setUpdatingId(null)
   }
 
-  function handleStatusSelect(applicationId, newStatus) {
-    if (newStatus === 'rejected') {
+  function handleStatusSelect(applicationId, rawValue) {
+    const { status } = parseStageValue(rawValue)
+    if (status === 'rejected') {
       setPendingRejectionId(applicationId)
       return
     }
     setPendingRejectionId(null)
-    changeStatus(applicationId, newStatus)
+    changeStatus(applicationId, rawValue)
   }
 
   async function confirmRejection(applicationId, shouldNotify) {
@@ -194,6 +271,8 @@ export default function RoleApplicants() {
         {conversion !== null && ` · ${conversion}% view-to-apply`}
       </p>
 
+      <RoleAnalyticsPanel role={role} applications={applications} hires={hires} />
+
       {messageSent && (
         <p style={{ marginTop: 12, fontSize: 14, fontWeight: 600, color: '#0f7a3d' }}>Message sent</p>
       )}
@@ -236,6 +315,13 @@ export default function RoleApplicants() {
                 const c = a.candidate_profiles
                 if (!c) return null
                 const unviewed = !a.viewed_at
+                const customStage = a.custom_stage_id ? pipelineStages.find((s) => s.id === a.custom_stage_id) : null
+                const badgeLabel = customStage ? customStage.name : STATUS_LABELS[a.status]
+                const badgeColors = customStage ? CUSTOM_STAGE_COLOR : STATUS_COLORS[a.status]
+                const note = notesByCandidate[c.id]
+                const events = activityByCandidate[c.id] || []
+                const notesOpen = notesOpenIds.has(a.id)
+                const activityOpen = activityOpenIds.has(a.id)
                 return (
                   <div
                     key={a.id}
@@ -266,8 +352,8 @@ export default function RoleApplicants() {
                       <div style={{ flex: 1, minWidth: 200 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                           <p style={{ fontWeight: 700, fontSize: 16 }}>{c.full_name}</p>
-                          <span className="tag" style={{ fontSize: 11, ...STATUS_COLORS[a.status] }}>
-                            {STATUS_LABELS[a.status]}
+                          <span className="tag" style={{ fontSize: 11, ...badgeColors }}>
+                            {badgeLabel}
                           </span>
                         </div>
                         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>
@@ -294,7 +380,7 @@ export default function RoleApplicants() {
                       </div>
 
                       <div
-                        style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}
+                        style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
@@ -307,19 +393,70 @@ export default function RoleApplicants() {
                         </button>
                         <select
                           className="input"
-                          value={pendingRejectionId === a.id ? 'rejected' : a.status}
+                          value={pendingRejectionId === a.id ? 'rejected' : stageValueFor(a)}
                           disabled={updatingId === a.id}
                           onChange={(e) => handleStatusSelect(a.id, e.target.value)}
                           style={{ width: 'auto', padding: '8px 12px' }}
                         >
-                          {STATUSES.map((s) => (
-                            <option key={s} value={s}>
-                              {STATUS_LABELS[s]}
+                          <option value="applied">{STATUS_LABELS.applied}</option>
+                          <option value="reviewing">{STATUS_LABELS.reviewing}</option>
+                          {pipelineStages.map((s) => (
+                            <option key={s.id} value={`custom:${s.id}`}>
+                              {s.name}
                             </option>
                           ))}
+                          <option value="shortlisted">{STATUS_LABELS.shortlisted}</option>
+                          <option value="rejected">{STATUS_LABELS.rejected}</option>
                         </select>
                       </div>
                     </div>
+
+                    <div
+                      style={{ display: 'flex', gap: 8, marginTop: 14 }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        style={{ padding: '6px 10px', fontSize: 12 }}
+                        onClick={() => toggleOpen(setNotesOpenIds, a.id)}
+                      >
+                        {notesOpen ? 'Hide note' : note?.body ? 'View note' : 'Add note'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        style={{ padding: '6px 10px', fontSize: 12 }}
+                        onClick={() => toggleOpen(setActivityOpenIds, a.id)}
+                      >
+                        {activityOpen ? 'Hide activity' : `Activity${events.length > 0 ? ` (${events.length})` : ''}`}
+                      </button>
+                    </div>
+
+                    {notesOpen && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--color-border)' }}
+                      >
+                        <CandidateNoteBox
+                          employerId={role.employer_id}
+                          candidateId={c.id}
+                          roleId={role.id}
+                          userId={user.id}
+                          initialBody={note?.body || ''}
+                          initialUpdatedAt={note?.updated_at || null}
+                        />
+                      </div>
+                    )}
+
+                    {activityOpen && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--color-border)' }}
+                      >
+                        <CandidateActivityTimeline events={events} />
+                      </div>
+                    )}
 
                     {pendingRejectionId === a.id && (
                       <div
