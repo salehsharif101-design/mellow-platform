@@ -961,6 +961,19 @@ textarea.input:focus {
   margin-bottom: 24px;
 }
 
+/* Talent Feed list-view card's Shortlist/Message row — desktop only. The
+   card is already a column flex container, so margin-top:auto pushes this
+   row to the bottom regardless of how much content (skills, years of
+   experience, work videos) sits above it on a given candidate, keeping
+   every card's action row lined up at the same height. Mobile is
+   deliberately left alone (no override here), matching its current,
+   already-fine natural-flow position. */
+@media (min-width: 769px) {
+  .talent-list-card-actions {
+    margin-top: auto;
+  }
+}
+
 /* View toggle (talent feed grid/list, browse roles grid/list) */
 .view-toggle {
   display: flex;

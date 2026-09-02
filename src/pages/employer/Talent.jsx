@@ -17,6 +17,7 @@ const AVAILABILITY_OPTIONS = ['Immediately', 'Within a month', '1 to 3 months', 
 const WORK_STYLE_OPTIONS = ['Remote', 'Hybrid', 'On-site']
 const VIEW_MODE_KEY = 'mellow_talent_view_mode'
 const SWIPE_THRESHOLD = 80
+const SKILLS_SHOWN_COLLAPSED = 10
 
 function CheckIcon() {
   return (
@@ -63,6 +64,7 @@ export default function TalentFeed() {
 
   const [searchQuery, setSearchQuery] = useState('')
   const [activeSkills, setActiveSkills] = useState(new Set())
+  const [showAllSkills, setShowAllSkills] = useState(false)
   const [activeAvailability, setActiveAvailability] = useState(new Set())
   const [activeWorkStyle, setActiveWorkStyle] = useState(new Set())
 
@@ -175,11 +177,18 @@ export default function TalentFeed() {
     return calculateMatchScore(candidate, selectedRole)
   }
 
+  // Ranked by how many candidates have each skill, most common first —
+  // the filter bar only shows the top SKILLS_SHOWN_COLLAPSED by default
+  // (see showAllSkills) so a platform with a long tail of one-off skills
+  // doesn't turn this into a wall of tags.
   const allSkills = useMemo(() => {
-    const set = new Set()
-    candidates.forEach((c) => c.skills.forEach((s) => set.add(s)))
-    return Array.from(set).sort()
+    const counts = new Map()
+    candidates.forEach((c) => c.skills.forEach((s) => counts.set(s, (counts.get(s) || 0) + 1)))
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([skill]) => skill)
   }, [candidates])
+  const visibleSkills = showAllSkills ? allSkills : allSkills.slice(0, SKILLS_SHOWN_COLLAPSED)
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
@@ -403,23 +412,43 @@ export default function TalentFeed() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
         {allSkills.length > 0 && (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {allSkills.map((skill) => (
+          <div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {visibleSkills.map((skill) => (
+                <button
+                  key={skill}
+                  type="button"
+                  onClick={() => toggleSkill(skill)}
+                  className="tag"
+                  style={{
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: activeSkills.has(skill) ? 'var(--color-primary)' : 'var(--color-bg-soft)',
+                    color: activeSkills.has(skill) ? '#fff' : 'var(--color-primary)',
+                  }}
+                >
+                  {skill}
+                </button>
+              ))}
+            </div>
+            {allSkills.length > SKILLS_SHOWN_COLLAPSED && (
               <button
-                key={skill}
                 type="button"
-                onClick={() => toggleSkill(skill)}
-                className="tag"
+                onClick={() => setShowAllSkills((prev) => !prev)}
                 style={{
+                  background: 'none',
                   border: 'none',
+                  color: 'var(--color-primary)',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  padding: 0,
+                  marginTop: 8,
                   cursor: 'pointer',
-                  background: activeSkills.has(skill) ? 'var(--color-primary)' : 'var(--color-bg-soft)',
-                  color: activeSkills.has(skill) ? '#fff' : 'var(--color-primary)',
                 }}
               >
-                {skill}
+                {showAllSkills ? 'Show less' : `Show more (${allSkills.length - SKILLS_SHOWN_COLLAPSED})`}
               </button>
-            ))}
+            )}
           </div>
         )}
 
@@ -689,7 +718,7 @@ export default function TalentFeed() {
                   </div>
                 )}
 
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                <div className="talent-list-card-actions" style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                   <button
                     type="button"
                     className="btn btn-ghost"
