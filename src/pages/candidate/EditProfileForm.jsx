@@ -394,9 +394,11 @@ function OpenToOpportunitiesSection({ profile, onUpdated }) {
     <section>
       <div className="card" style={{ padding: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
         <div>
-          <h3 style={{ fontSize: 16 }}>Open to opportunities</h3>
+          <h3 style={{ fontSize: 16 }}>{isOpen ? 'Open to opportunities' : 'Hidden from employers'}</h3>
           <p style={{ marginTop: 4, fontSize: 13, color: 'var(--color-text-muted)' }}>
-            {isOpen ? 'Your profile is visible to employers' : 'Your profile is hidden from employers'}
+            {isOpen
+              ? 'Your profile is visible in the talent feed. Employers can discover and reach out to you directly.'
+              : "You won't appear in the talent feed but you can still browse and apply to roles. Employers can still see your profile if you apply to their role."}
           </p>
         </div>
         <button
