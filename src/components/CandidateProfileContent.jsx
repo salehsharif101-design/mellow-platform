@@ -31,6 +31,7 @@ export default function CandidateProfileContent({ profile, videos = [], isOwner 
               <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>
                 {profile.current_company ? `${profile.job_title} at ${profile.current_company}` : profile.job_title}
                 {profile.location && ` · ${profile.location}`}
+                {profile.nationality && ` · ${profile.nationality}`}
                 {profile.years_of_experience && ` · ${profile.years_of_experience}`}
               </p>
 

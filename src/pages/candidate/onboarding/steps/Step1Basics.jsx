@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../../../lib/supabase.js'
 import { useDraftAutosave } from '../../../../lib/useDraftAutosave.js'
+import { COUNTRIES } from '../../../../lib/countries.js'
 
 const AVAILABILITY_OPTIONS = ['Immediately', 'Within a month', '1 to 3 months', 'Just exploring']
 const WORK_STYLE_OPTIONS = ['Remote', 'Hybrid', 'On-site']
@@ -13,6 +14,7 @@ export default function Step1Basics({ initial, onContinue, saving }) {
   const [currentCompany, setCurrentCompany] = useState(initial.current_company || '')
   const [yearsOfExperience, setYearsOfExperience] = useState(initial.years_of_experience || '')
   const [location, setLocation] = useState(initial.location || '')
+  const [nationality, setNationality] = useState(initial.nationality || '')
   const [bio, setBio] = useState(initial.bio || '')
   const [headline, setHeadline] = useState(initial.headline || '')
   const [proudOf, setProudOf] = useState(initial.proud_of || '')
@@ -36,6 +38,7 @@ export default function Step1Basics({ initial, onContinue, saving }) {
       current_company: currentCompany.trim() || null,
       years_of_experience: yearsOfExperience || null,
       location: location.trim(),
+      nationality: nationality || null,
       bio: bio.trim(),
       headline: headline.trim() || null,
       proud_of: proudOf.trim() || null,
@@ -62,6 +65,7 @@ export default function Step1Basics({ initial, onContinue, saving }) {
       currentCompany,
       yearsOfExperience,
       location,
+      nationality,
       bio,
       headline,
       proudOf,
@@ -140,6 +144,23 @@ export default function Step1Basics({ initial, onContinue, saving }) {
           placeholder="Lisbon, Portugal"
           required
         />
+      </div>
+      <div className="field">
+        <label htmlFor="nationality">Nationality (optional)</label>
+        <input
+          id="nationality"
+          className="input"
+          list="nationality-options"
+          value={nationality}
+          onChange={(e) => setNationality(e.target.value)}
+          placeholder="Start typing a country..."
+          autoComplete="off"
+        />
+        <datalist id="nationality-options">
+          {COUNTRIES.map((c) => (
+            <option key={c} value={c} />
+          ))}
+        </datalist>
       </div>
       <div className="field">
         <label htmlFor="bio">Bio (2-3 sentences)</label>

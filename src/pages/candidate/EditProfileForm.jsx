@@ -6,6 +6,7 @@ import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
 import VideoRecorderModal from '../../components/VideoRecorderModal.jsx'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
 import { deleteAccount } from '../../lib/deleteAccount.js'
+import { COUNTRIES } from '../../lib/countries.js'
 
 const MAX_SKILLS = 10
 const PROFICIENCIES = ['basic', 'conversational', 'fluent', 'native']
@@ -25,6 +26,7 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
   const [yearsOfExperience, setYearsOfExperience] = useState(profile.years_of_experience || '')
   const [availability, setAvailability] = useState(profile.availability || '')
   const [location, setLocation] = useState(profile.location || '')
+  const [nationality, setNationality] = useState(profile.nationality || '')
   const [bio, setBio] = useState(profile.bio || '')
   const [headline, setHeadline] = useState(profile.headline || '')
   const [proudOf, setProudOf] = useState(profile.proud_of || '')
@@ -107,6 +109,7 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
         years_of_experience: yearsOfExperience || null,
         availability: availability || null,
         location: location.trim(),
+        nationality: nationality || null,
         bio: bio.trim(),
         headline: headline.trim() || null,
         proud_of: proudOf.trim() || null,
@@ -160,6 +163,8 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
         setAvailability={setAvailability}
         location={location}
         setLocation={setLocation}
+        nationality={nationality}
+        setNationality={setNationality}
         bio={bio}
         setBio={setBio}
         headline={headline}
@@ -456,6 +461,8 @@ function BasicsSection({
   setAvailability,
   location,
   setLocation,
+  nationality,
+  setNationality,
   bio,
   setBio,
   headline,
@@ -535,6 +542,22 @@ function BasicsSection({
             onChange={(e) => setLocation(e.target.value)}
             style={fieldStyle(errorField === 'location')}
           />
+        </div>
+        <div className="field">
+          <label>Nationality (optional)</label>
+          <input
+            className="input"
+            list="nationality-options"
+            value={nationality}
+            onChange={(e) => setNationality(e.target.value)}
+            placeholder="Start typing a country..."
+            autoComplete="off"
+          />
+          <datalist id="nationality-options">
+            {COUNTRIES.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
         </div>
         <div className="field">
           <label>Bio</label>
