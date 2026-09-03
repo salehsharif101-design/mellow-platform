@@ -192,7 +192,7 @@ export default function TalentFeed() {
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
-    return candidates.filter((c) => {
+    const matches = candidates.filter((c) => {
       const matchesSearch =
         !q ||
         [c.full_name, c.job_title, c.location, ...(c.skills || [])]
@@ -205,7 +205,23 @@ export default function TalentFeed() {
       const matchesWorkStyle = activeWorkStyle.size === 0 || (c.work_style || []).some((w) => activeWorkStyle.has(w))
       return matchesSearch && matchesSkills && matchesAvailability && matchesWorkStyle
     })
-  }, [candidates, searchQuery, activeSkills, activeAvailability, activeWorkStyle])
+
+    if (!selectedRole) return matches
+
+    // Highest match score first, across every view (grid/list/quick screen
+    // all read this same `filtered` array) — candidates with no score
+    // (shouldn't happen once a scorable role is selected, but guarded
+    // anyway) sink to the end and otherwise keep their original relative
+    // order, via a stable decorate-sort-undecorate so ties don't reshuffle.
+    return matches
+      .map((c, index) => ({ c, index, score: calculateMatchScore(c, selectedRole) }))
+      .sort((a, b) => {
+        if (a.score === null) return b.score === null ? a.index - b.index : 1
+        if (b.score === null) return -1
+        return b.score - a.score || a.index - b.index
+      })
+      .map((entry) => entry.c)
+  }, [candidates, searchQuery, activeSkills, activeAvailability, activeWorkStyle, selectedRole])
 
   function toggleSkill(skill) {
     setActiveSkills((prev) => {
