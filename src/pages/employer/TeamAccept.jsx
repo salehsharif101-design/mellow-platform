@@ -172,8 +172,7 @@ export default function TeamAccept() {
       <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
         <h1 style={{ fontSize: 26 }}>Check your inbox</h1>
         <p style={{ marginTop: 12, color: 'var(--color-text-muted)' }}>
-          We sent a confirmation link to <strong>{invite.invitedEmail}</strong>. Click it, then come back to this
-          same invitation link to finish joining {invite.companyName}.
+          We sent a confirmation link to <strong>{invite.invitedEmail}</strong>. Click it to activate your account.
         </p>
         <ResendConfirmationButton
           onResend={() => resendConfirmation(invite.invitedEmail, `https://beta.joinmellow.xyz/employer/team/accept?token=${token}`)}
