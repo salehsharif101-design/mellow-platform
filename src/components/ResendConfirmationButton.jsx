@@ -7,7 +7,7 @@ const COOLDOWN_SECONDS = 60
 // button is replaced by a countdown for COOLDOWN_SECONDS, then reappears
 // so they can send it again — there's no cap on how many times, just a
 // pace-limiter so the button can't be mashed.
-export default function ResendConfirmationButton({ onResend, label = 'Resend confirmation email' }) {
+export default function ResendConfirmationButton({ onResend, onSuccess, disabled = false, label = 'Resend confirmation email' }) {
   const [resending, setResending] = useState(false)
   const [secondsLeft, setSecondsLeft] = useState(0)
   const [error, setError] = useState('')
@@ -39,6 +39,7 @@ export default function ResendConfirmationButton({ onResend, label = 'Resend con
     try {
       await onResend()
       startCountdown()
+      onSuccess?.()
     } catch (err) {
       // supabase-js's AuthRetryableFetchError (thrown for 5xx responses,
       // e.g. when Supabase's own mailer is down or rate-limited) surfaces
@@ -61,7 +62,7 @@ export default function ResendConfirmationButton({ onResend, label = 'Resend con
       {secondsLeft > 0 ? (
         <p style={{ fontSize: 14, color: 'var(--color-text-muted)', fontWeight: 600 }}>Resend again in {secondsLeft}s</p>
       ) : (
-        <button type="button" className="btn btn-ghost" onClick={handleClick} disabled={resending}>
+        <button type="button" className="btn btn-ghost" onClick={handleClick} disabled={resending || disabled}>
           {resending ? 'Sending…' : label}
         </button>
       )}

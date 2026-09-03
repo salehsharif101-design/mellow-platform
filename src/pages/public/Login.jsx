@@ -6,6 +6,8 @@ import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { useRedirectIfAuthenticated } from '../../lib/useRedirectIfAuthenticated.js'
 import { useHideChrome } from '../../components/Layout.jsx'
 import { suppressNextAuthRedirect } from '../../lib/authRedirectGuard.js'
+import Logo from '../../components/Logo.jsx'
+import ResendConfirmationButton from '../../components/ResendConfirmationButton.jsx'
 
 export default function Login() {
   const [searchParams] = useSearchParams()
@@ -23,18 +25,19 @@ export default function Login() {
   // (it needs to send a just-confirmed employer to onboarding, not just the
   // dashboard) — skipped here so the two don't race each other.
   const checkingSession = useRedirectIfAuthenticated(confirmedParam)
-  // The shared header renders its logged-out "Log in / Sign up" links the
-  // instant AuthContext mounts, before its own session check has resolved —
-  // completely independent of the checkingConfirmation gate below, which
-  // only ever controlled this page's own content. Without this, that header
-  // could still flash while a confirmation link is being processed, even
-  // though the page body itself never rendered anything. Hidden for exactly
-  // the same window checkingConfirmation blocks the form.
-  useHideChrome(checkingConfirmation)
+  // The shared header shows the fully authenticated nav (dashboard, messages,
+  // account menu) whenever AuthContext's session is truthy, with no idea it's
+  // rendering on the login page — e.g. someone with an existing session in
+  // this browser who lands here via an unrelated/expired confirmation link.
+  // The login page should never show that nav, so chrome stays hidden for
+  // this component's entire lifetime rather than just the confirmation-
+  // checking window; Logo below replaces the header's own logo link.
+  useHideChrome()
   const [needsResend, setNeedsResend] = useState(false)
   const [resending, setResending] = useState(false)
   const [resendSent, setResendSent] = useState(false)
   const [invalidLink, setInvalidLink] = useState(false)
+  const [resentFromExpiredLink, setResentFromExpiredLink] = useState(false)
 
   const { signIn, resendConfirmation } = useAuth()
   const navigate = useNavigate()
@@ -137,6 +140,53 @@ export default function Login() {
 
   if (checkingConfirmation || checkingSession) return null
 
+  if (invalidLink) {
+    if (resentFromExpiredLink) {
+      return (
+        <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
+          <Link to="/" style={{ display: 'inline-block', marginBottom: 32 }}>
+            <Logo size={28} />
+          </Link>
+          <h1 style={{ fontSize: 28 }}>Check your inbox</h1>
+          <p style={{ marginTop: 12, color: 'var(--color-text-muted)' }}>
+            We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account, then log in
+            to continue.
+          </p>
+          <ResendConfirmationButton onResend={() => resendConfirmation(email)} />
+        </div>
+      )
+    }
+    return (
+      <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
+        <Link to="/" style={{ display: 'inline-block', marginBottom: 32 }}>
+          <Logo size={28} />
+        </Link>
+        <h1 style={{ fontSize: 28 }}>Confirmation link expired</h1>
+        <p style={{ marginTop: 12, color: 'var(--color-text-muted)' }}>
+          This confirmation link has expired or already been used. Enter your email to resend a new one.
+        </p>
+        <div className="field" style={{ marginTop: 24, textAlign: 'left' }}>
+          <label htmlFor="resend-email">Email</label>
+          <input
+            id="resend-email"
+            className="input"
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div style={{ textAlign: 'left' }}>
+          <ResendConfirmationButton
+            onResend={() => resendConfirmation(email)}
+            onSuccess={() => setResentFromExpiredLink(true)}
+            disabled={!email}
+          />
+        </div>
+      </div>
+    )
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
@@ -224,6 +274,9 @@ export default function Login() {
 
   return (
     <div className="section" style={{ maxWidth: 420, margin: '0 auto' }}>
+      <Link to="/" style={{ display: 'inline-block', marginBottom: 24 }}>
+        <Logo size={28} />
+      </Link>
       <h1 style={{ fontSize: 28 }}>
         Sign in as {type === 'employer' ? 'an employer' : 'talent'}
       </h1>
@@ -246,11 +299,6 @@ export default function Login() {
           }}
         >
           Your email is confirmed. Sign in to get started.
-        </p>
-      )}
-      {invalidLink && !resendSent && (
-        <p className="form-error" style={{ marginTop: 16 }}>
-          That confirmation link is invalid or has already been used. Enter your email below and resend it.
         </p>
       )}
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 24 }}>
@@ -290,7 +338,7 @@ export default function Login() {
           Confirmation email sent — check your inbox.
         </p>
       ) : (
-        (needsResend || invalidLink) && (
+        needsResend && (
           <button
             type="button"
             className="btn btn-ghost"
