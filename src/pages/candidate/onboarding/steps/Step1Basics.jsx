@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../../../../lib/supabase.js'
 import { useDraftAutosave } from '../../../../lib/useDraftAutosave.js'
-import { COUNTRIES } from '../../../../lib/countries.js'
 
 const AVAILABILITY_OPTIONS = ['Immediately', 'Within a month', '1 to 3 months', 'Just exploring']
 const WORK_STYLE_OPTIONS = ['Remote', 'Hybrid', 'On-site']
@@ -150,17 +149,10 @@ export default function Step1Basics({ initial, onContinue, saving }) {
         <input
           id="nationality"
           className="input"
-          list="nationality-options"
           value={nationality}
           onChange={(e) => setNationality(e.target.value)}
-          placeholder="Start typing a country..."
-          autoComplete="off"
+          placeholder="e.g. Bahraini"
         />
-        <datalist id="nationality-options">
-          {COUNTRIES.map((c) => (
-            <option key={c} value={c} />
-          ))}
-        </datalist>
       </div>
       <div className="field">
         <label htmlFor="bio">Bio (2-3 sentences)</label>

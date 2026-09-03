@@ -6,7 +6,6 @@ import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
 import VideoRecorderModal from '../../components/VideoRecorderModal.jsx'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
 import { deleteAccount } from '../../lib/deleteAccount.js'
-import { COUNTRIES } from '../../lib/countries.js'
 
 const MAX_SKILLS = 10
 const PROFICIENCIES = ['basic', 'conversational', 'fluent', 'native']
@@ -547,17 +546,10 @@ function BasicsSection({
           <label>Nationality (optional)</label>
           <input
             className="input"
-            list="nationality-options"
             value={nationality}
             onChange={(e) => setNationality(e.target.value)}
-            placeholder="Start typing a country..."
-            autoComplete="off"
+            placeholder="e.g. Bahraini"
           />
-          <datalist id="nationality-options">
-            {COUNTRIES.map((c) => (
-              <option key={c} value={c} />
-            ))}
-          </datalist>
         </div>
         <div className="field">
           <label>Bio</label>
