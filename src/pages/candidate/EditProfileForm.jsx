@@ -398,7 +398,7 @@ function OpenToOpportunitiesSection({ profile, onUpdated }) {
           <p style={{ marginTop: 4, fontSize: 13, color: 'var(--color-text-muted)' }}>
             {isOpen
               ? 'Your profile is visible in the talent feed. Employers can discover and reach out to you directly.'
-              : "You won't appear in the talent feed but you can still browse and apply to roles. Employers can still see your profile if you apply to their role."}
+              : "You won't appear in the talent feed but you can still browse and apply to roles. Only the employers you apply to can see your profile."}
           </p>
         </div>
         <button
