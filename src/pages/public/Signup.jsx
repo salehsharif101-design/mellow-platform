@@ -5,6 +5,7 @@ import { NEW_USER_HINT_KEYS } from '../../components/NavHighlight.jsx'
 import { useRedirectIfAuthenticated } from '../../lib/useRedirectIfAuthenticated.js'
 import { useHideChrome } from '../../components/Layout.jsx'
 import Logo from '../../components/Logo.jsx'
+import ResendConfirmationButton from '../../components/ResendConfirmationButton.jsx'
 
 const PASSWORD_REQUIREMENT_MESSAGE = 'Password must be at least 8 characters and include a number or special character'
 
@@ -24,7 +25,7 @@ export default function Signup() {
   const [loading, setLoading] = useState(false)
   const [needsConfirmation, setNeedsConfirmation] = useState(false)
 
-  const { signUp } = useAuth()
+  const { signUp, resendConfirmation } = useAuth()
   const navigate = useNavigate()
   const checkingSession = useRedirectIfAuthenticated()
   // The account isn't fully signed in yet at this point — no session exists
@@ -100,6 +101,7 @@ export default function Signup() {
         <Link to={`/login?type=${userType}`} className="btn btn-primary" style={{ marginTop: 24, display: 'inline-flex' }}>
           Go to login
         </Link>
+        <ResendConfirmationButton onResend={() => resendConfirmation(email)} />
       </div>
     )
   }

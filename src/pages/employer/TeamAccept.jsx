@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import ResendConfirmationButton from '../../components/ResendConfirmationButton.jsx'
 
 const PASSWORD_REQUIREMENT_MESSAGE = 'Password must be at least 8 characters and include a number or special character'
 
@@ -22,8 +23,6 @@ export default function TeamAccept() {
   const [submitting, setSubmitting] = useState(false)
   const [needsConfirmation, setNeedsConfirmation] = useState(false)
   const [accepted, setAccepted] = useState(false)
-  const [resending, setResending] = useState(false)
-  const [resendSent, setResendSent] = useState(false)
 
   useEffect(() => {
     if (!token) {
@@ -118,24 +117,6 @@ export default function TeamAccept() {
     }
   }
 
-  async function handleResend() {
-    setError('')
-    setResending(true)
-    try {
-      await resendConfirmation(invite.invitedEmail, `https://beta.joinmellow.xyz/employer/team/accept?token=${token}`)
-      setResendSent(true)
-    } catch (err) {
-      // supabase-js's AuthRetryableFetchError (thrown for 5xx responses,
-      // e.g. when Supabase's own mailer is down or rate-limited) surfaces
-      // the raw response body as .message instead of anything readable —
-      // "{}" is a common case. Fall back to a plain message rather than
-      // showing that.
-      setError(/^\s*\{.*\}\s*$/.test(err.message) ? 'Could not send the email right now. Please try again in a moment.' : err.message)
-    } finally {
-      setResending(false)
-    }
-  }
-
   if (loading) return null
 
   // Already signed in with a matching, not-yet-active session — the effect
@@ -180,22 +161,9 @@ export default function TeamAccept() {
           We sent a confirmation link to <strong>{invite.invitedEmail}</strong>. Click it, then come back to this
           same invitation link to finish joining {invite.companyName}.
         </p>
-        {error && <p className="form-error" style={{ marginTop: 16 }}>{error}</p>}
-        {resendSent ? (
-          <p style={{ marginTop: 16, fontSize: 14, color: 'var(--color-primary)', fontWeight: 600 }}>
-            Email resent — check your inbox.
-          </p>
-        ) : (
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={handleResend}
-            disabled={resending}
-            style={{ marginTop: 16 }}
-          >
-            {resending ? 'Sending…' : 'Resend confirmation email'}
-          </button>
-        )}
+        <ResendConfirmationButton
+          onResend={() => resendConfirmation(invite.invitedEmail, `https://beta.joinmellow.xyz/employer/team/accept?token=${token}`)}
+        />
       </div>
     )
   }
