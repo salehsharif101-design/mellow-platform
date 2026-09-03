@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
-import { supabase } from '../../lib/supabase.js'
+import { supabase, previousSession } from '../../lib/supabase.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { useRedirectIfAuthenticated } from '../../lib/useRedirectIfAuthenticated.js'
 import { useHideChrome } from '../../components/Layout.jsx'
-import { suppressNextAuthRedirect } from '../../lib/authRedirectGuard.js'
+import { suppressNextAuthRedirect, suppressAuthRedirectsFor } from '../../lib/authRedirectGuard.js'
 import Logo from '../../components/Logo.jsx'
 import ResendConfirmationButton from '../../components/ResendConfirmationButton.jsx'
+import WrongAccountNotice from '../../components/WrongAccountNotice.jsx'
 
 export default function Login() {
   const [searchParams] = useSearchParams()
@@ -38,6 +39,15 @@ export default function Login() {
   const [resendSent, setResendSent] = useState(false)
   const [invalidLink, setInvalidLink] = useState(false)
   const [resentFromExpiredLink, setResentFromExpiredLink] = useState(false)
+  const [wrongAccountEmail, setWrongAccountEmail] = useState(null)
+  // Guards routeToDestination against running twice — React StrictMode's
+  // dev-mode double-invoke of the confirmation effect below creates two
+  // separate closures, each able to call it via their own
+  // onAuthStateChange listener and getSession() fallback, and a plain
+  // `let` inside the effect only dedupes within ONE of those two
+  // invocations. A ref is shared across both, since it belongs to the
+  // component instance rather than either effect run.
+  const routedRef = useRef(false)
 
   const { signIn, resendConfirmation } = useAuth()
   const navigate = useNavigate()
@@ -73,13 +83,34 @@ export default function Login() {
     // opt-out here too, or it would race this effect's onboarding-aware one.
     suppressNextAuthRedirect()
     let cancelled = false
-    // getSession() and the SIGNED_IN listener below can both resolve with
-    // the same session — this guards against routing twice.
-    let routed = false
 
     async function routeToDestination(confirmedSession) {
-      if (routed) return
-      routed = true
+      if (routedRef.current) return
+      routedRef.current = true
+
+      if (
+        previousSession?.user?.email &&
+        previousSession.user.email.toLowerCase() !== confirmedSession.user.email.toLowerCase()
+      ) {
+        // A different account was already signed in on this device before
+        // this link's own tokens took over. The confirmation itself already
+        // succeeded server-side regardless of what happens here, so there's
+        // no need to preserve or restore either account's tokens — just
+        // sign out of whatever's now active (the just-confirmed account)
+        // and let them continue with whichever account they meant to use.
+        // previousSession.user.email was captured before any of this, so
+        // it's still available to display even once signed out. A sticky
+        // window (not a single-shot arm) because this link's own hash
+        // processing can still have an event or two of its own in flight
+        // right now, ahead of this signOut()'s.
+        suppressAuthRedirectsFor(3000)
+        await supabase.auth.signOut({ scope: 'local' })
+        if (cancelled) return
+        setWrongAccountEmail(previousSession.user.email)
+        setCheckingConfirmation(false)
+        return
+      }
+
       const { data: row } = await supabase
         .from('users')
         .select('user_type')
@@ -139,6 +170,17 @@ export default function Login() {
   }, [confirmedParam, invalidLink, navigate])
 
   if (checkingConfirmation || checkingSession) return null
+
+  if (wrongAccountEmail) {
+    return (
+      <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
+        <Link to="/" style={{ display: 'inline-block', marginBottom: 32 }}>
+          <Logo size={28} />
+        </Link>
+        <WrongAccountNotice currentEmail={wrongAccountEmail} onSignOut={() => setWrongAccountEmail(null)} />
+      </div>
+    )
+  }
 
   if (invalidLink) {
     if (resentFromExpiredLink) {

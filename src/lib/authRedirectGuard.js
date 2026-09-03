@@ -27,7 +27,24 @@ export function suppressNextAuthRedirect() {
   }, 2000)
 }
 
+// A page landing straight from an auth link (confirmation, invite, password
+// recovery) can see more than one onAuthStateChange event fire in quick,
+// unpredictable succession — the link's own hash establishing a session,
+// then a page reacting to a mismatched account by signing out of it, or
+// signing back into a different one. suppressNextAuthRedirect()'s one-shot
+// flag only ever covers whichever of those events happens to land first,
+// leaving the others free to trigger AuthContext's generic redirect. Use
+// this instead when a flow is about to trigger more than one such change in
+// a row: it stays armed for the whole window rather than clearing on the
+// first event it catches.
+let stickyUntil = 0
+
+export function suppressAuthRedirectsFor(ms) {
+  stickyUntil = Date.now() + ms
+}
+
 export function consumeAuthRedirectSuppression() {
+  if (Date.now() < stickyUntil) return true
   if (!suppressed) return false
   suppressed = false
   clearTimeout(clearTimer)

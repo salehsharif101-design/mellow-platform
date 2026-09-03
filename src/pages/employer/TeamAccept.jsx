@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import ResendConfirmationButton from '../../components/ResendConfirmationButton.jsx'
+import WrongAccountNotice from '../../components/WrongAccountNotice.jsx'
 
 const PASSWORD_REQUIREMENT_MESSAGE = 'Password must be at least 8 characters and include a number or special character'
 
@@ -135,6 +136,19 @@ export default function TeamAccept() {
       <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
         <h1 style={{ fontSize: 26 }}>Invitation not found</h1>
         <p className="form-error" style={{ marginTop: 12 }}>{error}</p>
+      </div>
+    )
+  }
+
+  // Someone else's account is signed in on this device — accepting or
+  // setting a password here would act on the wrong account entirely, so
+  // this takes priority over every other state below, including an
+  // already-accepted invite.
+  const emailMismatch = session && invite && (session.user.email || '').toLowerCase() !== invite.invitedEmail.toLowerCase()
+  if (emailMismatch) {
+    return (
+      <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
+        <WrongAccountNotice currentEmail={session.user.email} />
       </div>
     )
   }
