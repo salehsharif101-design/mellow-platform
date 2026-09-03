@@ -5,9 +5,9 @@ import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
 import VideoRecorderModal from '../../components/VideoRecorderModal.jsx'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
+import SkillsTagInput from '../../components/SkillsTagInput.jsx'
 import { deleteAccount } from '../../lib/deleteAccount.js'
 
-const MAX_SKILLS = 10
 const PROFICIENCIES = ['basic', 'conversational', 'fluent', 'native']
 const EDUCATION_LEVELS = ['High School', 'Diploma', "Bachelor's", "Master's", 'PhD', 'Self-taught', 'Other']
 const YEARS_OF_EXPERIENCE_OPTIONS = ['Less than 1 year', '1-3 years', '3-5 years', '5-10 years', '10+ years']
@@ -648,65 +648,18 @@ function EducationSection({
 }
 
 function SkillsSection({ skills, setSkills, errorField, fieldRefs }) {
-  const [input, setInput] = useState('')
-
-  function addSkill() {
-    const value = input.trim()
-    if (!value) return
-    setSkills((prev) => {
-      if (prev.length >= MAX_SKILLS) return prev
-      if (prev.some((s) => s.toLowerCase() === value.toLowerCase())) return prev
-      return [...prev, value]
-    })
-    setInput('')
-  }
-
-  function handleKeyDown(e) {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      addSkill()
-    } else if (e.key === 'Backspace' && !input) {
-      setSkills((prev) => prev.slice(0, -1))
-    }
-  }
-
   return (
     <section id="skills-section">
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Skills</h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
-        <div className="field">
-          <label>Skills</label>
-          <input
-            ref={fieldRefs.skills}
-            className="input"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={skills.length >= MAX_SKILLS ? 'Limit reached' : 'Type a skill and hit enter'}
-            disabled={skills.length >= MAX_SKILLS}
-            style={fieldStyle(errorField === 'skills')}
-          />
-          <p style={{ marginTop: 4, fontSize: 12, color: 'var(--color-text-muted)' }}>
-            {skills.length}/{MAX_SKILLS} — at least one required
-          </p>
-        </div>
-        {skills.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {skills.map((skill) => (
-              <span key={skill} className="tag">
-                {skill}
-                <button
-                  type="button"
-                  onClick={() => setSkills((prev) => prev.filter((s) => s !== skill))}
-                  aria-label={`Remove ${skill}`}
-                  style={{ background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 700, padding: 0 }}
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
+      <div style={{ maxWidth: 420 }}>
+        <SkillsTagInput
+          label="Skills"
+          value={skills}
+          onChange={setSkills}
+          required
+          inputRef={fieldRefs.skills}
+          inputStyle={fieldStyle(errorField === 'skills')}
+        />
       </div>
     </section>
   )

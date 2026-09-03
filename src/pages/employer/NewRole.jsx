@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { notify } from '../../lib/notify.js'
 import { getCachedPage, setCachedPage } from '../../lib/dashboardCache.js'
-import SkillsPicker from '../../components/SkillsPicker.jsx'
+import SkillsTagInput from '../../components/SkillsTagInput.jsx'
 import FormPageSkeleton from '../../components/FormPageSkeleton.jsx'
 
 const ROLE_TYPES = ['full-time', 'part-time', 'contract', 'freelance']
@@ -188,7 +188,7 @@ export default function NewRole() {
               />
             </div>
             <div className="field">
-              <SkillsPicker label="Skills required" value={requiredSkills} onChange={setRequiredSkills} required />
+              <SkillsTagInput label="Skills required" value={requiredSkills} onChange={setRequiredSkills} required />
               <p style={{ marginTop: 4, fontSize: 12, color: 'var(--color-text-muted)' }}>
                 Candidates in your talent feed are scored against these skills, so add at least one to see match
                 scores.

@@ -584,6 +584,11 @@ textarea.input:focus {
   font-weight: 600;
 }
 
+/* SkillsTagInput's suggestion dropdown items */
+.skill-suggestion-item:hover {
+  background: var(--color-bg-soft);
+}
+
 /* User account dropdown */
 .dropdown-item {
   display: block;
