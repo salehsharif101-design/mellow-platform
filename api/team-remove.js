@@ -7,27 +7,26 @@
 // employer_team_members row to status 'removed' — every RLS policy that
 // grants team access keys off status = 'active', so this alone locks them
 // out of employer actions before the auth account is even touched. Their
-// Supabase Auth account is then deleted entirely so the email is completely
-// free for a fresh signup; that deletion cascades away the users row, but
+// Supabase Auth account is then deleted entirely (via deleteAuthAccount,
+// which also clears the couple of tables that would otherwise block that
+// delete outright — see api/_lib/db.js) so the email is completely free for
+// a fresh signup; that deletion cascades away the users row, but
 // employer_team_members.user_id is "on delete set null" (migration 0046),
 // not cascade — so this row survives as a permanent tombstone (status
 // 'removed', user_id null) rather than disappearing. That's deliberate:
 // api/check-removed-member.js and Login.jsx need it to keep blocking
 // sign-in with that email even once the auth account is long gone, and the
 // Team page's own list query filters status = 'removed' back out so it
-// never shows up there again. If the auth deletion itself fails, the same
-// 'removed' row is left behind as a fallback marker either way.
+// never shows up there again. If the auth deletion itself still fails for
+// some other reason, the same 'removed' row is left behind as a fallback
+// marker either way — see check-email.js, which recognizes and retries
+// that exact case rather than leaving the email permanently stuck.
 //
 // A member who never accepted their invite (no linked auth account yet) has
 // nothing to revoke or delete — their row is just removed outright.
 
 import { createClient } from '@supabase/supabase-js'
-
-function getServiceClient() {
-  return createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-}
+import { getServiceClient, deleteAuthAccount } from './_lib/db.js'
 
 function getAnonClient() {
   return createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY, {
@@ -132,7 +131,7 @@ export default async function handler(req, res) {
       .eq('id', member.id)
     if (statusError) throw new Error(statusError.message)
 
-    const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(member.user_id)
+    const { error: deleteAuthError } = await deleteAuthAccount(supabase, member.user_id)
     if (deleteAuthError) {
       res.statusCode = 200
       res.end(JSON.stringify({ success: true, authDeleted: false }))

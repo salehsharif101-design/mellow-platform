@@ -29,3 +29,21 @@ export async function getEmployerContact(supabase, employerId) {
   const employerUser = unwrap(await supabase.from('users').select('email').eq('id', employer.user_id).single())
   return { email: employerUser.email, companyName: employer.company_name }
 }
+
+// Deletes a user's Supabase Auth account, which cascades away their
+// public.users row (see migration 0001) — used when removing a team member
+// (api/team-remove.js) and, defensively, when check-email.js finds one
+// still stuck. public.users.id cascades cleanly, but a couple of other
+// tables reference it with no "on delete" behavior of their own
+// (candidate_notes.author_id, candidate_activity_log.actor_user_id — see
+// migrations 0057/0058), so deleteUser() fails outright with any of those
+// still pointing at this user. Both are purely referential (never read back
+// through a join — candidate_notes keeps its own denormalized author_email,
+// and the activity log's detail text already has the author's email baked
+// in), so clearing them first is safe and doesn't lose or corrupt anything
+// visible.
+export async function deleteAuthAccount(supabase, userId) {
+  await supabase.from('candidate_notes').update({ author_id: null }).eq('author_id', userId)
+  await supabase.from('candidate_activity_log').update({ actor_user_id: null }).eq('actor_user_id', userId)
+  return supabase.auth.admin.deleteUser(userId)
+}

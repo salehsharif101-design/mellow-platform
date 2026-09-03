@@ -7,16 +7,23 @@
 // Only ever returns whether an exact email is taken and its account type —
 // nothing else about the account — so this doesn't enable broader user
 // enumeration beyond what the signup form itself already requires.
+//
+// A removed team member should never actually hit this: api/team-remove.js
+// deletes their auth account outright, and once that succeeds their users
+// row is gone too, so this reports the email as free like any other. But
+// that deletion can itself fail (some other error deleting the auth
+// account) and leave a real, still-existing account behind with only a
+// 'removed' employer_team_members row to show for it - correctly blocked
+// from signing in (api/check-removed-member.js, Login.jsx) but wrongly
+// blocked here too, with no way out either direction. Recognize that
+// specific shape - a users row whose only employer association anywhere is
+// 'removed', not an owner and not active/invited on any other team - and
+// retry the same cleanup team-remove.js does, so the email becomes
+// genuinely free rather than just reported as free.
 
-import { createClient } from '@supabase/supabase-js'
+import { deleteAuthAccount, getServiceClient } from './_lib/db.js'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-function getServiceClient() {
-  return createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-}
 
 function readJsonBody(req) {
   if (req.body && typeof req.body === 'object') return Promise.resolve(req.body)
@@ -60,15 +67,42 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { data, error } = await getServiceClient()
-      .from('users')
-      .select('user_type')
-      .ilike('email', email)
-      .maybeSingle()
+    const supabase = getServiceClient()
+    const { data: user, error } = await supabase.from('users').select('id, user_type').ilike('email', email).maybeSingle()
     if (error) throw error
 
+    if (!user) {
+      res.statusCode = 200
+      res.end(JSON.stringify({ exists: false, userType: null }))
+      return
+    }
+
+    const [{ data: ownedEmployer, error: ownedError }, { data: memberships, error: memberError }] = await Promise.all([
+      supabase.from('employer_profiles').select('id').eq('user_id', user.id).maybeSingle(),
+      supabase.from('employer_team_members').select('status').eq('user_id', user.id),
+    ])
+    if (ownedError) throw ownedError
+    if (memberError) throw memberError
+
+    // Must actually have been a team member (at least one row) with every
+    // one of those rows 'removed' — not just "no employer connections at
+    // all", which would also be true of a completely unrelated candidate
+    // account and wrongly free their email too.
+    const isStuckRemovedMember = !ownedEmployer && memberships.length > 0 && memberships.every((m) => m.status === 'removed')
+    if (isStuckRemovedMember) {
+      const { error: deleteError } = await deleteAuthAccount(supabase, user.id)
+      if (!deleteError) {
+        res.statusCode = 200
+        res.end(JSON.stringify({ exists: false, userType: null }))
+        return
+      }
+      // Cleanup failed again — fall through and report it as taken, same
+      // as any other real account, rather than claim it's free when it
+      // demonstrably still isn't.
+    }
+
     res.statusCode = 200
-    res.end(JSON.stringify({ exists: !!data, userType: data?.user_type || null }))
+    res.end(JSON.stringify({ exists: true, userType: user.user_type }))
   } catch (err) {
     res.statusCode = 500
     res.end(JSON.stringify({ error: err.message }))
