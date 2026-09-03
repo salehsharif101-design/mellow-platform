@@ -141,6 +141,12 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
       <OpenToOpportunitiesSection profile={profile} onUpdated={onUpdated} />
       <AvatarSection profile={profile} userId={userId} onUpdated={onUpdated} />
 
+      {/* Video sections first, then the rest — matching the order the
+          public profile page (CandidateProfileContent.jsx) shows them in. */}
+      <VideoSection userId={userId} introVideoUrl={introVideoUrl} setIntroVideoUrl={setIntroVideoUrl} />
+
+      <WorkVideosSection profile={profile} userId={userId} />
+
       <BasicsSection
         fullName={fullName}
         setFullName={setFullName}
@@ -164,6 +170,10 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
         fieldRefs={fieldRefs}
       />
 
+      <SkillsSection skills={skills} setSkills={setSkills} errorField={errorField} fieldRefs={fieldRefs} />
+
+      <LanguagesSection languages={languages} setLanguages={setLanguages} errorField={errorField} fieldRefs={fieldRefs} />
+
       <EducationSection
         educationLevel={educationLevel}
         setEducationLevel={setEducationLevel}
@@ -175,10 +185,6 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
         setGraduationYear={setGraduationYear}
       />
 
-      <SkillsSection skills={skills} setSkills={setSkills} errorField={errorField} fieldRefs={fieldRefs} />
-
-      <LanguagesSection languages={languages} setLanguages={setLanguages} errorField={errorField} fieldRefs={fieldRefs} />
-
       <LinkedInSection
         linkedinUrl={linkedinUrl}
         setLinkedinUrl={setLinkedinUrl}
@@ -189,10 +195,6 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
         errorField={errorField}
         fieldRefs={fieldRefs}
       />
-
-      <VideoSection userId={userId} introVideoUrl={introVideoUrl} setIntroVideoUrl={setIntroVideoUrl} />
-
-      <WorkVideosSection profile={profile} userId={userId} />
 
       <SaveControls saving={saving} success={success} error={saveError} />
 
