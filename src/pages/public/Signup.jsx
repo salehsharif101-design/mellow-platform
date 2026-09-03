@@ -95,8 +95,7 @@ export default function Signup() {
         </Link>
         <h1 style={{ fontSize: 28 }}>Check your inbox</h1>
         <p style={{ marginTop: 12, color: 'var(--color-text-muted)' }}>
-          We sent a confirmation link to <strong>{email}</strong>. Click it to activate your
-          account, then log in to continue.
+          We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.
         </p>
         <Link to={`/login?type=${userType}`} className="btn btn-primary" style={{ marginTop: 24, display: 'inline-flex' }}>
           Go to login

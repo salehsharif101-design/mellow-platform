@@ -149,8 +149,7 @@ export default function Login() {
           </Link>
           <h1 style={{ fontSize: 28 }}>Check your inbox</h1>
           <p style={{ marginTop: 12, color: 'var(--color-text-muted)' }}>
-            We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account, then log in
-            to continue.
+            We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.
           </p>
           <ResendConfirmationButton onResend={() => resendConfirmation(email)} />
         </div>
