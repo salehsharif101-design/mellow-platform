@@ -59,6 +59,15 @@ export default function Team() {
             .from('employer_team_members')
             .select('id, invited_email, status, created_at')
             .eq('employer_id', resolvedId)
+            // A removed member's row is kept forever as a tombstone (status
+            // 'removed', user_id set null — see migration 0046) so the login
+            // page can still recognize and block that email even after the
+            // auth account itself is gone. Without this filter it was still
+            // being fetched here and, since nothing but 'active' renders as
+            // "Active", falling into the "Invited" label — indistinguishable
+            // from a real pending invite, making a removed member look like
+            // they'd come back after a refresh.
+            .neq('status', 'removed')
             .order('created_at', { ascending: true })
         : Promise.resolve({ data: [] }),
     ])
