@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useNotifications } from '../../context/NotificationContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { notify } from '../../lib/notify.js'
 import { getCandidateStatusLabel, roleMatchesCandidate, daysUntil } from '../../lib/roleFormat.js'
 import { getCachedDashboard, setCachedDashboard } from '../../lib/dashboardCache.js'
 import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
@@ -77,6 +78,16 @@ export default function CandidateDashboard() {
       if (!candidate) {
         setLoading(false)
         return
+      }
+
+      // Scenario 1 of the welcome email: fires the first time a candidate
+      // with a fully live profile lands on their dashboard. Re-verified
+      // server-side (api/email.js's candidate-welcome case checks is_live
+      // and welcome_email_sent itself) rather than trusted from here — a
+      // second trigger, the daily api/cron/welcome-email-nudge.js, covers
+      // anyone who confirms their email but never makes it back this far.
+      if (candidate.is_live && !candidate.welcome_email_sent) {
+        notify('candidate-welcome', { candidateId: candidate.id })
       }
 
       const allMessages = allMessagesResult.data || []

@@ -4,6 +4,7 @@
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "crons": [
+    { "path": "/api/cron/welcome-email-nudge", "schedule": "0 5 * * *" },
     { "path": "/api/cron/profile-view-digest", "schedule": "0 15 * * *" },
     { "path": "/api/cron/weekly-digest", "schedule": "0 6 * * 0" },
     { "path": "/api/cron/work-video-nudge", "schedule": "0 7 * * *" },

@@ -24,10 +24,32 @@ function readJsonBody(req) {
   })
 }
 
-async function sendSignupWelcome(supabase, userId) {
-  const user = unwrap(await supabase.from('users').select('email').eq('id', userId).single())
+// Fires the candidate "Welcome to Mellow" email exactly once. Two triggers
+// call this, both re-verifying eligibility here rather than trusting the
+// caller: Dashboard.jsx's candidate-welcome notify(), fired the first time
+// a candidate with a fully live profile lands on their dashboard (see
+// scenario 1), and api/cron/welcome-email-nudge.js, a daily nudge for
+// anyone who confirmed their email but never made it back to finish
+// onboarding (scenario 2) — that one calls sendEmail directly with the
+// same content rather than importing this, matching how this codebase's
+// other cron jobs are self-contained (see work-video-nudge.js). Someone
+// who never confirms their email never gets a candidate_profiles row in
+// the first place (see ProfileEdit.jsx's upsert, which only ever runs once
+// an authenticated session exists), so scenario 3 — never sending to them —
+// falls out naturally rather than needing an explicit check here.
+async function sendCandidateWelcome(supabase, candidateId) {
+  const candidate = unwrap(
+    await supabase
+      .from('candidate_profiles')
+      .select('id, user_id, is_live, welcome_email_sent')
+      .eq('id', candidateId)
+      .single(),
+  )
+  if (candidate.welcome_email_sent || !candidate.is_live) return { skipped: true }
 
-  return sendEmail({
+  const user = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
+
+  await sendEmail({
     to: user.email,
     subject: 'Welcome to Mellow',
     html: renderEmailHtml({
@@ -39,6 +61,9 @@ async function sendSignupWelcome(supabase, userId) {
       illustration: 'Flexible.PNG',
     }),
   })
+
+  unwrap(await supabase.from('candidate_profiles').update({ welcome_email_sent: true }).eq('id', candidate.id))
+  return { sent: true }
 }
 
 async function sendEmployerWelcome(supabase, userId) {
@@ -311,8 +336,8 @@ export default async function handler(req, res) {
 
   try {
     switch (action) {
-      case 'signup-welcome':
-        await sendSignupWelcome(supabase, body.userId)
+      case 'candidate-welcome':
+        await sendCandidateWelcome(supabase, body.candidateId)
         break
       case 'employer-welcome':
         await sendEmployerWelcome(supabase, body.userId)

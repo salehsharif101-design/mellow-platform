@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
-import { notify } from '../../lib/notify.js'
 import { NEW_USER_HINT_KEYS } from '../../components/NavHighlight.jsx'
 import { useRedirectIfAuthenticated } from '../../lib/useRedirectIfAuthenticated.js'
 import { useHideChrome } from '../../components/Layout.jsx'
@@ -70,9 +69,6 @@ export default function Signup() {
       // before the email-confirmation check below, since even an
       // unconfirmed signup is still a genuinely new account.
       localStorage.setItem(NEW_USER_HINT_KEYS[userType], '1')
-      if (userType === 'candidate') {
-        notify('signup-welcome', { userId: data.user.id })
-      }
       if (!data.session) {
         // Email confirmation is required before a session exists — there's
         // nothing to route into yet, so tell the candidate to check their inbox.

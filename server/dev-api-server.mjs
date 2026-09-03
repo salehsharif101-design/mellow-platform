@@ -26,6 +26,7 @@ const { default: teamRemoveHandler } = await import('../api/team-remove.js')
 const { default: profileViewDigestHandler } = await import('../api/cron/profile-view-digest.js')
 const { default: weeklyDigestHandler } = await import('../api/cron/weekly-digest.js')
 const { default: workVideoNudgeHandler } = await import('../api/cron/work-video-nudge.js')
+const { default: welcomeEmailNudgeHandler } = await import('../api/cron/welcome-email-nudge.js')
 const { default: videoReminderHandler } = await import('../api/cron/video-reminder.js')
 const { default: meetingOutcomeHandler } = await import('../api/meeting-outcome.js')
 const { default: meetingFollowUpHandler } = await import('../api/cron/meeting-follow-up.js')
@@ -45,6 +46,7 @@ const ROUTES = {
   '/api/cron/profile-view-digest': profileViewDigestHandler,
   '/api/cron/weekly-digest': weeklyDigestHandler,
   '/api/cron/work-video-nudge': workVideoNudgeHandler,
+  '/api/cron/welcome-email-nudge': welcomeEmailNudgeHandler,
   '/api/cron/video-reminder': videoReminderHandler,
   '/api/meeting-outcome': meetingOutcomeHandler,
   '/api/cron/meeting-follow-up': meetingFollowUpHandler,
