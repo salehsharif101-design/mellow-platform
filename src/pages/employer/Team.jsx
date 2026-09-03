@@ -123,14 +123,53 @@ export default function Team() {
         return
       }
 
-      const { data, error: insertError } = await supabase
+      // A removed member's row survives forever as a tombstone (status
+      // 'removed', see migration 0046) so the login page can keep blocking
+      // that email — but it also permanently occupies the unique
+      // (employer_id, invited_email) slot a fresh invite needs, so
+      // re-inviting them has to explicitly revive that same row rather
+      // than insert a new one, which would just fail the unique
+      // constraint and get mistaken for "still invited". Only an
+      // existing row that ISN'T a removed tombstone is a real conflict.
+      const { data: existing, error: existingError } = await supabase
         .from('employer_team_members')
-        .insert({ employer_id: employerId, invited_email: email, invited_by: user.id })
-        .select()
-        .single()
-      if (insertError) {
+        .select('id, status')
+        .eq('employer_id', employerId)
+        .eq('invited_email', email)
+        .maybeSingle()
+      if (existingError) {
+        setInviteError(existingError.message)
+        return
+      }
+      if (existing && existing.status !== 'removed') {
+        setInviteError('This email has already been invited.')
+        return
+      }
+
+      const { data, error: writeError } = existing
+        ? await supabase
+            .from('employer_team_members')
+            // Fresh invite_token so any old invite link (bookmarked,
+            // forwarded, whatever) can't silently start working again for
+            // someone who was deliberately removed.
+            .update({
+              status: 'invited',
+              invited_by: user.id,
+              invite_token: crypto.randomUUID(),
+              created_at: new Date().toISOString(),
+              accepted_at: null,
+            })
+            .eq('id', existing.id)
+            .select()
+            .single()
+        : await supabase
+            .from('employer_team_members')
+            .insert({ employer_id: employerId, invited_email: email, invited_by: user.id })
+            .select()
+            .single()
+      if (writeError) {
         setInviteError(
-          insertError.code === '23505' ? 'This email has already been invited.' : insertError.message,
+          writeError.code === '23505' ? 'This email has already been invited.' : writeError.message,
         )
         return
       }
