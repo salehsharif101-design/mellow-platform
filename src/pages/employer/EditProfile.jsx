@@ -5,7 +5,6 @@ import { supabase } from '../../lib/supabase.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { deleteAccount } from '../../lib/deleteAccount.js'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
-import { COUNTRIES } from '../../lib/countries.js'
 
 const COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-500', '500+']
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']
@@ -200,6 +199,8 @@ function EditProfileFormBody({ profile, onUpdated }) {
 
       <LogoSection profile={profile} onUpdated={onUpdated} />
 
+      <IntroVideoSection introVideoUrl={introVideoUrl} setIntroVideoUrl={setIntroVideoUrl} />
+
       <CompanyInfoSection
         companyName={companyName}
         setCompanyName={setCompanyName}
@@ -231,8 +232,6 @@ function EditProfileFormBody({ profile, onUpdated }) {
         errorField={errorField}
         fieldRefs={fieldRefs}
       />
-
-      <IntroVideoSection introVideoUrl={introVideoUrl} setIntroVideoUrl={setIntroVideoUrl} />
 
       <SaveControls saving={saving} success={success} error={saveError} />
 
@@ -473,17 +472,10 @@ function CompanyInfoSection({
           <label>Country (optional)</label>
           <input
             className="input"
-            list="country-options"
             value={country}
             onChange={(e) => setCountry(e.target.value)}
-            placeholder="Start typing a country..."
-            autoComplete="off"
+            placeholder="e.g. Bahrain"
           />
-          <datalist id="country-options">
-            {COUNTRIES.map((c) => (
-              <option key={c} value={c} />
-            ))}
-          </datalist>
         </div>
         <div className="field">
           <label>Company headline (optional)</label>

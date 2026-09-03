@@ -365,6 +365,9 @@ export default function TalentFeed() {
                 <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>
                   {swipeCandidate.current_company ? `${swipeCandidate.job_title} at ${swipeCandidate.current_company}` : swipeCandidate.job_title}
                 </p>
+                {swipeCandidate.location && (
+                  <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>{swipeCandidate.location}</p>
+                )}
                 {swipeCandidate.skills?.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                     {swipeCandidate.skills.slice(0, 3).map((s) => (
@@ -620,6 +623,20 @@ export default function TalentFeed() {
                   >
                     {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title}
                   </p>
+
+                  {c.location && (
+                    <p
+                      style={{
+                        fontSize: 11,
+                        color: 'var(--color-text-muted)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {c.location}
+                    </p>
+                  )}
 
                   {topSkills.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>

@@ -10,7 +10,6 @@ import ConfirmModal from '../../components/ConfirmModal.jsx'
 import { deleteAccount } from '../../lib/deleteAccount.js'
 import OnboardingWelcome from './OnboardingWelcome.jsx'
 import OnboardingCelebration from './OnboardingCelebration.jsx'
-import { COUNTRIES } from '../../lib/countries.js'
 
 const COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-500', '500+']
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']
@@ -309,17 +308,10 @@ export default function EmployerOnboarding() {
               <input
                 id="country"
                 className="input"
-                list="country-options"
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                placeholder="Start typing a country..."
-                autoComplete="off"
+                placeholder="e.g. Bahrain"
               />
-              <datalist id="country-options">
-                {COUNTRIES.map((c) => (
-                  <option key={c} value={c} />
-                ))}
-              </datalist>
             </div>
             <div className="field">
               <label htmlFor="headline">Company headline (optional)</label>
