@@ -7,6 +7,18 @@ const STAT_LABEL_STYLE = { fontSize: 12, color: 'var(--color-text-muted)', fontW
 // this same #005ef5, one shade of Mellow blue, rather than the CSS var).
 const STAT_NUMBER_STYLE = { fontSize: 28, fontWeight: 700, marginTop: 4, color: '#005ef5' }
 
+// .toISOString() always renders in UTC — for a bucket built from LOCAL
+// midnight (below), that silently shifts the key back a day in any
+// timezone ahead of UTC (Bahrain, this product's home market, is
+// UTC+3). That shifted every bucket a day off from the date its own
+// tooltip (built with the correct, local toLocaleDateString) displayed,
+// and left "today" — whose real applications key off their own UTC date,
+// not a shifted one — matching no bucket at all, so today's applications
+// silently never showed up on the chart.
+function localDateKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
 function buildDailyBuckets(applications) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -14,11 +26,11 @@ function buildDailyBuckets(applications) {
   for (let i = DAYS_SHOWN - 1; i >= 0; i--) {
     const date = new Date(today)
     date.setDate(date.getDate() - i)
-    days.push({ date, key: date.toISOString().slice(0, 10), count: 0 })
+    days.push({ date, key: localDateKey(date), count: 0 })
   }
   const byKey = new Map(days.map((d) => [d.key, d]))
   applications.forEach((a) => {
-    const key = new Date(a.applied_at).toISOString().slice(0, 10)
+    const key = localDateKey(new Date(a.applied_at))
     const bucket = byKey.get(key)
     if (bucket) bucket.count += 1
   })

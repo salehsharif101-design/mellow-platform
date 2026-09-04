@@ -56,11 +56,17 @@ export default function Shortlisted() {
     )
   }
 
+  // A deleted employer_profiles row leaves its shortlist entry with no
+  // embedded employer at all — filtered out here (not just skipped at
+  // render time) so the empty state actually triggers when every visible
+  // entry is one of these, instead of a bare heading over blank space.
+  const visibleEntries = entries.filter((entry) => entry.employer_profiles)
+
   return (
     <div className="section">
       <h1 style={{ fontSize: 28 }}>Shortlisted by employers</h1>
 
-      {entries.length === 0 ? (
+      {visibleEntries.length === 0 ? (
         <EmptyState
           heading="No shortlists yet"
           body="Keep your profile strong and employers will take notice."
@@ -68,9 +74,8 @@ export default function Shortlisted() {
         />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 28, maxWidth: 640 }}>
-          {entries.map((entry) => {
+          {visibleEntries.map((entry) => {
             const employer = entry.employer_profiles
-            if (!employer) return null
             return (
               <div key={entry.id} className="card" style={{ padding: 20, display: 'flex', alignItems: 'center', gap: 16 }}>
                 {(() => {

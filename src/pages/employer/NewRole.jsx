@@ -59,6 +59,14 @@ export default function NewRole() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    if (salaryMin !== '' && salaryMax !== '' && Number(salaryMin) > Number(salaryMax)) {
+      setError('Minimum salary cannot be greater than maximum salary.')
+      return
+    }
+    if (deadline && deadline < new Date().toISOString().slice(0, 10)) {
+      setError('Application deadline cannot be in the past.')
+      return
+    }
     setSaving(true)
     try {
       const { data: newRole, error: insertError } = await supabase

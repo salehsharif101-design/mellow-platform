@@ -8,6 +8,18 @@ import { sendEmail } from '../_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from '../_lib/email-template.js'
 import { getServiceClient, unwrap, getCandidateContact } from '../_lib/db.js'
 
+const BAHRAIN_OFFSET_MS = 3 * 60 * 60 * 1000
+
+// A plain `.toDateString()` uses the SERVER's runtime timezone (Vercel
+// functions run in UTC), not Bahrain's, despite this cron being explicitly
+// scheduled and documented as an 18:00 Bahrain-time send — this makes the
+// "already sent today" day boundary itself timezone-explicit too, so it
+// doesn't depend on whatever timezone happens to be configured wherever
+// this function actually runs.
+function bahrainDateString(date) {
+  return new Date(date.getTime() + BAHRAIN_OFFSET_MS).toISOString().slice(0, 10)
+}
+
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json')
 
@@ -22,7 +34,7 @@ export default async function handler(req, res) {
 
   const supabase = getServiceClient()
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-  const today = new Date().toDateString()
+  const today = bahrainDateString(new Date())
 
   try {
     const views = unwrap(
@@ -45,7 +57,7 @@ export default async function handler(req, res) {
       )
       // Guards against a double-send if the cron fires more than once in a
       // day — the views themselves are the source of "new since last digest".
-      if (candidate.last_digest_sent_at && new Date(candidate.last_digest_sent_at).toDateString() === today) continue
+      if (candidate.last_digest_sent_at && bahrainDateString(new Date(candidate.last_digest_sent_at)) === today) continue
 
       const { email, username } = await getCandidateContact(supabase, candidateId)
       const count = viewers.size

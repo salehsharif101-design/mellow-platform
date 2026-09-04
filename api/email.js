@@ -15,31 +15,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { sendEmail } from './_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from './_lib/email-template.js'
-import { getServiceClient, unwrap, getCandidateContact } from './_lib/db.js'
+import { getServiceClient, unwrap, getCandidateContact, getEmployerEmails } from './_lib/db.js'
 import { escapeHtml } from './_lib/html.js'
-
-// Server-side equivalent of src/lib/employerAccess.js's getEmployerUserIds
-// — that file can't be imported here since it pulls in the browser
-// Supabase client, which reads Vite-only env vars unavailable in this
-// runtime. Every employer-facing email used to resolve its recipient via
-// employer_profiles.user_id alone (the owner), even though the in-app
-// experience treats the whole team as equal — a team member who posts a
-// role, or is the one actually managing applicants, got none of the
-// emails about it.
-async function getEmployerEmails(supabase, employerId) {
-  const [ownerResult, membersResult] = await Promise.all([
-    supabase.from('employer_profiles').select('user_id').eq('id', employerId).maybeSingle(),
-    supabase.from('employer_team_members').select('user_id').eq('employer_id', employerId).eq('status', 'active'),
-  ])
-  const userIds = []
-  if (ownerResult.data?.user_id) userIds.push(ownerResult.data.user_id)
-  ;(membersResult.data || []).forEach((m) => {
-    if (m.user_id) userIds.push(m.user_id)
-  })
-  if (userIds.length === 0) return []
-  const { data: users } = await supabase.from('users').select('email').in('id', userIds)
-  return (users || []).map((u) => u.email).filter(Boolean)
-}
 
 function getAnonClient() {
   return createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY, {

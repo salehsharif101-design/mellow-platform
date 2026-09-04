@@ -6,7 +6,7 @@
 
 import { sendEmail } from '../_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from '../_lib/email-template.js'
-import { getServiceClient, unwrap, getCandidateContact, getEmployerContact } from '../_lib/db.js'
+import { getServiceClient, unwrap, getCandidateContact, getEmployerEmails, getEmployerUserIds } from '../_lib/db.js'
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 // A cron misfire (retried run, manual re-trigger) shouldn't double-send —
@@ -108,6 +108,11 @@ async function sendEmployerDigests(supabase, since) {
       continue
     }
 
+    // The whole team's inbox, not just the owner's — a company whose team
+    // members do the actual messaging used to get a digest reporting zero
+    // messages regardless of how much was actually happening.
+    const teamUserIds = await getEmployerUserIds(supabase, employer.id)
+
     const [{ count: newApplicants }, { count: messagesThisWeek }, { count: unreadMessages }, { count: companyViews }] = await Promise.all([
       supabase
         .from('applications')
@@ -117,12 +122,12 @@ async function sendEmployerDigests(supabase, since) {
       supabase
         .from('messages')
         .select('id', { count: 'exact', head: true })
-        .eq('recipient_id', employer.user_id)
+        .in('recipient_id', teamUserIds)
         .gte('sent_at', since),
       supabase
         .from('messages')
         .select('id', { count: 'exact', head: true })
-        .eq('recipient_id', employer.user_id)
+        .in('recipient_id', teamUserIds)
         .is('read_at', null),
       supabase.from('company_views').select('id', { count: 'exact', head: true }).eq('employer_id', employer.id).gte('viewed_at', since),
     ])
@@ -135,10 +140,11 @@ async function sendEmployerDigests(supabase, since) {
     if (companyViews > 0) parts.push(`${companyViews} talent${companyViews === 1 ? '' : 's'} viewed your company profile`)
     const summary = parts.length > 0 ? `This week: ${parts.join(', ')}.` : ''
 
-    const { email } = await getEmployerContact(supabase, employer.id)
+    const emails = await getEmployerEmails(supabase, employer.id)
+    if (emails.length === 0) continue
 
     await sendEmail({
-      to: email,
+      to: emails,
       subject: 'Your Mellow hiring update',
       html: renderEmailHtml({
         heading: 'Here is what happened this week',

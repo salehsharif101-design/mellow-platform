@@ -30,6 +30,34 @@ export async function getEmployerContact(supabase, employerId) {
   return { email: employerUser.email, companyName: employer.company_name }
 }
 
+// Server-side equivalent of src/lib/employerAccess.js's getEmployerUserIds
+// — that client-side file can't be imported here since it pulls in the
+// browser Supabase client, which reads Vite-only env vars unavailable in
+// this runtime. Resolves every user id who can act on behalf of this
+// company: the owner plus every active team member.
+export async function getEmployerUserIds(supabase, employerId) {
+  const [ownerResult, membersResult] = await Promise.all([
+    supabase.from('employer_profiles').select('user_id').eq('id', employerId).maybeSingle(),
+    supabase.from('employer_team_members').select('user_id').eq('employer_id', employerId).eq('status', 'active'),
+  ])
+  const userIds = []
+  if (ownerResult.data?.user_id) userIds.push(ownerResult.data.user_id)
+  ;(membersResult.data || []).forEach((m) => {
+    if (m.user_id) userIds.push(m.user_id)
+  })
+  return userIds
+}
+
+// Every email address for getEmployerUserIds' user ids — used wherever an
+// employer-facing notification needs to reach the whole team, not just
+// whichever single address a caller already had on hand.
+export async function getEmployerEmails(supabase, employerId) {
+  const userIds = await getEmployerUserIds(supabase, employerId)
+  if (userIds.length === 0) return []
+  const { data: users } = await supabase.from('users').select('email').in('id', userIds)
+  return (users || []).map((u) => u.email).filter(Boolean)
+}
+
 // Deletes a user's Supabase Auth account, which cascades away their
 // public.users row (see migration 0001) — used when removing a team member
 // (api/team-remove.js) and, defensively, when check-email.js finds one

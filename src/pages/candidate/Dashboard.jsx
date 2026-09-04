@@ -50,6 +50,7 @@ export default function CandidateDashboard() {
   const [workVideoCount, setWorkVideoCount] = useState(cached?.workVideoCount ?? null) // null = unknown yet
   const [messagesReceivedCount, setMessagesReceivedCount] = useState(cached?.messagesReceivedCount ?? 0)
   const [feedItems, setFeedItems] = useState(cached?.feedItems ?? [])
+  const [standingNudges, setStandingNudges] = useState(cached?.standingNudges ?? [])
   // Only a genuinely cold load (nothing cached yet from an earlier visit
   // this session) shows the skeleton — a return visit renders the cached
   // data immediately while load() quietly refreshes it in the background.
@@ -288,32 +289,33 @@ export default function CandidateDashboard() {
         }
       })
 
-      // Saved roles with a deadline in the next 3 days — not gated by
-      // "since last visit" since it's a forward-looking alert, not a log of
-      // past activity.
+      // Standing reminders — a forward-looking alert and a profile-
+      // completion nudge, neither a log of something that already
+      // happened, so they're kept out of `items`'s real "since last visit"
+      // recency sort entirely (stamping them with the current time just to
+      // slot them into that sort made them permanently outrank genuinely
+      // new activity, every single load) and rendered in their own fixed
+      // section instead.
+      const standingNudges = []
+
       savedRows.forEach((s) => {
         const role = s.roles
         if (!role || !role.is_active || !role.deadline) return
         const days = daysUntil(role.deadline)
         if (days !== null && days >= 0 && days <= 3) {
-          items.push({
+          standingNudges.push({
             id: `deadline-${s.id}`,
             text: `Your saved role "${role.title}" closes in ${days} day${days === 1 ? '' : 's'}`,
             link: `/jobs/${role.slug}`,
-            timestamp: new Date().toISOString(),
           })
         }
       })
 
-      // Shortlisted-but-no-Calendly-link nudge — a standing reminder rather
-      // than a "since last visit" event, so it persists every load (like the
-      // deadline alert above) until they add the link.
       if (shortlistRows.length > 0 && !candidate.calendly_url) {
-        items.unshift({
+        standingNudges.push({
           id: 'calendly-nudge',
           text: 'You have been shortlisted. Add your Calendly link so the employer can book a meeting with you.',
           link: '/profile/edit#calendly-field',
-          timestamp: new Date().toISOString(),
         })
       }
 
@@ -333,6 +335,7 @@ export default function CandidateDashboard() {
       if (!shortlistRowsResult.error) setShortlistCount(uniqueShortlistEmployerCount)
       setMessagesReceivedCount(messagesReceivedTotal)
       setFeedItems(items)
+      setStandingNudges(standingNudges)
       setLoading(false)
 
       if (cacheKey) {
@@ -344,6 +347,7 @@ export default function CandidateDashboard() {
           workVideoCount: workVideoTotal,
           messagesReceivedCount: messagesReceivedTotal,
           feedItems: items,
+          standingNudges,
         })
       }
     }
@@ -493,6 +497,27 @@ export default function CandidateDashboard() {
 
       <div id="whats-new-section" style={{ marginTop: 28, scrollMarginTop: 20 }}>
         <h3 style={{ fontSize: 18, marginBottom: 14 }}>What's new</h3>
+        {standingNudges.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+            {standingNudges.map((item) => (
+              <div
+                key={item.id}
+                onClick={() => navigate(item.link)}
+                style={{
+                  padding: '14px 18px',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: '#8a6100',
+                  background: '#fff6e0',
+                  borderRadius: 8,
+                }}
+              >
+                {item.text}
+              </div>
+            ))}
+          </div>
+        )}
         {feedItems.length === 0 ? (
           <p className="card" style={{ padding: 16, fontSize: 14, color: 'var(--color-text-muted)' }}>
             You're all caught up — nothing new since your last visit{views && views.length === 0 ? ', including no profile views yet' : ''}. Keep your

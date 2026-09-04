@@ -57,7 +57,24 @@ export default function ProfileViews() {
 
       const employerByUserId = Object.fromEntries((employers || []).map((e) => [e.user_id, e]))
 
-      setEntries((views || []).map((v) => ({ ...v, employer: employerByUserId[v.viewer_id] })))
+      // Grouped by viewer — the dashboard's own "what's new" feed already
+      // dedupes the identical underlying data (one employer refreshing a
+      // profile repeatedly shouldn't read as several separate visits), but
+      // this page previously didn't, so the same company could appear
+      // over and over.
+      const byViewer = new Map()
+      ;(views || []).forEach((v) => {
+        const existing = byViewer.get(v.viewer_id)
+        if (existing) {
+          existing.count += 1
+          if (v.viewed_at > existing.viewed_at) existing.viewed_at = v.viewed_at
+        } else {
+          byViewer.set(v.viewer_id, { id: v.id, viewed_at: v.viewed_at, viewer_id: v.viewer_id, count: 1 })
+        }
+      })
+      const grouped = Array.from(byViewer.values()).sort((a, b) => new Date(b.viewed_at) - new Date(a.viewed_at))
+
+      setEntries(grouped.map((v) => ({ ...v, employer: employerByUserId[v.viewer_id] })))
       setLoading(false)
     }
 
@@ -74,11 +91,13 @@ export default function ProfileViews() {
     )
   }
 
+  const visibleEntries = entries.filter((entry) => entry.employer)
+
   return (
     <div className="section">
       <h1 style={{ fontSize: 28 }}>Profile views</h1>
 
-      {entries.length === 0 ? (
+      {visibleEntries.length === 0 ? (
         <EmptyState
           heading="No profile views yet"
           body="Keep your profile strong and employers will find you."
@@ -86,9 +105,8 @@ export default function ProfileViews() {
         />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 28, maxWidth: 640 }}>
-          {entries.map((entry) => {
+          {visibleEntries.map((entry) => {
             const employer = entry.employer
-            if (!employer) return null
             return (
               <div key={entry.id} className="card" style={{ padding: 20, display: 'flex', alignItems: 'center', gap: 16 }}>
                 {(() => {
@@ -128,6 +146,7 @@ export default function ProfileViews() {
                   <p style={{ fontWeight: 700, fontSize: 16 }}>{employer.company_name}</p>
                   <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>
                     Viewed {formatRelativeTime(entry.viewed_at)}
+                    {entry.count > 1 && ` · ${entry.count} times`}
                   </p>
                 </div>
                 {employer.company_slug && (

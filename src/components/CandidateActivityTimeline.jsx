@@ -9,6 +9,11 @@ const EVENT_LABELS = {
   // log_note_activity trigger) — notes are posted, never edited, so there's
   // no separate "note edited" event any more.
   note_added: (detail) => `Note posted${detail ? ` — ${detail}` : ''}`,
+  // Dead since migration 0058 collapsed note logging to insert-only — no
+  // code writes this any more, but older rows from before that migration
+  // still carry it, and fell through to rendering the raw event_type
+  // string ("note_updated") with no label until now.
+  note_updated: (detail) => `Note edited${detail ? ` — ${detail}` : ''}`,
   message_sent: (detail) => `Message sent${detail ? `: "${detail}"` : ''}`,
 }
 

@@ -160,7 +160,7 @@ export default function EmployerDashboard() {
       // all goes out in one batch instead of one round trip at a time.
       // Applications are filtered by employer via the embedded roles join
       // rather than a separate "get my role ids first" query.
-      const [rolesResult, applicationsResult, shortlistResult, companyViewsResult, senderProfilesResult] = await Promise.all([
+      const [rolesResult, applicationsResult, shortlistResult, companyViewsResult, senderProfilesResult, activityResult] = await Promise.all([
         supabase.from('roles').select('id, title, is_active, created_at, view_count').eq('employer_id', emp.id).order('created_at', { ascending: false }),
         supabase
           .from('applications')
@@ -175,6 +175,19 @@ export default function EmployerDashboard() {
         senderIds.length > 0
           ? supabase.from('candidate_profiles').select('user_id, full_name').in('user_id', senderIds)
           : Promise.resolve({ data: [] }),
+        // A teammate's own shortlist/note/status actions were previously
+        // invisible to the rest of the team's "what's new" feed — visible
+        // in the per-applicant activity timeline, but never surfaced here,
+        // despite this being exactly the kind of event a shared team
+        // account should want to see. actor_user_id excludes the current
+        // viewer's own actions (they already know what they just did).
+        supabase
+          .from('candidate_activity_log')
+          .select('id, candidate_id, event_type, detail, created_at, actor_user_id, candidate_profiles(username, full_name)')
+          .eq('employer_id', emp.id)
+          .in('event_type', ['shortlisted', 'note_added', 'status_changed'])
+          .gt('created_at', sinceIso)
+          .order('created_at', { ascending: false }),
       ])
 
       const myRoles = rolesResult.data || []
@@ -182,6 +195,7 @@ export default function EmployerDashboard() {
       const shortlistTotal = shortlistResult.count || 0
       const views = companyViewsResult.data || []
       const namesBySenderId = Object.fromEntries((senderProfilesResult.data || []).map((p) => [p.user_id, p.full_name]))
+      const teammateActivity = (activityResult.data || []).filter((e) => e.actor_user_id !== user.id)
 
       const newApps = apps.filter((a) => a.applied_at && new Date(a.applied_at).getTime() > sinceMs)
       const newAppsByRole = new Map()
@@ -225,6 +239,17 @@ export default function EmployerDashboard() {
           timestamp: latestView,
         })
       }
+
+      teammateActivity.forEach((e) => {
+        const candidateName = e.candidate_profiles?.full_name || 'a candidate'
+        const profileLink = `/profile/${e.candidate_profiles?.username || e.candidate_id}`
+        let text
+        if (e.event_type === 'shortlisted') text = `${candidateName} was shortlisted by a teammate`
+        else if (e.event_type === 'note_added') text = `A teammate added a note about ${candidateName}`
+        else text = `${candidateName}'s status was changed to ${e.detail || 'a new stage'} by a teammate`
+        items.push({ id: `activity-${e.id}`, text, link: profileLink, timestamp: e.created_at })
+      })
+
       items.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
 
       setEmployer(emp)
