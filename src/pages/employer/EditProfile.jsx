@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { deleteAccount } from '../../lib/deleteAccount.js'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
+import HashScroll from '../../components/HashScroll.jsx'
 
 const COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-500', '500+']
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']
@@ -100,6 +101,7 @@ export default function EmployerEditProfile() {
         <h1 style={{ fontSize: 28, marginBottom: 32 }}>Edit your profile</h1>
         <EditProfileFormBody profile={profile} onUpdated={setProfile} />
       </div>
+      <HashScroll />
     </div>
   )
 }

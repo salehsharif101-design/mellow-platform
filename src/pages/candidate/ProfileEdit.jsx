@@ -13,6 +13,7 @@ import Step3Languages from './onboarding/steps/Step3Languages.jsx'
 import Step4Links from './onboarding/steps/Step4Links.jsx'
 import Step5Video from './onboarding/steps/Step5Video.jsx'
 import EditProfileForm from './EditProfileForm.jsx'
+import HashScroll from '../../components/HashScroll.jsx'
 
 const LAST_STEP = 5
 
@@ -232,17 +233,4 @@ export default function ProfileEdit() {
       </div>
     </div>
   )
-}
-
-// Jumps to the section named by the URL hash (e.g. #skills-section) — used
-// by the profile strength checklist's "Add a work video →" style links so
-// they land directly on the relevant field instead of the top of the page.
-// React Router doesn't scroll to hash fragments on its own.
-function HashScroll() {
-  useEffect(() => {
-    if (!window.location.hash) return
-    const el = document.querySelector(window.location.hash)
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [])
-  return null
 }
