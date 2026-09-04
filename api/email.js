@@ -3,10 +3,25 @@
 // never reach the browser. Callers pass only IDs; this function looks up the
 // authoritative data itself via the service role client rather than trusting
 // client-supplied email content.
+//
+// Requires a valid Supabase session bearer token (same pattern as
+// api/team-remove.js and the accept branch of api/team-invite.js) — this
+// only proves the request came from some signed-in Mellow user, not that
+// they're specifically entitled to trigger the requested action, but it
+// closes the endpoint off from the open internet, which is all every other
+// call site (all of them fired right after that same user's own write
+// succeeds) needs.
 
+import { createClient } from '@supabase/supabase-js'
 import { sendEmail } from './_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from './_lib/email-template.js'
 import { getServiceClient, unwrap, getCandidateContact } from './_lib/db.js'
+
+function getAnonClient() {
+  return createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
 
 function readJsonBody(req) {
   if (req.body && typeof req.body === 'object') return Promise.resolve(req.body)
@@ -328,6 +343,19 @@ export default async function handler(req, res) {
   } catch {
     res.statusCode = 400
     res.end(JSON.stringify({ error: 'Invalid JSON body' }))
+    return
+  }
+
+  const authToken = (req.headers.authorization || '').replace(/^Bearer\s+/i, '')
+  if (!authToken) {
+    res.statusCode = 401
+    res.end(JSON.stringify({ error: 'Missing authorization token' }))
+    return
+  }
+  const { data: userData, error: userError } = await getAnonClient().auth.getUser(authToken)
+  if (userError || !userData?.user) {
+    res.statusCode = 401
+    res.end(JSON.stringify({ error: 'Invalid or expired session' }))
     return
   }
 

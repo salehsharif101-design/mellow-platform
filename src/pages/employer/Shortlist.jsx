@@ -59,7 +59,7 @@ export default function Shortlist() {
       const { data, error: shortlistError } = await supabase
         .from('shortlists')
         .select(
-          `id, candidate_id, role_id, status, roles(id, title, required_skills, role_type), candidate_profiles(${CANDIDATE_SELECT})`,
+          `id, candidate_id, role_id, status, roles(id, title, required_skills, role_type, work_style), candidate_profiles(${CANDIDATE_SELECT})`,
         )
         .eq('employer_id', resolvedId)
         .order('created_at', { ascending: false })

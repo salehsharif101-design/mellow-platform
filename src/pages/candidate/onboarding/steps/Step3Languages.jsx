@@ -71,6 +71,7 @@ export default function Step3Languages({ initial, onContinue, onBack, saving }) 
           Add
         </button>
       </div>
+      <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: -10 }}>At least one language required</p>
 
       {languages.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

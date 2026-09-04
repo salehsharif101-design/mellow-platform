@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase.js'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { useSeoMeta } from '../../lib/useSeoMeta.js'
 import { formatDeadline, formatSalary, formatResponseRate } from '../../lib/roleFormat.js'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
@@ -18,6 +19,11 @@ export default function CompanyProfile() {
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(true)
   const [responseLabel, setResponseLabel] = useState(null)
+
+  useSeoMeta({
+    title: company ? `${company.company_name} | Mellow` : undefined,
+    description: company ? (company.headline || company.about || `${company.company_name} on Mellow.`).slice(0, 200) : undefined,
+  })
 
   useEffect(() => {
     async function load() {

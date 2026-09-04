@@ -108,7 +108,7 @@ export default function TalentFeed() {
           supabase.from('shortlists').select('candidate_id').eq('employer_id', resolvedId),
           supabase
             .from('roles')
-            .select('id, title, required_skills, role_type')
+            .select('id, title, required_skills, role_type, work_style')
             .eq('employer_id', resolvedId)
             .eq('is_active', true)
             .order('created_at', { ascending: false }),

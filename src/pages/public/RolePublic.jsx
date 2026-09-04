@@ -3,6 +3,7 @@ import { useParams, useNavigate, Navigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
+import { useSeoMeta } from '../../lib/useSeoMeta.js'
 import { formatDeadline, formatSalary, formatResponseRate, getCandidateStatusLabel } from '../../lib/roleFormat.js'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
@@ -34,6 +35,12 @@ export default function RolePublic() {
   const [error, setError] = useState('')
   const [responseLabel, setResponseLabel] = useState(null)
   const [savedEntryId, setSavedEntryId] = useState(null)
+
+  const companyName = role?.employer_profiles?.company_name
+  useSeoMeta({
+    title: role ? `${role.title} at ${companyName} | Mellow` : undefined,
+    description: role ? (role.description || `${role.title} at ${companyName} — apply on Mellow.`).slice(0, 200) : undefined,
+  })
 
   useEffect(() => {
     async function load() {

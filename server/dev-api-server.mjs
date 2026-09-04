@@ -31,6 +31,9 @@ const { default: videoReminderHandler } = await import('../api/cron/video-remind
 const { default: meetingOutcomeHandler } = await import('../api/meeting-outcome.js')
 const { default: meetingFollowUpHandler } = await import('../api/cron/meeting-follow-up.js')
 const { default: sitemapHandler } = await import('../api/sitemap.js')
+const { default: ogRoleHandler } = await import('../api/og-role.js')
+const { default: ogCompanyHandler } = await import('../api/og-company.js')
+const { default: ogProfileHandler } = await import('../api/og-profile.js')
 
 const PORT = process.env.ADMIN_API_PORT || 5174
 
@@ -51,6 +54,9 @@ const ROUTES = {
   '/api/meeting-outcome': meetingOutcomeHandler,
   '/api/cron/meeting-follow-up': meetingFollowUpHandler,
   '/sitemap.xml': sitemapHandler,
+  '/api/og-role': ogRoleHandler,
+  '/api/og-company': ogCompanyHandler,
+  '/api/og-profile': ogProfileHandler,
 }
 
 const server = http.createServer(async (req, res) => {

@@ -34,11 +34,11 @@ export function calculateMatchScore(candidate, role) {
   const skillsScore = (matched / requiredSkills.length) * SKILLS_WEIGHT
 
   let workStyleScore = 0
-  if (!role.role_type) {
+  if (!role.work_style) {
     workStyleScore = WORK_STYLE_WEIGHT * 0.6 // role didn't specify — partial credit, not a mismatch
   } else if (candidate.work_style?.length > 0) {
-    const roleTypeNorm = role.role_type.toLowerCase().replace(/[\s-]/g, '')
-    const isMatch = candidate.work_style.some((w) => w.toLowerCase().replace(/[\s-]/g, '') === roleTypeNorm)
+    const roleStyleNorm = role.work_style.toLowerCase().replace(/[\s-]/g, '')
+    const isMatch = candidate.work_style.some((w) => w.toLowerCase().replace(/[\s-]/g, '') === roleStyleNorm)
     workStyleScore = isMatch ? WORK_STYLE_WEIGHT : 0
   }
 

@@ -1,6 +1,21 @@
 {
   "rewrites": [
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
+    {
+      "source": "/jobs/:slug",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|Slackbot|Discordbot|redditbot|Googlebot|Applebot|Pinterest|vkShare|SkypeUriPreview|Iframely).*" }],
+      "destination": "/api/og-role?slug=:slug"
+    },
+    {
+      "source": "/company/:slug",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|Slackbot|Discordbot|redditbot|Googlebot|Applebot|Pinterest|vkShare|SkypeUriPreview|Iframely).*" }],
+      "destination": "/api/og-company?slug=:slug"
+    },
+    {
+      "source": "/profile/:username",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|Slackbot|Discordbot|redditbot|Googlebot|Applebot|Pinterest|vkShare|SkypeUriPreview|Iframely).*" }],
+      "destination": "/api/og-profile?username=:username"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "crons": [

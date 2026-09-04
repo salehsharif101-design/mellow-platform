@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { useSeoMeta } from '../../lib/useSeoMeta.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
 import Modal from '../../components/Modal.jsx'
 import CalendlyModal from '../../components/CalendlyModal.jsx'
@@ -33,6 +34,11 @@ export default function PublicProfile() {
   const [showCalendly, setShowCalendly] = useState(false)
   const [showContact, setShowContact] = useState(false)
   const [showAddVideo, setShowAddVideo] = useState(false)
+
+  useSeoMeta({
+    title: profile ? `${profile.full_name} | Mellow` : undefined,
+    description: profile ? (profile.headline || profile.bio || `${profile.full_name} on Mellow.`).slice(0, 200) : undefined,
+  })
 
   useEffect(() => {
     setLoading(true)

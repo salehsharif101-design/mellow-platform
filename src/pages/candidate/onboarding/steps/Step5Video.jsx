@@ -78,7 +78,12 @@ export default function Step5Video({ initial, userId, onFinish, onBack, onSaveFo
   function processFile(selected) {
     setError('')
 
-    if (!ACCEPTED_TYPES.includes(selected.type)) {
+    // MediaRecorder's own output carries a codec-suffixed type (e.g.
+    // "video/webm;codecs=vp9,opus") — compare only the base type so a
+    // recorded video isn't rejected for a suffix a file picked from disk
+    // would never have.
+    const baseType = selected.type.split(';')[0].trim().toLowerCase()
+    if (!ACCEPTED_TYPES.includes(baseType)) {
       setError('Please upload an mp4, mov, or webm file.')
       return
     }
@@ -90,14 +95,35 @@ export default function Step5Video({ initial, userId, onFinish, onBack, onSaveFo
     const objectUrl = URL.createObjectURL(selected)
     const probe = document.createElement('video')
     probe.preload = 'metadata'
-    probe.onloadedmetadata = () => {
-      if (probe.duration > MAX_DURATION_SECONDS + 0.5) {
+
+    function checkDuration(duration) {
+      if (duration > MAX_DURATION_SECONDS + 0.5) {
         setError('Your video is longer than 60 seconds — please trim it and try again.')
         URL.revokeObjectURL(objectUrl)
         return
       }
       setFile(selected)
       setPreviewUrl(objectUrl)
+    }
+
+    probe.onloadedmetadata = () => {
+      // A webm recorded via MediaRecorder has no Duration header, so
+      // Chrome/Firefox report Infinity here — forcing a seek past the real
+      // end is the standard, documented workaround to make the browser
+      // compute the actual duration.
+      if (probe.duration === Infinity || Number.isNaN(probe.duration)) {
+        probe.currentTime = 1e101
+        probe.ontimeupdate = () => {
+          probe.ontimeupdate = null
+          checkDuration(probe.duration)
+        }
+      } else {
+        checkDuration(probe.duration)
+      }
+    }
+    probe.onerror = () => {
+      setError('We could not read that video file. Please try a different file.')
+      URL.revokeObjectURL(objectUrl)
     }
     probe.src = objectUrl
   }
