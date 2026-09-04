@@ -11,9 +11,7 @@
 // somehow lands here still ends up in the real app rather than on a blank
 // page.
 
-function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
-}
+import { escapeHtml } from './html.js'
 
 export function renderOgHtml({ title, description, image, url }) {
   const safeTitle = escapeHtml(title)

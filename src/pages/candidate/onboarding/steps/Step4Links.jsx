@@ -30,6 +30,15 @@ export default function Step4Links({ initial, onContinue, onBack, saving }) {
   function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    const trimmedCalendly = calendlyUrl.trim()
+    // A bare http(s):// check let anything through here — CalendlyModal
+    // iframes it verbatim with no further check of its own, so "Book a
+    // meeting" would frame whatever site was saved, not just an actual
+    // Calendly page.
+    if (trimmedCalendly && !/^https?:\/\/([a-z0-9-]+\.)?calendly\.com\//i.test(trimmedCalendly)) {
+      setError('Please enter a valid Calendly link (e.g. https://calendly.com/yourname)')
+      return
+    }
     const trimmedWebsite = websiteUrl.trim()
     if (trimmedWebsite && !/^https?:\/\//i.test(trimmedWebsite)) {
       setError('Portfolio or website must start with https:// or http://')
@@ -37,13 +46,18 @@ export default function Step4Links({ initial, onContinue, onBack, saving }) {
     }
     onContinue({
       linkedin_url: linkedinUrl.trim() || null,
-      calendly_url: calendlyUrl.trim() || null,
+      calendly_url: trimmedCalendly || null,
       website_url: trimmedWebsite || null,
     })
   }
 
   function handleSkip() {
-    onContinue({ linkedin_url: null, calendly_url: null, website_url: null })
+    // Advances without touching any of the three fields — the draft
+    // autosave above already persisted whatever was typed so far, so
+    // unconditionally nulling all three here (the previous behavior) threw
+    // away a link someone had already entered just because they chose not
+    // to fill in the rest before continuing.
+    onContinue({})
   }
 
   return (

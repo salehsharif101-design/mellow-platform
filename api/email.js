@@ -16,6 +16,30 @@ import { createClient } from '@supabase/supabase-js'
 import { sendEmail } from './_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from './_lib/email-template.js'
 import { getServiceClient, unwrap, getCandidateContact } from './_lib/db.js'
+import { escapeHtml } from './_lib/html.js'
+
+// Server-side equivalent of src/lib/employerAccess.js's getEmployerUserIds
+// — that file can't be imported here since it pulls in the browser
+// Supabase client, which reads Vite-only env vars unavailable in this
+// runtime. Every employer-facing email used to resolve its recipient via
+// employer_profiles.user_id alone (the owner), even though the in-app
+// experience treats the whole team as equal — a team member who posts a
+// role, or is the one actually managing applicants, got none of the
+// emails about it.
+async function getEmployerEmails(supabase, employerId) {
+  const [ownerResult, membersResult] = await Promise.all([
+    supabase.from('employer_profiles').select('user_id').eq('id', employerId).maybeSingle(),
+    supabase.from('employer_team_members').select('user_id').eq('employer_id', employerId).eq('status', 'active'),
+  ])
+  const userIds = []
+  if (ownerResult.data?.user_id) userIds.push(ownerResult.data.user_id)
+  ;(membersResult.data || []).forEach((m) => {
+    if (m.user_id) userIds.push(m.user_id)
+  })
+  if (userIds.length === 0) return []
+  const { data: users } = await supabase.from('users').select('email').in('id', userIds)
+  return (users || []).map((u) => u.email).filter(Boolean)
+}
 
 function getAnonClient() {
   return createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY, {
@@ -62,22 +86,43 @@ async function sendCandidateWelcome(supabase, candidateId) {
   )
   if (candidate.welcome_email_sent || !candidate.is_live) return { skipped: true }
 
+  // Claims the send atomically before actually sending, rather than just
+  // checking here and writing welcome_email_sent at the end — two
+  // concurrent triggers (two open dashboard tabs, or this and a 30s poll
+  // landing right before the other's write completes) would otherwise both
+  // read false above and both send. The extra .eq('welcome_email_sent',
+  // false) makes this a conditional update: only the request whose write
+  // actually matches a row (still false at that instant) wins the race.
+  const { data: claimed } = await supabase
+    .from('candidate_profiles')
+    .update({ welcome_email_sent: true })
+    .eq('id', candidate.id)
+    .eq('welcome_email_sent', false)
+    .select('id')
+    .maybeSingle()
+  if (!claimed) return { skipped: true }
+
   const user = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
 
+  // This function only ever fires once is_live is already true (the check
+  // above), unlike welcome-email-nudge.js's own copy of this email (a
+  // near-identical string, deliberately NOT shared with this function —
+  // see the comment above it) for candidates who haven't finished
+  // onboarding yet. Telling an already-live candidate to "complete your
+  // profile, upload your video" describes the one thing they just did.
   await sendEmail({
     to: user.email,
     subject: 'Welcome to Mellow',
     html: renderEmailHtml({
       heading: 'Your living first impression starts here',
       bodyText:
-        'You are one step away from showing employers exactly who you are. Complete your profile, upload your 60-second video, and let the right opportunities find you.',
-      ctaLabel: 'Complete my profile',
+        'Your profile is live and visible to employers. Keep it fresh, add a work video or two, and let the right opportunities find you.',
+      ctaLabel: 'Go to my dashboard',
       ctaUrl: `${SITE_URL}/dashboard`,
       illustration: 'Flexible.PNG',
     }),
   })
 
-  unwrap(await supabase.from('candidate_profiles').update({ welcome_email_sent: true }).eq('id', candidate.id))
   return { sent: true }
 }
 
@@ -113,10 +158,11 @@ async function sendFirstRoleVideoNudge(supabase, employerId) {
   // otherwise bring the count back to 1 a second time.
   if (employer.video_nudge_sent) return { skipped: true }
 
-  const employerUser = unwrap(await supabase.from('users').select('email').eq('id', employer.user_id).single())
+  const emails = await getEmployerEmails(supabase, employerId)
+  if (emails.length === 0) return { skipped: true }
 
   const result = await sendEmail({
-    to: employerUser.email,
+    to: emails,
     subject: 'Your role is live, now make it stand out',
     html: renderEmailHtml({
       heading: 'Your role is live',
@@ -135,18 +181,17 @@ async function sendFirstRoleVideoNudge(supabase, employerId) {
 
 async function sendRoleLiveNotification(supabase, roleId) {
   const role = unwrap(
-    await supabase.from('roles').select('title, slug, employer_profiles(user_id)').eq('id', roleId).single(),
+    await supabase.from('roles').select('title, slug, employer_id').eq('id', roleId).single(),
   )
-  const employerUser = unwrap(
-    await supabase.from('users').select('email').eq('id', role.employer_profiles.user_id).single(),
-  )
+  const emails = await getEmployerEmails(supabase, role.employer_id)
+  if (emails.length === 0) return { skipped: true }
 
   return sendEmail({
-    to: employerUser.email,
+    to: emails,
     subject: 'Your role is live on Mellow',
     html: renderEmailHtml({
       heading: 'Your role is live',
-      bodyText: `Your ${role.title} role has been posted successfully. Talent can now discover and apply to it on Mellow. Share it widely to get the best applications.`,
+      bodyText: `Your ${escapeHtml(role.title)} role has been posted successfully. Talent can now discover and apply to it on Mellow. Share it widely to get the best applications.`,
       ctaLabel: 'View your role',
       ctaUrl: `${SITE_URL}/jobs/${role.slug}`,
       illustration: 'Collaborate2.png',
@@ -185,20 +230,19 @@ async function sendApplicationNotification(supabase, applicationId) {
   const role = unwrap(
     await supabase
       .from('roles')
-      .select('title, employer_profiles(user_id)')
+      .select('title, employer_id')
       .eq('id', application.role_id)
       .single(),
   )
-  const employerUser = unwrap(
-    await supabase.from('users').select('email').eq('id', role.employer_profiles.user_id).single(),
-  )
+  const emails = await getEmployerEmails(supabase, role.employer_id)
+  if (emails.length === 0) return { skipped: true }
 
   return sendEmail({
-    to: employerUser.email,
+    to: emails,
     subject: 'New application on Mellow',
     html: renderEmailHtml({
       heading: 'New application received',
-      bodyText: `${candidate.full_name} applied to ${role.title}. View their profile to learn more.`,
+      bodyText: `${escapeHtml(candidate.full_name)} applied to ${escapeHtml(role.title)}. View their profile to learn more.`,
       ctaLabel: 'View profile',
       ctaUrl: `${SITE_URL}/profile/${candidate.username || application.candidate_id}`,
       illustration: 'Flexible.PNG',
@@ -259,7 +303,7 @@ async function sendRejectionNotification(supabase, applicationId) {
     subject: `Update on your application to ${companyName}`,
     html: renderEmailHtml({
       heading: 'Thank you for applying',
-      bodyText: `Thank you for applying to ${role.title} at ${companyName}. After careful consideration we have decided to move forward with other talent at this time. We appreciate your interest and wish you all the best in your search.`,
+      bodyText: `Thank you for applying to ${escapeHtml(role.title)} at ${escapeHtml(companyName)}. After careful consideration we have decided to move forward with other talent at this time. We appreciate your interest and wish you all the best in your search.`,
       illustration: 'Flexible.PNG',
     }),
   })
@@ -296,8 +340,8 @@ async function sendTeamInvite(supabase, teamMemberId) {
     to: teamMember.invited_email,
     subject: `You've been invited to join ${companyName} on Mellow`,
     html: renderEmailHtml({
-      heading: `Join ${companyName} on Mellow`,
-      bodyText: `${inviter.email} has invited you to join ${companyName}'s team on Mellow. Accept the invitation to help manage applications, message candidates, and post roles.`,
+      heading: `Join ${escapeHtml(companyName)} on Mellow`,
+      bodyText: `${escapeHtml(inviter.email)} has invited you to join ${escapeHtml(companyName)}'s team on Mellow. Accept the invitation to help manage applications, message candidates, and post roles.`,
       ctaLabel: 'Accept invitation',
       ctaUrl: `${SITE_URL}/employer/team/accept?token=${teamMember.invite_token}`,
       illustration: 'Collaborate2.png',

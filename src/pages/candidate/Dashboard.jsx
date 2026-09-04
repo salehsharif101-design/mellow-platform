@@ -129,7 +129,7 @@ export default function CandidateDashboard() {
         supabase.from('candidate_videos').select('id', { count: 'exact', head: true }).eq('candidate_id', candidate.id),
         supabase
           .from('shortlists')
-          .select('id, employer_id, created_at, employer_profiles(company_name)')
+          .select('id, employer_id, role_id, created_at, employer_profiles(company_name)')
           .eq('candidate_id', candidate.id)
           .order('created_at', { ascending: false }),
         supabase
@@ -178,12 +178,28 @@ export default function CandidateDashboard() {
           })
         })
 
+      // An employer moving an application to "Shortlisted" (the status
+      // block above) also upserts a row into this same shortlists table in
+      // the same request (see RoleApplicants.jsx's syncShortlist) — without
+      // this, that one action produced two unrelated-looking feed cards
+      // for a role-scoped shortlist. A general shortlist from the Talent
+      // Feed (role_id null) has no matching application, so it's never
+      // suppressed.
+      const recentlyShortlistedStatusKeys = new Set(
+        apps
+          .filter(
+            (a) => a.status === 'shortlisted' && a.status_changed_at && new Date(a.status_changed_at).getTime() > sinceMs,
+          )
+          .map((a) => `${a.roles?.employer_id}:${a.role_id}`),
+      )
+
       // Shortlist notifications since last visit — added to an employer's
       // personal shortlist, independent of any specific application. Links
       // to the shortlisted-by list itself, not the applications list, since
       // a shortlist entry isn't necessarily tied to any one application.
       shortlistRows
         .filter((s) => new Date(s.created_at).getTime() > sinceMs)
+        .filter((s) => !(s.role_id && recentlyShortlistedStatusKeys.has(`${s.employer_id}:${s.role_id}`)))
         .forEach((s) => {
           items.push({
             id: `shortlist-${s.id}`,
@@ -296,18 +312,25 @@ export default function CandidateDashboard() {
         items.unshift({
           id: 'calendly-nudge',
           text: 'You have been shortlisted. Add your Calendly link so the employer can book a meeting with you.',
-          link: '/profile/edit#linkedin-section',
+          link: '/profile/edit#calendly-field',
           timestamp: new Date().toISOString(),
         })
       }
 
       items.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
 
+      // Distinct employers, not raw rows — one employer can produce two
+      // shortlist rows for the same candidate (once generally from the
+      // Talent Feed, once for a specific role from an applicant list),
+      // which read as "shortlisted twice" even though it's the same
+      // employer's interest either way.
+      const uniqueShortlistEmployerCount = new Set(shortlistRows.map((s) => s.employer_id)).size
+
       setProfile(candidate)
       setApplications(apps)
       if (!viewsResult.error) setViews(viewRows)
       setWorkVideoCount(workVideoTotal)
-      if (!shortlistRowsResult.error) setShortlistCount(shortlistRows.length)
+      if (!shortlistRowsResult.error) setShortlistCount(uniqueShortlistEmployerCount)
       setMessagesReceivedCount(messagesReceivedTotal)
       setFeedItems(items)
       setLoading(false)
@@ -317,7 +340,7 @@ export default function CandidateDashboard() {
           profile: candidate,
           applications: apps,
           views: viewsResult.error ? null : viewRows,
-          shortlistCount: shortlistRowsResult.error ? null : shortlistRows.length,
+          shortlistCount: shortlistRowsResult.error ? null : uniqueShortlistEmployerCount,
           workVideoCount: workVideoTotal,
           messagesReceivedCount: messagesReceivedTotal,
           feedItems: items,
@@ -472,7 +495,7 @@ export default function CandidateDashboard() {
         <h3 style={{ fontSize: 18, marginBottom: 14 }}>What's new</h3>
         {feedItems.length === 0 ? (
           <p className="card" style={{ padding: 16, fontSize: 14, color: 'var(--color-text-muted)' }}>
-            You're all caught up — nothing new since your last visit, including no profile views yet. Keep your
+            You're all caught up — nothing new since your last visit{views && views.length === 0 ? ', including no profile views yet' : ''}. Keep your
             profile updated and complete to attract more employer attention.
           </p>
         ) : (
@@ -618,10 +641,13 @@ export default function CandidateDashboard() {
         <div style={{ marginTop: 32 }}>
           <h3 style={{ fontSize: 18, marginBottom: 14 }}>Recent applications</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {applications.slice(0, 3).map((a) => (
+            {applications
+              .filter((a) => a.roles?.slug)
+              .slice(0, 3)
+              .map((a) => (
               <Link
                 key={a.id}
-                to={`/jobs/${a.roles?.slug}`}
+                to={`/jobs/${a.roles.slug}`}
                 className="card stat-card-link"
                 style={{ padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
               >

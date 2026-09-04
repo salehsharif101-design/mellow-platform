@@ -38,6 +38,11 @@ export default function RolePublic() {
   useSeoMeta({
     title: role ? `${role.title} at ${companyName} | Mellow` : undefined,
     description: role ? (role.description || `${role.title} at ${companyName} — apply on Mellow.`).slice(0, 200) : undefined,
+    // Always the slug URL, even when this page was reached via an old
+    // bookmarked UUID link — role only ever loads on the canonical slug
+    // path (the UUID case sets redirectSlug and navigates away instead,
+    // never populating role), so `slug` here is already the real one.
+    canonicalUrl: role ? `${window.location.origin}/jobs/${slug}` : undefined,
   })
 
   useEffect(() => {

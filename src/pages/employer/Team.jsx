@@ -304,6 +304,7 @@ export default function Team() {
           title="Remove team member?"
           message={`${removingMember.invited_email} will lose access to this company account.`}
           confirmLabel="Remove"
+          busyLabel="Removing…"
           onClose={() => setRemovingMember(null)}
           onConfirm={handleRemove}
         />

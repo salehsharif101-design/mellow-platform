@@ -1,5 +1,15 @@
 // Shared branded HTML template for all transactional emails.
 // Prefixed-underscore directory so Vercel does not turn this into a route.
+//
+// heading/bodyText/secondaryBodyText are inserted as raw HTML, not escaped
+// — several callers deliberately build real <a href> links into bodyText
+// (e.g. sendShortlistNotification's Calendly nudge). Every caller in
+// api/email.js is responsible for escaping any database-sourced value (a
+// candidate's name, a role or company name) with escapeHtml() from
+// ./html.js BEFORE splicing it into the string it passes here — this
+// function has no way to tell "text we authored" apart from "a value that
+// came from a user-editable field" once they're already combined into one
+// string.
 
 const SITE_URL = 'https://beta.joinmellow.xyz'
 

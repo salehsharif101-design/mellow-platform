@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Modal from './Modal.jsx'
 
-export default function ConfirmModal({ title, message, confirmLabel = 'Delete', onClose, onConfirm }) {
+export default function ConfirmModal({ title, message, confirmLabel = 'Delete', busyLabel, onClose, onConfirm }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -31,7 +31,7 @@ export default function ConfirmModal({ title, message, confirmLabel = 'Delete', 
           disabled={busy}
           style={{ background: '#d92d20' }}
         >
-          {busy ? 'Deleting…' : confirmLabel}
+          {busy ? busyLabel || `${confirmLabel}…` : confirmLabel}
         </button>
       </div>
     </Modal>

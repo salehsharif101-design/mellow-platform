@@ -23,6 +23,26 @@ function getServiceClient() {
   })
 }
 
+// Role, company, and candidate-profile pages — all three declared public
+// in App.jsx, but previously missing from the sitemap entirely even though
+// this same function already opens a service-role connection to build the
+// hire pages above. Each mirrors its own page's visibility rule exactly
+// (RolePublic.jsx/CompanyProfile.jsx/PublicProfile.jsx) so nothing gets
+// listed here that a crawler would actually be blocked from seeing.
+async function getContentPages(supabase) {
+  const [{ data: roles }, { data: companies }, { data: candidates }] = await Promise.all([
+    supabase.from('roles').select('slug, employer_profiles!inner(is_visible)').eq('is_active', true).eq('employer_profiles.is_visible', true),
+    supabase.from('employer_profiles').select('company_slug').eq('is_visible', true).not('company_slug', 'is', null),
+    supabase.from('candidate_profiles').select('username').eq('is_live', true).not('username', 'is', null),
+  ])
+
+  return [
+    ...(roles || []).map((r) => `/jobs/${r.slug}`),
+    ...(companies || []).map((c) => `/company/${c.company_slug}`),
+    ...(candidates || []).map((c) => `/profile/${c.username}`),
+  ]
+}
+
 async function getDynamicHirePages(supabase) {
   const { data: roles, error } = await supabase.from('roles').select('title, location').eq('is_active', true)
   if (error) throw error
@@ -56,17 +76,26 @@ function xmlEscape(value) {
 
 export default async function handler(req, res) {
   try {
-    const dynamicKeys = await getDynamicHirePages(getServiceClient())
+    const supabase = getServiceClient()
+    const [dynamicKeys, contentPages] = await Promise.all([
+      getDynamicHirePages(supabase),
+      getContentPages(supabase),
+    ])
 
     const staticHirePaths = getAllHirePages().map(({ location, role }) => `/hire/${location}/${role}`)
     const dynamicHirePaths = dynamicKeys.map((key) => `/hire/${key}`)
 
     const urls = [
+      '/',
+      '/guide',
+      '/privacy',
+      '/terms',
       '/hire',
       ...staticHirePaths,
       ...dynamicHirePaths,
       '/jobs',
       ...Object.keys(JOBS_LOCATIONS).map((location) => `/jobs/${location}`),
+      ...contentPages,
     ]
 
     const body = [

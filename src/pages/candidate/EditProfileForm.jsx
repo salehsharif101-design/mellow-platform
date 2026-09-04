@@ -71,8 +71,12 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
       return { field: 'linkedinUrl', message: 'LinkedIn URL must start with https:// or http://' }
     }
     const trimmedCalendly = calendlyUrl.trim()
-    if (trimmedCalendly && !/^https?:\/\//i.test(trimmedCalendly)) {
-      return { field: 'calendlyUrl', message: 'Calendly link must start with https:// or http://' }
+    // A bare http(s):// check let a candidate save any URL at all here —
+    // CalendlyModal iframes it verbatim with no further check of its own,
+    // so "Book a meeting" would frame whatever site was saved, not just an
+    // actual Calendly page.
+    if (trimmedCalendly && !/^https?:\/\/([a-z0-9-]+\.)?calendly\.com\//i.test(trimmedCalendly)) {
+      return { field: 'calendlyUrl', message: 'Please enter a valid Calendly link (e.g. https://calendly.com/yourname)' }
     }
     const trimmedWebsite = websiteUrl.trim()
     if (trimmedWebsite && !/^https?:\/\//i.test(trimmedWebsite)) {
@@ -792,7 +796,7 @@ function LinkedInSection({
             style={fieldStyle(errorField === 'linkedinUrl')}
           />
         </div>
-        <div className="field">
+        <div className="field" id="calendly-field">
           <label>Calendly link (optional)</label>
           <p style={{ marginTop: -2, marginBottom: 6, fontSize: 13, color: 'var(--color-text-muted)' }}>
             Add your Calendly link so employers can book a meeting with you directly from your profile.

@@ -90,8 +90,15 @@ export default function ProfileEdit() {
       if (error) throw error
       setProfile(data)
       if (fields.is_live) {
+        // Only one email here, not two — the video-library nudge used to
+        // fire in the same breath as this, landing in the same minute as
+        // candidate-welcome (fired moments later once the dashboard
+        // mounts). It's dropped rather than just delayed since the
+        // dashboard they're about to land on already shows an equivalent
+        // "add your first work video" banner natively — the email would
+        // have duplicated a message they're seconds away from seeing
+        // in-app anyway.
         notify('live-notification', { candidateId: data.id })
-        notify('video-library-notification', { candidateId: data.id })
       }
       if (nextStep > LAST_STEP) {
         setJustCompleted(true)

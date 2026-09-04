@@ -1,4 +1,13 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /profile/edit
+Disallow: /roles
+Disallow: /applications
+Disallow: /shortlisted
+Disallow: /profile-views
+Disallow: /messages
+Disallow: /employer/
 
 Sitemap: https://beta.joinmellow.xyz/sitemap.xml

@@ -45,6 +45,15 @@ export default async function handler(req, res) {
         .select('id, user_id')
         .eq('welcome_email_sent', false)
         .eq('is_live', false)
+        // Excludes anyone already in video-reminder.js's own multi-step
+        // sequence (set once a candidate uses "save for later" at the
+        // video step) — without this, a candidate could get both this
+        // cron's welcome nudge AND that cron's own reminder on the same
+        // day, both saying some version of "come finish your profile."
+        // video-reminder.js is the more specific nudge for that segment,
+        // so this one is reserved for someone who never even reached that
+        // step.
+        .is('video_reminder_started_at', null)
         .lte('created_at', cutoff),
     )
 

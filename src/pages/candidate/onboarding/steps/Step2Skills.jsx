@@ -69,6 +69,7 @@ export default function Step2Skills({ initial, onContinue, onBack, saving }) {
         <p style={{ marginTop: 4, fontSize: 13, color: 'var(--color-text-muted)' }}>
           Tap to add. Tap again to remove.
         </p>
+        <p style={{ marginTop: 4, fontSize: 12, color: 'var(--color-text-muted)' }}>At least one skill required</p>
       </div>
 
       {skills.length > 0 && (

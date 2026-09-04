@@ -38,6 +38,9 @@ export default function PublicProfile() {
   useSeoMeta({
     title: profile ? `${profile.full_name} | Mellow` : undefined,
     description: profile ? (profile.headline || profile.bio || `${profile.full_name} on Mellow.`).slice(0, 200) : undefined,
+    // Always the username URL, even when this page was reached via an old
+    // bookmarked UUID link (see the byId fallback lookup above).
+    canonicalUrl: profile ? `${window.location.origin}/profile/${profile.username || profile.id}` : undefined,
   })
 
   useEffect(() => {
