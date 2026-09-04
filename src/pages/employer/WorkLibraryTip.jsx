@@ -16,14 +16,24 @@ export default function WorkLibraryTip() {
           problem live, a marketer breaking down a campaign. It is the closest thing to working with someone before
           you hire them.
         </p>
-        <button
-          className="btn btn-primary"
-          type="button"
-          onClick={() => navigate('/employer/talent')}
-          style={{ marginTop: 36, padding: '14px 32px', fontSize: 15 }}
-        >
-          Got it, show me the talent feed
-        </button>
+        <div style={{ marginTop: 36, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button
+            className="btn btn-ghost"
+            type="button"
+            onClick={() => navigate('/employer/talent')}
+            style={{ padding: '14px 28px', fontSize: 15 }}
+          >
+            Browse the talent feed
+          </button>
+          <button
+            className="btn btn-ghost"
+            type="button"
+            onClick={() => navigate('/employer/roles/new')}
+            style={{ padding: '14px 28px', fontSize: 15 }}
+          >
+            Post a role
+          </button>
+        </div>
       </div>
     </div>
   )
