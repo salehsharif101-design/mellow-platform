@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { useHideChrome } from '../../components/Layout.jsx'
 import { useDraftAutosave } from '../../lib/useDraftAutosave.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
+import { COUNTRIES } from '../../lib/countries.js'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
@@ -15,6 +16,7 @@ const COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-500', '500+']
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']
 const MAX_LOGO_BYTES = 5 * 1024 * 1024
 const MAX_HIGHLIGHT_LENGTH = 150
+const MAX_ABOUT_LENGTH = 300
 
 export default function EmployerOnboarding() {
   const { user } = useAuth()
@@ -37,6 +39,7 @@ export default function EmployerOnboarding() {
   const [country, setCountry] = useState('')
   const [headline, setHeadline] = useState('')
   const [websiteUrl, setWebsiteUrl] = useState('')
+  const [about, setAbout] = useState('')
   const [cultureDescription, setCultureDescription] = useState('')
   const [typicalRoles, setTypicalRoles] = useState('')
   const [companyHighlight, setCompanyHighlight] = useState('')
@@ -96,6 +99,7 @@ export default function EmployerOnboarding() {
         setCountry(profile.country || '')
         setHeadline(profile.headline || '')
         setWebsiteUrl(profile.website_url || '')
+        setAbout(profile.about || '')
         setCultureDescription(profile.culture_description || '')
         setTypicalRoles(profile.typical_roles || '')
         setCompanyHighlight(profile.company_highlight || '')
@@ -135,6 +139,7 @@ export default function EmployerOnboarding() {
             country: country || null,
             headline: headline.trim() || null,
             website_url: websiteUrl.trim() || null,
+            about: about.trim(),
             culture_description: cultureDescription.trim(),
             typical_roles: typicalRoles.trim() || null,
             company_highlight: companyHighlight.trim() || null,
@@ -142,7 +147,7 @@ export default function EmployerOnboarding() {
           { onConflict: 'user_id' },
         )
     },
-    [companyName, industry, companySize, country, headline, websiteUrl, cultureDescription, typicalRoles, companyHighlight],
+    [companyName, industry, companySize, country, headline, websiteUrl, about, cultureDescription, typicalRoles, companyHighlight],
     { enabled: draftLoadedRef.current && !loading && !showWelcome && wasIncomplete },
   )
 
@@ -175,8 +180,11 @@ export default function EmployerOnboarding() {
 
       let logoUrl = logoPreviewUrl && !logoFile ? logoPreviewUrl : undefined
       if (logoFile) {
-        const ext = logoFile.name.split('.').pop() || 'png'
-        const path = `${freshUser.id}/logo.${ext}`
+        // No extension in the path — matches EditProfile.jsx's own fixed
+        // path for the same file, so a later re-upload from either place
+        // always overwrites the same object instead of orphaning it under
+        // a different extension-suffixed key.
+        const path = `${freshUser.id}/logo`
         const { error: uploadError } = await supabase.storage
           .from('company-logos')
           .upload(path, logoFile, { upsert: true, contentType: logoFile.type })
@@ -193,6 +201,7 @@ export default function EmployerOnboarding() {
         country: country || null,
         headline: headline.trim() || null,
         website_url: websiteUrl.trim() || null,
+        about: about.trim(),
         culture_description: cultureDescription.trim(),
         typical_roles: typicalRoles.trim() || null,
         company_highlight: companyHighlight.trim() || null,
@@ -216,13 +225,18 @@ export default function EmployerOnboarding() {
       if (saveError) throw saveError
 
       if (wasIncomplete) {
-        notify('employer-welcome', { userId: user.id })
+        // freshUser, not the possibly-stale user from AuthContext — same
+        // reasoning as every other write in this handler.
+        notify('employer-welcome', { userId: freshUser.id })
         setJustCompleted(true)
         setSaving(false)
       } else {
+        // An already-onboarded employer who came back here to edit a
+        // field — back to the dashboard, not into the first-role flow as
+        // if this were their initial setup.
         // Not resetting saving here — navigating away, so this component is
         // about to unmount.
-        navigate('/employer/roles/new')
+        navigate('/employer/dashboard')
       }
     } catch (err) {
       setError(err.message)
@@ -245,7 +259,7 @@ export default function EmployerOnboarding() {
     return <OnboardingWelcome onContinue={() => setShowWelcome(false)} />
   }
 
-  const isValid = companyName.trim() && industry.trim() && cultureDescription.trim()
+  const isValid = companyName.trim() && industry.trim() && about.trim() && cultureDescription.trim()
 
   return (
     <div className="section">
@@ -308,10 +322,16 @@ export default function EmployerOnboarding() {
               <input
                 id="country"
                 className="input"
+                list="country-options"
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
                 placeholder="e.g. Bahrain"
               />
+              <datalist id="country-options">
+                {COUNTRIES.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
             </div>
             <div className="field">
               <label htmlFor="headline">Company headline (optional)</label>
@@ -334,6 +354,22 @@ export default function EmployerOnboarding() {
                 onChange={(e) => setWebsiteUrl(e.target.value)}
                 placeholder="https://acme.com"
               />
+            </div>
+            <div className="field">
+              <label htmlFor="about">Short description of your company</label>
+              <textarea
+                id="about"
+                className="input"
+                rows={4}
+                value={about}
+                onChange={(e) => setAbout(e.target.value.slice(0, MAX_ABOUT_LENGTH))}
+                placeholder="A brief intro to your company — shown on your public role pages."
+                maxLength={MAX_ABOUT_LENGTH}
+                required
+              />
+              <p style={{ marginTop: 4, fontSize: 12, color: 'var(--color-text-muted)' }}>
+                {about.length}/{MAX_ABOUT_LENGTH}
+              </p>
             </div>
             <div className="field">
               <label htmlFor="culture">Brief description of company culture</label>

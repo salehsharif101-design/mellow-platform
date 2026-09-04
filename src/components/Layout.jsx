@@ -1,4 +1,4 @@
-import { Link, Outlet } from 'react-router-dom'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import Logo from './Logo.jsx'
 import UserMenu from './UserMenu.jsx'
@@ -25,7 +25,7 @@ export function useHideChrome(shouldHide = true) {
 }
 
 export default function Layout() {
-  const { session, userType } = useAuth()
+  const { session, userType, profileLoading } = useAuth()
   const { unreadMessages } = useNotifications()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [hideCount, setHideCount] = useState(0)
@@ -35,6 +35,7 @@ export default function Layout() {
     return () => setHideCount((c) => c - 1)
   }, [])
   const headerRef = useRef(null)
+  const location = useLocation()
 
   const dashboardPath = userType === 'employer' ? '/employer/dashboard' : '/dashboard'
   const messagesPath = userType === 'employer' ? '/employer/messages' : '/messages'
@@ -45,9 +46,25 @@ export default function Layout() {
     function handleClickOutside(e) {
       if (headerRef.current && !headerRef.current.contains(e.target)) closeMobileMenu()
     }
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') closeMobileMenu()
+    }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [mobileMenuOpen])
+
+  // A single source of truth for "the route changed, close the menu" —
+  // covers a browser back/forward navigation and a navigation triggered
+  // from UserMenu (a sibling of the link list, so its own clicks don't run
+  // through closeMobileMenu), not just a direct click on one of the links
+  // inside the menu.
+  useEffect(() => {
+    closeMobileMenu()
+  }, [location.pathname])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -64,6 +81,7 @@ export default function Layout() {
                 className="mobile-menu-toggle"
                 aria-label="Toggle navigation menu"
                 aria-expanded={mobileMenuOpen}
+                aria-controls="app-nav-links"
                 onClick={() => setMobileMenuOpen((o) => !o)}
               >
                 <span className="hamburger-line" />
@@ -75,11 +93,11 @@ export default function Layout() {
           <nav className="app-nav">
             {session ? (
               <>
-                <div className={`app-nav-links${mobileMenuOpen ? ' mobile-open' : ''}`}>
+                <div id="app-nav-links" className={`app-nav-links${mobileMenuOpen ? ' mobile-open' : ''}`}>
                   <Link to={dashboardPath} style={NAV_LINK_STYLE} onClick={closeMobileMenu}>
                     Dashboard
                   </Link>
-                  {userType === 'employer' ? (
+                  {profileLoading ? null : userType === 'employer' ? (
                     <>
                       <NavHighlight
                         to="/employer/talent"

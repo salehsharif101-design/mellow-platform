@@ -99,6 +99,11 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
     setErrorField(null)
     setSaveError('')
     setSaving(true)
+    // Removing the intro video without also clearing is_live left a
+    // candidate marked "live" with an empty video slot — inconsistent with
+    // the dashboard's own "not yet live" banner logic, and with the apply
+    // flow elsewhere, which blocks exactly that state.
+    const introVideoRemoved = !introVideoUrl && Boolean(profile.intro_video_url)
     const { data, error } = await supabase
       .from('candidate_profiles')
       .update({
@@ -122,6 +127,7 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
         calendly_url: calendlyUrl.trim() || null,
         website_url: websiteUrl.trim() || null,
         intro_video_url: introVideoUrl || null,
+        ...(introVideoRemoved ? { is_live: false } : {}),
       })
       .eq('id', profile.id)
       .select()
@@ -130,6 +136,11 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
     if (error) {
       setSaveError(error.message)
       return
+    }
+    if (introVideoRemoved) {
+      // Best-effort — the path is extension-free (see VideoSection's own
+      // upload), so this reliably targets whatever was actually uploaded.
+      supabase.storage.from('candidate-videos').remove([`${userId}/intro`]).catch(() => {})
     }
     onUpdated(data)
     setSuccess(true)
@@ -145,7 +156,12 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
 
       {/* Video sections first, then the rest — matching the order the
           public profile page (CandidateProfileContent.jsx) shows them in. */}
-      <VideoSection userId={userId} introVideoUrl={introVideoUrl} setIntroVideoUrl={setIntroVideoUrl} />
+      <VideoSection
+        userId={userId}
+        introVideoUrl={introVideoUrl}
+        setIntroVideoUrl={setIntroVideoUrl}
+        originalIntroVideoUrl={profile.intro_video_url || null}
+      />
 
       <WorkVideosSection profile={profile} userId={userId} />
 
@@ -276,6 +292,10 @@ function AvatarSection({ profile, userId, onUpdated }) {
         .single()
       if (saveError) throw saveError
       onUpdated(row)
+      // Best-effort — the path is extension-free (see handleFileChange), so
+      // this reliably targets whatever was actually uploaded rather than
+      // depending on parsing an extension back out of the old public URL.
+      supabase.storage.from('avatars').remove([`${userId}/avatar`]).catch(() => {})
     } catch (err) {
       setError(err.message)
     } finally {
@@ -297,8 +317,13 @@ function AvatarSection({ profile, userId, onUpdated }) {
     }
     setUploading(true)
     try {
-      const ext = file.name.split('.').pop() || 'jpg'
-      const path = `${userId}/avatar.${ext}`
+      // No extension in the path — content type is already set correctly
+      // via `contentType` below, and browsers use that (not the URL) to
+      // decide how to render it. Keeping the path fixed regardless of the
+      // uploaded file's own extension means a re-upload always overwrites
+      // the same object instead of orphaning the previous one under a
+      // different extension-suffixed key.
+      const path = `${userId}/avatar`
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(path, file, { upsert: true, contentType: file.type })
@@ -681,7 +706,7 @@ function LanguagesSection({ languages, setLanguages, errorField, fieldRefs }) {
   }
 
   return (
-    <section>
+    <section id="languages-section">
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Languages</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -799,13 +824,31 @@ function LinkedInSection({
   )
 }
 
-function VideoSection({ userId, introVideoUrl, setIntroVideoUrl }) {
+function VideoSection({ userId, introVideoUrl, setIntroVideoUrl, originalIntroVideoUrl }) {
   const [localPreviewUrl, setLocalPreviewUrl] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const [showRecorder, setShowRecorder] = useState(false)
 
   const previewUrl = localPreviewUrl || introVideoUrl
+
+  // localPreviewUrl is always a blob: URL (created below); kept in a ref so
+  // both a replacement and an unmount can revoke whatever the latest one
+  // actually was, rather than leaking every blob a candidate ever selected
+  // or recorded here.
+  const localPreviewUrlRef = useRef(null)
+  useEffect(() => {
+    if (localPreviewUrlRef.current && localPreviewUrlRef.current !== localPreviewUrl) {
+      URL.revokeObjectURL(localPreviewUrlRef.current)
+    }
+    localPreviewUrlRef.current = localPreviewUrl
+  }, [localPreviewUrl])
+
+  useEffect(() => {
+    return () => {
+      if (localPreviewUrlRef.current) URL.revokeObjectURL(localPreviewUrlRef.current)
+    }
+  }, [])
 
   function processFile(selected) {
     setError('')
@@ -873,8 +916,13 @@ function VideoSection({ userId, introVideoUrl, setIntroVideoUrl }) {
     setUploading(true)
     setError('')
     try {
-      const ext = file.name.split('.').pop() || 'mp4'
-      const path = `${userId}/intro.${ext}`
+      // No extension in the path — content type is already set correctly
+      // via `contentType` below, and browsers use that (not the URL) to
+      // decide how to play it. Keeping the path fixed regardless of the
+      // uploaded file's own extension means a re-upload always overwrites
+      // the same object instead of orphaning the previous one under a
+      // different extension-suffixed key.
+      const path = `${userId}/intro`
       const { error: uploadError } = await supabase.storage
         .from('candidate-videos')
         .upload(path, file, { upsert: true, contentType: file.type })
@@ -956,13 +1004,15 @@ function VideoSection({ userId, introVideoUrl, setIntroVideoUrl }) {
           </button>
         )}
 
-        <Link to="/guide" target="_blank" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600, width: 'fit-content' }}>
+        <Link to="/guide" target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600, width: 'fit-content' }}>
           How to record a great video →
         </Link>
 
-        <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-          Click Save below to apply your video change.
-        </p>
+        {(introVideoUrl || null) !== (originalIntroVideoUrl || null) && (
+          <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+            Click Save below to apply your video change.
+          </p>
+        )}
       </div>
 
       {showRecorder && <VideoRecorderModal onClose={() => setShowRecorder(false)} onConfirm={handleRecorded} />}

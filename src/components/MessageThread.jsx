@@ -124,31 +124,44 @@ export default function MessageThread({
           <p style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>No messages yet — say hello.</p>
         )}
         {messages.map((m) => {
-          const fromMe = myIdList.includes(m.sender_id)
-          const showAvatar = !fromMe && (otherAvatarUrl !== undefined || otherProfileUrl)
+          // A shared team inbox means a message can come from three
+          // places: the current user, a teammate on the same account, or
+          // the other party. Only the first counts as "from me" — a
+          // teammate's own message is a colleague's words, not this
+          // viewer's, and rendering it identically to "me" (as a plain
+          // myIdList.includes() check did before) misattributed it.
+          const fromMe = user && m.sender_id === user.id
+          const fromTeammate = !fromMe && myIdList.includes(m.sender_id)
+          const showAvatar = !fromMe && !fromTeammate && (otherAvatarUrl !== undefined || otherProfileUrl)
           return (
             <div
               key={m.id}
               style={{
                 display: 'flex',
-                alignItems: 'flex-end',
-                gap: 8,
-                alignSelf: fromMe ? 'flex-end' : 'flex-start',
+                flexDirection: 'column',
+                alignItems: fromMe ? 'flex-end' : 'flex-start',
                 maxWidth: '80%',
-                flexDirection: fromMe ? 'row-reverse' : 'row',
+                alignSelf: fromMe ? 'flex-end' : 'flex-start',
               }}
             >
-              {showAvatar && <AvatarComponent {...avatarProps} size={26} style={{ border: 'none', boxShadow: 'none' }} />}
-              <div
-                style={{
-                  background: fromMe ? 'var(--color-primary)' : 'var(--color-bg-soft)',
-                  color: fromMe ? '#fff' : 'var(--color-text)',
-                  borderRadius: 12,
-                  padding: '8px 14px',
-                  fontSize: 14,
-                }}
-              >
-                {m.body}
+              {fromTeammate && (
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 2 }}>
+                  Teammate
+                </span>
+              )}
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexDirection: fromMe ? 'row-reverse' : 'row' }}>
+                {showAvatar && <AvatarComponent {...avatarProps} size={26} style={{ border: 'none', boxShadow: 'none' }} />}
+                <div
+                  style={{
+                    background: fromMe ? 'var(--color-primary)' : fromTeammate ? '#eef1f6' : 'var(--color-bg-soft)',
+                    color: fromMe ? '#fff' : 'var(--color-text)',
+                    borderRadius: 12,
+                    padding: '8px 14px',
+                    fontSize: 14,
+                  }}
+                >
+                  {m.body}
+                </div>
               </div>
             </div>
           )

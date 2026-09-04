@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { useHideChrome } from '../../components/Layout.jsx'
 import ResendConfirmationButton from '../../components/ResendConfirmationButton.jsx'
 import WrongAccountNotice from '../../components/WrongAccountNotice.jsx'
 
@@ -24,6 +25,9 @@ export default function TeamAccept() {
   const [submitting, setSubmitting] = useState(false)
   const [needsConfirmation, setNeedsConfirmation] = useState(false)
   const [accepted, setAccepted] = useState(false)
+  const [autoAcceptError, setAutoAcceptError] = useState('')
+
+  useHideChrome()
 
   useEffect(() => {
     if (!token) {
@@ -56,24 +60,31 @@ export default function TeamAccept() {
   // account, then came back to this same link) and the email matches,
   // accept automatically instead of asking them to set a new password.
   useEffect(() => {
-    if (!session || !invite || invite.status === 'active' || accepted) return
+    if (!session || !invite || invite.status === 'active' || accepted || autoAcceptError) return
     if ((session.user.email || '').toLowerCase() !== invite.invitedEmail.toLowerCase()) return
 
     async function autoAccept() {
-      const { data } = await supabase.auth.getSession()
-      const res = await fetch('/api/team-invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session.access_token}` },
-        body: JSON.stringify({ action: 'accept', token }),
-      })
-      if (res.ok) {
-        setAccepted(true)
-        navigate('/employer/dashboard')
+      try {
+        const { data } = await supabase.auth.getSession()
+        const res = await fetch('/api/team-invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session.access_token}` },
+          body: JSON.stringify({ action: 'accept', token }),
+        })
+        if (res.ok) {
+          setAccepted(true)
+          navigate('/employer/dashboard')
+          return
+        }
+        const result = await res.json().catch(() => ({}))
+        setAutoAcceptError(result.error || 'Something went wrong accepting the invitation.')
+      } catch {
+        setAutoAcceptError('Something went wrong accepting the invitation.')
       }
     }
 
     autoAccept()
-  }, [session, invite, accepted, token, navigate])
+  }, [session, invite, accepted, autoAcceptError, token, navigate])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -128,8 +139,21 @@ export default function TeamAccept() {
     invite &&
     invite.status !== 'active' &&
     !accepted &&
+    !autoAcceptError &&
     (session.user.email || '').toLowerCase() === invite.invitedEmail.toLowerCase()
   if (willAutoAccept) return null
+
+  if (autoAcceptError) {
+    return (
+      <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
+        <h1 style={{ fontSize: 26 }}>Couldn't accept invitation</h1>
+        <p className="form-error" style={{ marginTop: 12 }}>{autoAcceptError}</p>
+        <button type="button" className="btn btn-primary" style={{ marginTop: 20 }} onClick={() => setAutoAcceptError('')}>
+          Try again
+        </button>
+      </div>
+    )
+  }
 
   if (error && !invite) {
     return (

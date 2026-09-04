@@ -18,6 +18,29 @@ const WORK_STYLE_OPTIONS = ['Remote', 'Hybrid', 'On-site']
 const VIEW_MODE_KEY = 'mellow_talent_view_mode'
 const SWIPE_THRESHOLD = 80
 const SKILLS_SHOWN_COLLAPSED = 10
+const SKIPPED_KEY_PREFIX = 'mellow_talent_skipped_'
+
+// Quick Screen's "skip" is a per-employer, per-browser preference (not
+// synced anywhere server-side) — just enough so a skipped candidate
+// doesn't resurface at the very top of the queue the next time this
+// employer reopens Quick Screen on this device.
+function loadSkipped(employerId) {
+  if (!employerId || typeof window === 'undefined') return new Set()
+  try {
+    return new Set(JSON.parse(localStorage.getItem(SKIPPED_KEY_PREFIX + employerId) || '[]'))
+  } catch {
+    return new Set()
+  }
+}
+
+function persistSkipped(employerId, set) {
+  if (!employerId || typeof window === 'undefined') return
+  try {
+    localStorage.setItem(SKIPPED_KEY_PREFIX + employerId, JSON.stringify(Array.from(set)))
+  } catch {
+    // Best-effort — a private-browsing quota error shouldn't break screening.
+  }
+}
 
 function CheckIcon() {
   return (
@@ -60,6 +83,7 @@ export default function TalentFeed() {
   // data immediately while load() quietly refreshes it in the background.
   const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState('')
+  const [actionError, setActionError] = useState('')
   const [savingId, setSavingId] = useState(null)
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -77,7 +101,12 @@ export default function TalentFeed() {
 
   const [swipeMode, setSwipeMode] = useState(false)
   const [swipeIndex, setSwipeIndex] = useState(0)
+  const [skippedIds, setSkippedIds] = useState(() => new Set())
   const touchStartXRef = useRef(null)
+
+  useEffect(() => {
+    if (employerId) setSkippedIds(loadSkipped(employerId))
+  }, [employerId])
 
   useEffect(() => {
     localStorage.setItem(VIEW_MODE_KEY, viewMode)
@@ -121,7 +150,11 @@ export default function TalentFeed() {
       }
       setCandidates(liveCandidates)
 
-      const shortlistIds = shortlistError ? [] : shortlists.map((s) => s.candidate_id)
+      // On error, fall back to whatever was cached rather than an empty
+      // array — otherwise the live state stays correct (untouched below)
+      // while the cache gets overwritten with a wrong "nothing shortlisted"
+      // snapshot that the next visit would render from.
+      const shortlistIds = shortlistError ? cached?.shortlistedIds ?? [] : shortlists.map((s) => s.candidate_id)
       if (!shortlistError) setShortlistedIds(new Set(shortlistIds))
 
       const roles = rolesData || []
@@ -252,6 +285,7 @@ export default function TalentFeed() {
 
   async function shortlist(candidateId) {
     if (!employerId) return
+    setActionError('')
     setSavingId(candidateId)
     const { data, error: insertError } = await supabase
       .from('shortlists')
@@ -261,13 +295,20 @@ export default function TalentFeed() {
     if (!insertError) {
       setShortlistedIds((prev) => new Set(prev).add(candidateId))
       notify('shortlist-notification', { shortlistId: data.id })
+    } else if (insertError.code === '23505') {
+      // Already shortlisted (e.g. a stale cache raced a second tab) — not
+      // a real failure, so just reflect reality rather than showing an error.
+      setShortlistedIds((prev) => new Set(prev).add(candidateId))
+    } else {
+      setActionError('Could not shortlist that candidate — please try again.')
     }
     setSavingId(null)
   }
 
-  // Swipe screening mode — same filtered queue as the grid/list, so any
-  // active search/filter carries over into swipe mode too.
-  const swipeQueue = filtered
+  // Swipe screening mode — same filtered queue as the grid/list (so any
+  // active search/filter carries over into swipe mode too), minus anyone
+  // already skipped in an earlier Quick Screen session on this device.
+  const swipeQueue = useMemo(() => filtered.filter((c) => !skippedIds.has(c.id)), [filtered, skippedIds])
   const swipeCandidate = swipeQueue[swipeIndex]
   const swipeDone = swipeQueue.length > 0 && swipeIndex >= swipeQueue.length
 
@@ -288,6 +329,11 @@ export default function TalentFeed() {
 
   function handleSwipeSkip() {
     if (!swipeCandidate) return
+    setSkippedIds((prev) => {
+      const next = new Set(prev).add(swipeCandidate.id)
+      persistSkipped(employerId, next)
+      return next
+    })
     setSwipeIndex((i) => i + 1)
   }
 
@@ -420,6 +466,11 @@ export default function TalentFeed() {
   return (
     <div className="section">
       <h1 style={{ fontSize: 28 }}>Browse talent</h1>
+      {actionError && (
+        <p className="form-error" style={{ marginTop: 12 }}>
+          {actionError}
+        </p>
+      )}
 
       <input
         className="input"

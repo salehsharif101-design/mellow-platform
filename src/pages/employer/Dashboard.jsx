@@ -133,7 +133,12 @@ export default function EmployerDashboard() {
         const sevenDaysAgoMs = Date.now() - SEVEN_DAYS_MS
         const lastViewedMs = emp.last_viewed_applications_at ? new Date(emp.last_viewed_applications_at).getTime() : 0
         sinceMsRef.current = Math.max(sevenDaysAgoMs, lastViewedMs)
-        clearApplicationsBadgeRef.current()
+        // The nav badge itself is intentionally NOT cleared here — clearing
+        // it as part of the very first load would zero it out before the
+        // employer ever got a chance to see it, so it could only ever show
+        // a count for an application that arrives while they're already on
+        // this page. It's cleared instead once they've actually seen the
+        // dashboard and move on — see the unmount effect below.
       }
       const sinceMs = sinceMsRef.current
       const sinceIso = new Date(sinceMs).toISOString()
@@ -161,8 +166,12 @@ export default function EmployerDashboard() {
           .from('applications')
           .select('id, status, role_id, applied_at, viewed_at, candidate_profiles(id, username, full_name, avatar_url, job_title), roles!inner(employer_id)')
           .eq('roles.employer_id', emp.id),
-        supabase.from('shortlists').select('id', { count: 'exact', head: true }).eq('employer_id', emp.id),
-        supabase.from('company_views').select('viewed_at').eq('employer_id', emp.id).gt('viewed_at', sinceIso),
+        // Excludes rejected entries — Shortlist Review moves a candidate to
+        // status 'rejected' rather than deleting the row (so the history
+        // survives), and this count should reflect active shortlists only,
+        // matching what the Shortlist page itself now shows.
+        supabase.from('shortlists').select('id', { count: 'exact', head: true }).eq('employer_id', emp.id).neq('status', 'rejected'),
+        supabase.from('company_views').select('viewed_at, viewer_id').eq('employer_id', emp.id).gt('viewed_at', sinceIso),
         senderIds.length > 0
           ? supabase.from('candidate_profiles').select('user_id, full_name').in('user_id', senderIds)
           : Promise.resolve({ data: [] }),
@@ -203,11 +212,15 @@ export default function EmployerDashboard() {
           timestamp: entry.latest,
         })
       })
-      if (views.length > 0) {
+      // Deduped by viewer — company_views has no per-viewer uniqueness, so
+      // one candidate refreshing the company page 3 times would otherwise
+      // read as "3 talents viewed your company profile."
+      const uniqueViewerIds = new Set(views.map((v) => v.viewer_id).filter(Boolean))
+      if (uniqueViewerIds.size > 0) {
         const latestView = views.reduce((max, v) => (v.viewed_at > max ? v.viewed_at : max), views[0].viewed_at)
         items.push({
           id: 'company-views',
-          text: `${views.length} talent${views.length === 1 ? '' : 's'} viewed your company profile`,
+          text: `${uniqueViewerIds.size} talent${uniqueViewerIds.size === 1 ? '' : 's'} viewed your company profile`,
           link: emp.company_slug ? `/company/${emp.company_slug}` : '/employer/dashboard',
           timestamp: latestView,
         })
@@ -236,7 +249,10 @@ export default function EmployerDashboard() {
 
     load()
     const interval = setInterval(load, POLL_MS)
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+      clearApplicationsBadgeRef.current()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
@@ -318,8 +334,14 @@ export default function EmployerDashboard() {
     const views = role.view_count || 0
     const conversion = views > 0 ? Math.round((total / views) * 100) : null
     const daysOpen = daysSince(role.created_at)
-    const showTip = daysOpen > 14 && total < 5
-    return { role, total, unviewed, shortlistedCount, rejectedCount, views, conversion, daysOpen, showTip }
+    // A role with few views has a distribution problem, not a description
+    // problem — telling its owner to rewrite the description is the wrong
+    // advice for a role nobody has actually seen yet. Only surface the
+    // description tip once there's been a meaningful amount of traffic that
+    // still isn't converting.
+    const lowViews = daysOpen > 14 && views < 10
+    const lowConversion = daysOpen > 14 && views >= 10 && total < 5
+    return { role, total, unviewed, shortlistedCount, rejectedCount, views, conversion, daysOpen, lowViews, lowConversion }
   })
 
   const rejectedApplications = applications.filter((a) => a.status === 'rejected')
@@ -337,7 +359,7 @@ export default function EmployerDashboard() {
               <Link to={`/company/${employer.company_slug}`} className="btn btn-ghost">
                 View Profile
               </Link>
-              <ShareButton url={`https://beta.joinmellow.xyz/company/${employer.company_slug}`} label="Share profile" />
+              <ShareButton url={`${window.location.origin}/company/${employer.company_slug}`} label="Share profile" />
             </>
           )}
         </div>
@@ -451,7 +473,7 @@ export default function EmployerDashboard() {
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {pipeline.map(({ role, total, unviewed, shortlistedCount, rejectedCount, views, conversion, daysOpen, showTip }) => (
+            {pipeline.map(({ role, total, unviewed, shortlistedCount, rejectedCount, views, conversion, daysOpen, lowViews, lowConversion }) => (
               <div
                 key={role.id}
                 className="card"
@@ -480,7 +502,12 @@ export default function EmployerDashboard() {
                   {views} view{views === 1 ? '' : 's'} · {total} applied · {shortlistedCount} shortlisted · {rejectedCount} rejected
                   {conversion !== null && ` · ${conversion}% view-to-apply`}
                 </p>
-                {showTip && (
+                {lowViews && (
+                  <p style={{ fontSize: 12, color: '#8a6100', background: '#fff6e0', borderRadius: 6, padding: '6px 10px', marginTop: 10, display: 'inline-block' }}>
+                    This role isn't getting much visibility — try sharing it directly with candidates
+                  </p>
+                )}
+                {lowConversion && (
                   <p style={{ fontSize: 12, color: '#8a6100', background: '#fff6e0', borderRadius: 6, padding: '6px 10px', marginTop: 10, display: 'inline-block' }}>
                     Consider updating your role description to attract more applicants
                   </p>

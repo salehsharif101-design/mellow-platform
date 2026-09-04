@@ -49,6 +49,7 @@ export default function RoleApplicants() {
   const [hires, setHires] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [statusError, setStatusError] = useState('')
   const [updatingId, setUpdatingId] = useState(null)
   const [activeSkills, setActiveSkills] = useState(new Set())
   const [pendingRejectionId, setPendingRejectionId] = useState(null)
@@ -283,11 +284,16 @@ export default function RoleApplicants() {
   // rendered (there's no await between the two calls), so the activity
   // log entry would fall back to the underlying status ("Reviewing")
   // and stay wrong until a reload re-read the correct label from the DB.
+  // Returns whether the update actually succeeded — confirmRejection below
+  // only fires the rejection email when it did, rather than unconditionally
+  // (which would otherwise send a candidate a "you weren't selected" email
+  // for a status change that never actually took effect).
   async function changeStatus(applicationId, rawValue, options = {}) {
     const application = applications.find((a) => a.id === applicationId)
     const previousStatus = options.previousStatus ?? application?.status
     const { status, customStageId } = parseStageValue(rawValue)
     setUpdatingId(applicationId)
+    setStatusError('')
     const { data, error: updateError } = await supabase
       .from('applications')
       .update({ status, custom_stage_id: customStageId })
@@ -309,8 +315,11 @@ export default function RoleApplicants() {
       if (candidateId && shortlistChange) {
         prependActivity(candidateId, { event_type: shortlistChange })
       }
+    } else {
+      setStatusError("Could not update that applicant's status — please try again.")
     }
     setUpdatingId(null)
+    return !updateError
   }
 
   function handleStatusSelect(applicationId, rawValue) {
@@ -324,8 +333,8 @@ export default function RoleApplicants() {
   }
 
   async function confirmRejection(applicationId, shouldNotify) {
-    await changeStatus(applicationId, 'rejected')
-    if (shouldNotify) {
+    const succeeded = await changeStatus(applicationId, 'rejected')
+    if (succeeded && shouldNotify) {
       notify('rejection-notification', { applicationId })
     }
     setPendingRejectionId(null)
@@ -362,6 +371,8 @@ export default function RoleApplicants() {
       <h1 style={{ fontSize: 28, marginTop: 8 }}>Applicants for {role.title}</h1>
 
       <RoleAnalyticsPanel role={role} applications={applications} hires={hires} />
+
+      {statusError && <p className="form-error" style={{ marginTop: 12 }}>{statusError}</p>}
 
       {messageSent && (
         <p style={{ marginTop: 12, fontSize: 14, fontWeight: 600, color: '#0f7a3d' }}>Message sent</p>
@@ -497,10 +508,7 @@ export default function RoleApplicants() {
                                 setNewStageDraft('')
                               }
                             }}
-                            onBlur={() => {
-                              setAddingStageId(null)
-                              setNewStageDraft('')
-                            }}
+                            onBlur={() => submitNewStage(a.id)}
                             style={{ width: 160, padding: '8px 12px' }}
                           />
                         ) : (

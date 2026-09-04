@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { deleteAccount } from '../../lib/deleteAccount.js'
+import { COUNTRIES } from '../../lib/countries.js'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
 import HashScroll from '../../components/HashScroll.jsx'
 
@@ -166,6 +167,7 @@ function EditProfileFormBody({ profile, onUpdated }) {
     setErrorField(null)
     setSaveError('')
     setSaving(true)
+    const introVideoRemoved = !introVideoUrl && Boolean(profile.intro_video_url)
     const { data, error } = await supabase
       .from('employer_profiles')
       .update({
@@ -189,6 +191,12 @@ function EditProfileFormBody({ profile, onUpdated }) {
     if (error) {
       setSaveError(error.message)
       return
+    }
+    if (introVideoRemoved) {
+      // Best-effort — the path is extension-free (see IntroVideoSection's
+      // own upload), so this reliably targets whatever was actually
+      // uploaded.
+      supabase.storage.from('company-videos').remove([`${profile.user_id}/intro`]).catch(() => {})
     }
     onUpdated(data)
     setSuccess(true)
@@ -313,6 +321,10 @@ function LogoSection({ profile, onUpdated }) {
         .single()
       if (saveError) throw saveError
       onUpdated(row)
+      // Best-effort — the path is extension-free (see handleFileChange), so
+      // this reliably targets whatever was actually uploaded rather than
+      // depending on parsing an extension back out of the old public URL.
+      supabase.storage.from('company-logos').remove([`${freshUser.id}/logo`]).catch(() => {})
     } catch (err) {
       setError(err.message)
     } finally {
@@ -337,8 +349,13 @@ function LogoSection({ profile, onUpdated }) {
       const { data: { user: freshUser }, error: userError } = await supabase.auth.getUser()
       if (userError || !freshUser) throw new Error(userError?.message || 'Your session has expired — please log in again.')
 
-      const ext = file.name.split('.').pop() || 'png'
-      const path = `${freshUser.id}/logo.${ext}`
+      // No extension in the path — content type is already set correctly
+      // via `contentType` below, and browsers use that (not the URL) to
+      // decide how to render it. Keeping the path fixed regardless of the
+      // uploaded file's own extension means a re-upload always overwrites
+      // the same object instead of orphaning the previous one under a
+      // different extension-suffixed key.
+      const path = `${freshUser.id}/logo`
       const { error: uploadError } = await supabase.storage
         .from('company-logos')
         .upload(path, file, { upsert: true, contentType: file.type })
@@ -474,10 +491,16 @@ function CompanyInfoSection({
           <label>Country (optional)</label>
           <input
             className="input"
+            list="country-options"
             value={country}
             onChange={(e) => setCountry(e.target.value)}
             placeholder="e.g. Bahrain"
           />
+          <datalist id="country-options">
+            {COUNTRIES.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
         </div>
         <div className="field">
           <label>Company headline (optional)</label>
@@ -623,6 +646,23 @@ function IntroVideoSection({ introVideoUrl, setIntroVideoUrl }) {
 
   const previewUrl = localPreviewUrl || introVideoUrl
 
+  // localPreviewUrl is always a blob: URL (created below); kept in a ref so
+  // both a replacement and an unmount can revoke whatever the latest one
+  // actually was, rather than leaking every blob an employer ever selected.
+  const localPreviewUrlRef = useRef(null)
+  useEffect(() => {
+    if (localPreviewUrlRef.current && localPreviewUrlRef.current !== localPreviewUrl) {
+      URL.revokeObjectURL(localPreviewUrlRef.current)
+    }
+    localPreviewUrlRef.current = localPreviewUrl
+  }, [localPreviewUrl])
+
+  useEffect(() => {
+    return () => {
+      if (localPreviewUrlRef.current) URL.revokeObjectURL(localPreviewUrlRef.current)
+    }
+  }, [])
+
   function handleFileChange(e) {
     const selected = e.target.files?.[0]
     if (!selected) return
@@ -638,14 +678,35 @@ function IntroVideoSection({ introVideoUrl, setIntroVideoUrl }) {
     const objectUrl = URL.createObjectURL(selected)
     const probe = document.createElement('video')
     probe.preload = 'metadata'
-    probe.onloadedmetadata = () => {
-      if (probe.duration > MAX_VIDEO_SECONDS + 0.5) {
+
+    function checkDuration(duration) {
+      if (duration > MAX_VIDEO_SECONDS + 0.5) {
         setError('Your video is longer than 60 seconds — please trim it and try again.')
         URL.revokeObjectURL(objectUrl)
         return
       }
       setLocalPreviewUrl(objectUrl)
       handleUpload(selected)
+    }
+
+    probe.onloadedmetadata = () => {
+      // A webm recorded elsewhere via MediaRecorder has no Duration
+      // header, so Chrome/Firefox report Infinity here — forcing a seek
+      // past the real end is the standard, documented workaround to make
+      // the browser compute the actual duration.
+      if (probe.duration === Infinity || Number.isNaN(probe.duration)) {
+        probe.currentTime = 1e101
+        probe.ontimeupdate = () => {
+          probe.ontimeupdate = null
+          checkDuration(probe.duration)
+        }
+      } else {
+        checkDuration(probe.duration)
+      }
+    }
+    probe.onerror = () => {
+      setError('We could not read that video file. Please try a different file.')
+      URL.revokeObjectURL(objectUrl)
     }
     probe.src = objectUrl
   }
@@ -657,8 +718,13 @@ function IntroVideoSection({ introVideoUrl, setIntroVideoUrl }) {
       const { data: { user: freshUser }, error: userError } = await supabase.auth.getUser()
       if (userError || !freshUser) throw new Error(userError?.message || 'Your session has expired — please log in again.')
 
-      const ext = file.name.split('.').pop() || 'mp4'
-      const path = `${freshUser.id}/intro.${ext}`
+      // No extension in the path — content type is already set correctly
+      // via `contentType` below, and browsers use that (not the URL) to
+      // decide how to play it. Keeping the path fixed regardless of the
+      // uploaded file's own extension means a re-upload always overwrites
+      // the same object instead of orphaning the previous one under a
+      // different extension-suffixed key.
+      const path = `${freshUser.id}/intro`
       const { error: uploadError } = await supabase.storage
         .from('company-videos')
         .upload(path, file, { upsert: true, contentType: file.type })

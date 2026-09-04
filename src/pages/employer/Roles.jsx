@@ -33,6 +33,7 @@ export default function EmployerRoles() {
   // data immediately while load() quietly refreshes it in the background.
   const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState('')
+  const [actionError, setActionError] = useState('')
   const [updatingStatusId, setUpdatingStatusId] = useState(null)
   const [editingRole, setEditingRole] = useState(null)
   const [deletingRole, setDeletingRole] = useState(null)
@@ -79,8 +80,12 @@ export default function EmployerRoles() {
       ;(apps || []).forEach((a) => {
         counts[a.role_id] = (counts[a.role_id] || 0) + 1
       })
-      setApplicationCounts(counts)
     }
+    // Always set (even to {} when there are no roles left) — otherwise
+    // deleting the last role leaves the previous counts in state while an
+    // empty object gets written to the cache below, so state and cache
+    // disagree on the next load.
+    setApplicationCounts(counts)
 
     setLoading(false)
 
@@ -91,6 +96,7 @@ export default function EmployerRoles() {
 
   async function changeStatus(role, status) {
     if (status === role.status) return
+    setActionError('')
     setUpdatingStatusId(role.id)
     const { data, error: updateError } = await supabase
       .from('roles')
@@ -100,6 +106,8 @@ export default function EmployerRoles() {
       .single()
     if (!updateError) {
       setRoles((prev) => prev.map((r) => (r.id === role.id ? data : r)))
+    } else {
+      setActionError(`Could not update "${role.title}"'s status — please try again.`)
     }
     setUpdatingStatusId(null)
   }
@@ -129,6 +137,12 @@ export default function EmployerRoles() {
           Post a new role
         </Link>
       </div>
+
+      {actionError && (
+        <p className="form-error" style={{ marginTop: 16 }}>
+          {actionError}
+        </p>
+      )}
 
       {roles.length > 0 && !hasIntroVideo && (
         <div
@@ -171,7 +185,8 @@ export default function EmployerRoles() {
                     </span>
                   </div>
                   <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 6 }}>
-                    {role.location} · {role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')} · Posted{' '}
+                    {role.location}
+                    {role.role_type && ` · ${role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')}`} · Posted{' '}
                     {new Date(role.created_at).toLocaleDateString()}
                   </p>
                   <Link
@@ -184,7 +199,7 @@ export default function EmployerRoles() {
                 </div>
 
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                  <ShareButton url={`https://beta.joinmellow.xyz/jobs/${role.slug}`} label="Share role" bordered />
+                  <ShareButton url={`${window.location.origin}/jobs/${role.slug}`} label="Share role" bordered />
                   <IconButton
                     href={`/jobs/${role.slug}`}
                     label="View role"

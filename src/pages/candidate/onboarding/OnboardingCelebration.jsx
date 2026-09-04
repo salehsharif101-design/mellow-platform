@@ -6,10 +6,10 @@ export default function OnboardingCelebration({ username, candidateId, userId })
   const [copied, setCopied] = useState(false)
   const [showTip, setShowTip] = useState(false)
 
-  const profileUrl = `beta.joinmellow.xyz/profile/${username}`
+  const profileUrl = `${window.location.host}/profile/${username}`
 
   async function shareProfile() {
-    const url = `https://${profileUrl}`
+    const url = `${window.location.origin}/profile/${username}`
     try {
       await navigator.clipboard.writeText(url)
     } catch {
@@ -76,7 +76,7 @@ export default function OnboardingCelebration({ username, candidateId, userId })
             onClick={() => setShowTip(true)}
             style={{ padding: '14px 28px', fontSize: 15 }}
           >
-            Go to my dashboard
+            Continue
           </button>
         </div>
       </div>

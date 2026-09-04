@@ -3,11 +3,14 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { getCachedPage, setCachedPage } from '../../lib/dashboardCache.js'
+import { formatRelativeTime } from '../../lib/roleFormat.js'
 import MessageThread from '../../components/MessageThread.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
 import MessagesSkeleton from '../../components/MessagesSkeleton.jsx'
 import CompanyAvatar from '../../components/CompanyAvatar.jsx'
 import UnreadDot from '../../components/UnreadDot.jsx'
+
+const POLL_MS = 30000
 
 export default function CandidateMessages() {
   const { user } = useAuth()
@@ -74,8 +77,22 @@ export default function CandidateMessages() {
     }
 
     load()
+    // The nav's own unread badge polls on this interval — without a
+    // matching poll here, this page could sit open on a stale
+    // conversation list while that badge ticks up.
+    const interval = setInterval(load, POLL_MS)
+    return () => clearInterval(interval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
+
+  function selectConversation(otherId) {
+    setSelected(otherId)
+    // Opening a conversation is what triggers MessageThread to mark it
+    // read server-side — reflect that here too, immediately, so switching
+    // to a different conversation and back doesn't show the dot again
+    // while waiting for the next poll to catch up.
+    setConversations((prev) => prev.map((c) => (c.otherId === otherId ? { ...c, unread: false } : c)))
+  }
 
   if (loading) return <MessagesSkeleton />
 
@@ -107,10 +124,15 @@ export default function CandidateMessages() {
               return (
               <div
                 key={c.otherId}
-                onClick={() => setSelected(c.otherId)}
+                onClick={() => selectConversation(c.otherId)}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && setSelected(c.otherId)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    selectConversation(c.otherId)
+                  }
+                }}
                 className="card"
                 style={{
                   textAlign: 'left',
@@ -137,9 +159,16 @@ export default function CandidateMessages() {
                     </>
                   )}
                 </div>
-                <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {c.lastBody}
-                </p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginTop: 6 }}>
+                  <p style={{ fontSize: 13, color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                    {c.lastBody}
+                  </p>
+                  {c.lastAt && (
+                    <span style={{ fontSize: 11, color: 'var(--color-text-muted)', flexShrink: 0 }}>
+                      {formatRelativeTime(c.lastAt)}
+                    </span>
+                  )}
+                </div>
               </div>
               )
             })}

@@ -9,6 +9,15 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  // `loading` only covers the session itself resolving — profile (and so
+  // userType) resolves afterward, in its own effect below. Without this
+  // tracked separately, anything gating on userType (ProtectedRoute, the
+  // nav) has no way to tell "not signed in as that type" apart from
+  // "haven't found out yet" during that gap, and would treat the two the
+  // same — which is exactly what let a cold-loading employer briefly see
+  // the candidate nav, or fall through a route guard into the wrong
+  // dashboard.
+  const [profileLoading, setProfileLoading] = useState(true)
   const navigate = useNavigate()
   // Tracks the signed-in user id outside React state so the listener below
   // can tell a genuine cross-tab identity change (someone logged in or out
@@ -81,14 +90,19 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!session?.user) {
       setProfile(null)
+      setProfileLoading(false)
       return
     }
+    setProfileLoading(true)
     supabase
       .from('users')
       .select('id, email, user_type')
       .eq('id', session.user.id)
       .single()
-      .then(({ data }) => setProfile(data ?? null))
+      .then(({ data }) => {
+        setProfile(data ?? null)
+        setProfileLoading(false)
+      })
   }, [session?.user])
 
   async function signUp({ email, password, userType, emailRedirectTo }) {
@@ -142,6 +156,7 @@ export function AuthProvider({ children }) {
     profile,
     userType: profile?.user_type ?? null,
     loading,
+    profileLoading,
     signUp,
     signIn,
     signOut,

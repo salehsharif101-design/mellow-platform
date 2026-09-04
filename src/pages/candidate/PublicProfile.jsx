@@ -119,16 +119,31 @@ export default function PublicProfile() {
     // shouldn't inflate that number. Notifications are batched into a daily
     // digest (api/cron/profile-view-digest.js) rather than sent per view.
     if (!profile || !user || isOwner || userType !== 'employer') return
-    // Fire-and-forget view tracking — never block or break the page on
-    // failure, but do surface a failed insert (e.g. an RLS rejection) to
-    // the console instead of swallowing it silently, since this write has
-    // no other visible effect on the page for anyone to notice it failed.
-    supabase
-      .from('profile_views')
-      .insert({ candidate_id: profile.id, viewer_id: user.id })
-      .then(({ error }) => {
-        if (error) console.error('Failed to record profile view:', error)
-      })
+
+    async function recordView() {
+      // Same 24h-repeat guard as handleBookMeeting above — one employer
+      // refreshing the page repeatedly (or opening it from several tabs)
+      // shouldn't produce a new row, and therefore a new "employer viewed
+      // your profile" count, every single time.
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      const { data: recent } = await supabase
+        .from('profile_views')
+        .select('id')
+        .eq('candidate_id', profile.id)
+        .eq('viewer_id', user.id)
+        .gte('viewed_at', since)
+        .limit(1)
+      if (recent && recent.length > 0) return
+
+      // Fire-and-forget — never block or break the page on failure, but do
+      // surface a failed insert (e.g. an RLS rejection) to the console
+      // instead of swallowing it silently, since this write has no other
+      // visible effect on the page for anyone to notice it failed.
+      const { error } = await supabase.from('profile_views').insert({ candidate_id: profile.id, viewer_id: user.id })
+      if (error) console.error('Failed to record profile view:', error)
+    }
+
+    recordView()
   }, [profile, user, isOwner, userType])
 
   if (loading) return null
@@ -188,7 +203,7 @@ export default function PublicProfile() {
                 label={profile.full_name}
                 size={19}
               />
-              <ShareButton url={`https://beta.joinmellow.xyz/profile/${profile.username || profile.id}`} label="Share profile" size={19} />
+              <ShareButton url={`${window.location.origin}/profile/${profile.username || profile.id}`} label="Share profile" size={19} />
             </>
           }
           bookMeetingButton={canBookMeeting && <BookMeetingButton onClick={handleBookMeeting} />}

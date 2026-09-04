@@ -12,8 +12,6 @@ import SaveRoleButton from '../../components/SaveRoleButton.jsx'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-const STATUS_LABELS = { open: 'Open', paused: 'Paused', closed: 'Closed' }
-
 const ROLE_SELECT =
   'id, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, required_skills, work_style, status, employer_profiles(company_name, company_slug, logo_url, headline, linkedin_url, website_url, about, intro_video_url, user_id, is_visible)'
 
@@ -132,9 +130,14 @@ export default function RolePublic() {
 
   useEffect(() => {
     if (!role?.id) return
-    // Fire-and-forget — a failed view count shouldn't affect the page.
+    // Only a genuine candidate visit counts — matches CompanyProfile.jsx's
+    // identical restriction on company_views, so an employer previewing
+    // their own (or anyone else's) role page can't inflate the view count
+    // that feeds their own view-to-apply conversion metric. Fire-and-forget
+    // — a failed view count shouldn't affect the page.
+    if (authLoading || userType !== 'candidate') return
     supabase.rpc('increment_role_view', { role_id: role.id }).then(() => {})
-  }, [role?.id])
+  }, [role?.id, authLoading, userType])
 
   useEffect(() => {
     const targetUserId = role?.employer_profiles?.user_id
@@ -167,11 +170,6 @@ export default function RolePublic() {
   }
 
   async function handleCta() {
-    console.log('[apply] RolePublic handleCta() clicked — the individual role page (/jobs/:slug) apply flow', {
-      authLoading,
-      hasUser: !!user,
-      userType,
-    })
     if (!authLoading && user && userType === 'candidate') {
       // Checked fresh here rather than relying on state loaded when the
       // page mounted — a candidate can remove their video (in another tab,
@@ -189,11 +187,6 @@ export default function RolePublic() {
       setCheckingVideo(false)
 
       const introVideoUrl = candidate?.intro_video_url
-      console.log('[apply video check] intro_video_url from candidate_profiles:', introVideoUrl, {
-        userId: user.id,
-        candidateError,
-      })
-
       const missingVideo = introVideoUrl === null || introVideoUrl === undefined || introVideoUrl.trim() === ''
       if (missingVideo) {
         setNeedsVideo(true)
@@ -203,7 +196,10 @@ export default function RolePublic() {
       handleApply()
       return
     }
-    navigate('/signup')
+    // A logged-in non-candidate (e.g. an employer previewing their own
+    // role) lands here too — sent to the candidate signup flow rather than
+    // the generic account-type chooser, since applying is what got them here.
+    navigate('/signup?type=candidate')
   }
 
   if (loading) return null
@@ -224,10 +220,9 @@ export default function RolePublic() {
   }
 
   const employer = role.employer_profiles
-  const roleTypeLabel = role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')
+  const roleTypeLabel = role.role_type ? role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ') : null
   const deadlineLabel = formatDeadline(role.deadline)
   const salaryLabel = formatSalary(role)
-  const statusLabel = role.status && STATUS_LABELS[role.status]
 
   const ctaLabel = checkingVideo
     ? 'Checking…'
@@ -293,7 +288,7 @@ export default function RolePublic() {
                   label={employer.company_name}
                   size={15}
                 />
-                <ShareButton url={`https://beta.joinmellow.xyz/jobs/${slug}`} label="Share role" />
+                <ShareButton url={`${window.location.origin}/jobs/${slug}`} label="Share role" />
               </p>
             </div>
           )}
@@ -321,11 +316,10 @@ export default function RolePublic() {
 
           <div className="profile-tag-row" style={{ marginTop: 20 }}>
             {role.location && <span className="tag">{role.location}</span>}
-            <span className="tag">{roleTypeLabel}</span>
+            {roleTypeLabel && <span className="tag">{roleTypeLabel}</span>}
             {role.work_style && <span className="tag">{role.work_style}</span>}
             {salaryLabel && <span className="tag">{salaryLabel}</span>}
             {deadlineLabel && <span className="tag">Apply by {deadlineLabel}</span>}
-            {statusLabel && <span className="tag">{statusLabel}</span>}
           </div>
 
           {employer?.intro_video_url && (

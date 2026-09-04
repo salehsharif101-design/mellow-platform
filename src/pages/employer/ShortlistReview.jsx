@@ -96,9 +96,22 @@ export default function ShortlistReview() {
     }
   }, [roleParam, loading, employerId, entries, navigate])
 
+  // A message composed (or a Calendly link opened) for one candidate
+  // shouldn't carry over to whichever candidate the reviewer has since
+  // navigated to — reset both open-modal flags on every index change.
+  useEffect(() => {
+    setShowMessage(false)
+    setShowCalendly(false)
+    setMessageSent(false)
+  }, [index])
+
+  // Returns whether the update actually succeeded — confirmRejection below
+  // only fires the rejection email when it did, rather than unconditionally
+  // (which would otherwise send a candidate a "you weren't selected" email
+  // for a status change that never actually took effect).
   async function changeStatus(status) {
     const entry = entries[index]
-    if (!entry) return
+    if (!entry) return false
     const previousStatus = entry.status
     setUpdating(true)
     const { data, error: updateError } = await supabase
@@ -117,6 +130,7 @@ export default function ShortlistReview() {
       }
     }
     setUpdating(false)
+    return !updateError
   }
 
   function handleStatusSelect(newStatus) {
@@ -135,8 +149,8 @@ export default function ShortlistReview() {
   // generally from the Talent Feed has none, so "Yes" is a no-op for those.
   async function confirmRejection(shouldNotify) {
     const entry = entries[index]
-    await changeStatus('rejected')
-    if (shouldNotify && entry?.role_id) {
+    const succeeded = await changeStatus('rejected')
+    if (succeeded && shouldNotify && entry?.role_id) {
       const { data: application } = await supabase
         .from('applications')
         .select('id')
@@ -220,7 +234,7 @@ export default function ShortlistReview() {
                         <h1 style={{ fontSize: 28 }}>{c.full_name}</h1>
                         <CompanyLinkIcons linkedinUrl={c.linkedin_url} websiteUrl={c.website_url} label={c.full_name} size={19} />
                         <MessageIconButton onMessage={() => setShowMessage(true)} label={c.full_name} size={19} />
-                        <ShareButton url={`https://beta.joinmellow.xyz/profile/${c.username || c.id}`} label="Share profile" size={19} />
+                        <ShareButton url={`${window.location.origin}/profile/${c.username || c.id}`} label="Share profile" size={19} />
                       </div>
                       {c.calendly_url && <BookMeetingButton onClick={() => setShowCalendly(true)} />}
                     </div>

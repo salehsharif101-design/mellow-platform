@@ -28,11 +28,12 @@ export default function Signup() {
   const { signUp, resendConfirmation } = useAuth()
   const navigate = useNavigate()
   const checkingSession = useRedirectIfAuthenticated()
-  // The account isn't fully signed in yet at this point — no session exists
-  // until the confirmation link is clicked — so the shared nav (dashboard
-  // links, message badges, the account menu) has nothing valid to show and
-  // shouldn't appear at all.
-  useHideChrome(needsConfirmation)
+  // Hidden for this component's entire lifetime, not just while awaiting
+  // confirmation — matches Login.jsx's identical fix for the same problem:
+  // someone with an existing session in this browser who lands on /signup
+  // (an unrelated link, a bookmark) would otherwise see the fully
+  // authenticated nav on top of a brand-new-account form.
+  useHideChrome()
 
   if (checkingSession) return null
 
@@ -57,8 +58,13 @@ export default function Signup() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       })
-      const checkData = await checkRes.json()
-      if (checkRes.ok && checkData.exists) {
+      const checkData = await checkRes.json().catch(() => ({}))
+      if (!checkRes.ok) {
+        setError('Could not verify that email right now — please try again.')
+        setLoading(false)
+        return
+      }
+      if (checkData.exists) {
         setExistingAccountType(checkData.userType)
         setLoading(false)
         return
@@ -111,10 +117,24 @@ export default function Signup() {
         <h1 style={{ fontSize: 32 }}>Join Mellow</h1>
         <p style={{ marginTop: 8, color: 'var(--color-text-muted)' }}>Are you looking for a role, or hiring?</p>
         <div style={{ display: 'flex', gap: 16, marginTop: 28 }}>
-          <button className="btn btn-primary" style={{ flex: 1, padding: '16px 20px' }} onClick={() => setUserType('candidate')}>
+          <button
+            className="btn btn-primary"
+            style={{ flex: 1, padding: '16px 20px' }}
+            onClick={() => {
+              setUserType('candidate')
+              setExistingAccountType(null)
+            }}
+          >
             I'm looking for a role
           </button>
-          <button className="btn btn-ghost" style={{ flex: 1, padding: '16px 20px' }} onClick={() => setUserType('employer')}>
+          <button
+            className="btn btn-ghost"
+            style={{ flex: 1, padding: '16px 20px' }}
+            onClick={() => {
+              setUserType('employer')
+              setExistingAccountType(null)
+            }}
+          >
             I'm hiring
           </button>
         </div>
@@ -129,7 +149,10 @@ export default function Signup() {
       </h1>
       <button
         type="button"
-        onClick={() => setUserType(null)}
+        onClick={() => {
+          setUserType(null)
+          setExistingAccountType(null)
+        }}
         style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: 13, padding: 0, marginTop: 6, cursor: 'pointer' }}
       >
         Change account type

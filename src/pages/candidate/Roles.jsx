@@ -103,8 +103,8 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
             ) : (
               employer?.company_name
             )}{' '}
-            · {role.location} ·{' '}
-            {role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')}
+            · {role.location}
+            {role.role_type && ` · ${role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')}`}
           </p>
           <div className="role-card-rest">
             {(employer?.industry || employer?.company_size) && (
@@ -270,10 +270,19 @@ export default function BrowseRoles() {
   const [videoModalEmployer, setVideoModalEmployer] = useState(null)
   const [expandedIds, setExpandedIds] = useState(new Set())
   const [searchQuery, setSearchQuery] = useState('')
+  const [actionError, setActionError] = useState('')
   const [viewMode, setViewMode] = useState(() => {
     if (typeof window === 'undefined') return 'grid'
     return localStorage.getItem(VIEW_MODE_KEY) === 'list' ? 'list' : 'grid'
   })
+
+  // Deep-linkable via /roles?tab=saved — kept in sync on every navigation
+  // (not just the initial mount) so a browser back/forward that changes the
+  // query param actually moves the visible tab instead of leaving it stuck
+  // on whatever tab was active when the page first mounted.
+  useEffect(() => {
+    setTab(searchParams.get('tab') === 'saved' ? 'saved' : 'browse')
+  }, [searchParams])
 
   useEffect(() => {
     localStorage.setItem(VIEW_MODE_KEY, viewMode)
@@ -330,7 +339,11 @@ export default function BrowseRoles() {
         ])
 
       if (rolesError) {
-        setError(rolesError.message)
+        // A warm return visit already has cached roles on screen — a
+        // failed background refresh shouldn't tear that down and replace
+        // it with a bare error page. Only a genuinely cold load (nothing
+        // cached to fall back on) surfaces the error.
+        if (!cached) setError(rolesError.message)
         setLoading(false)
         return
       }
@@ -398,10 +411,12 @@ export default function BrowseRoles() {
   }, [searchedRoles, candidateId, candidateInfo, appliedRoleIds])
 
   async function toggleSave(role) {
+    setActionError('')
     const existing = savedEntries.find((s) => s.role_id === role.id)
     if (existing) {
       const { error: deleteError } = await supabase.from('saved_roles').delete().eq('id', existing.id)
       if (!deleteError) setSavedEntries((prev) => prev.filter((s) => s.id !== existing.id))
+      else setActionError('Could not unsave that role — please try again.')
       return
     }
     const { data, error: insertError } = await supabase
@@ -415,15 +430,19 @@ export default function BrowseRoles() {
       .select('id, role_id, role_title, company_name, created_at, roles(id, slug, title, location, role_type, deadline, salary_min, salary_max, salary_currency, is_active, employer_profiles(company_name, logo_url, company_slug))')
       .single()
     if (!insertError) setSavedEntries((prev) => [data, ...prev])
+    else setActionError('Could not save that role — please try again.')
   }
 
   async function removeSaved(entryId) {
+    setActionError('')
     const { error: deleteError } = await supabase.from('saved_roles').delete().eq('id', entryId)
     if (!deleteError) setSavedEntries((prev) => prev.filter((s) => s.id !== entryId))
+    else setActionError('Could not remove that saved role — please try again.')
   }
 
   async function apply(roleId) {
     if (!candidateId) return
+    setActionError('')
     setApplyingId(roleId)
 
     // Checked fresh here, at click time — same as the RolePublic apply flow.
@@ -453,6 +472,12 @@ export default function BrowseRoles() {
     if (!insertError) {
       setAppliedRoleIds((prev) => new Set(prev).add(roleId))
       notify('application-notification', { applicationId: data.id })
+    } else {
+      setActionError(
+        insertError.code === '23505'
+          ? "You've already applied to this role."
+          : 'Could not submit your application — please try again.',
+      )
     }
     setApplyingId(null)
   }
@@ -480,7 +505,24 @@ export default function BrowseRoles() {
     const workStyleLocation = [role.work_style, role.location].filter(Boolean).join(' · ')
     return (
       <div key={role.id} className="card compact-card" style={{ cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
-        <div className="compact-card-actions">
+        <div className="compact-card-actions" style={{ display: 'flex', gap: 6 }}>
+          {employer?.intro_video_url && (
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={(e) => {
+                e.stopPropagation()
+                setVideoModalEmployer(employer)
+              }}
+              aria-label={`Meet the ${employer.company_name} team`}
+              title="Meet the team"
+              style={{ background: '#005ef5', color: '#fff' }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </button>
+          )}
           <SaveRoleButton saved={savedRoleIds.has(role.id)} onToggle={() => toggleSave(role)} />
         </div>
 
@@ -677,6 +719,12 @@ export default function BrowseRoles() {
           </button>
         </div>
       </div>
+
+      {actionError && (
+        <p className="form-error" style={{ marginTop: 16 }}>
+          {actionError}
+        </p>
+      )}
 
       {tab === 'browse' && (
         <div style={{ marginTop: 20, maxWidth: 720, display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>

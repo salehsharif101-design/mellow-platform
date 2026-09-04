@@ -117,8 +117,12 @@ export default function Team() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       })
-      const checkData = await checkRes.json()
-      if (checkRes.ok && checkData.exists) {
+      const checkData = await checkRes.json().catch(() => ({}))
+      if (!checkRes.ok) {
+        setInviteError('Could not verify that email right now — please try again.')
+        return
+      }
+      if (checkData.exists) {
         setInviteError('This email is already registered on Mellow. Please use a different email address to invite a team member.')
         return
       }
@@ -174,7 +178,11 @@ export default function Team() {
         return
       }
       notify('team-invite', { teamMemberId: data.id })
-      setMembers((prev) => [...prev, data])
+      setMembers((prev) => {
+        const next = [...prev, data]
+        if (cacheKey) setCachedPage(cacheKey, { employerId, isOwner, ownerEmail, members: next })
+        return next
+      })
       setInviteEmail('')
     } finally {
       setInviting(false)
@@ -193,7 +201,11 @@ export default function Team() {
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(data.error || 'Failed to remove team member.')
-    setMembers((prev) => prev.filter((m) => m.id !== removingMember.id))
+    setMembers((prev) => {
+      const next = prev.filter((m) => m.id !== removingMember.id)
+      if (cacheKey) setCachedPage(cacheKey, { employerId, isOwner, ownerEmail, members: next })
+      return next
+    })
     setRemovingMember(null)
   }
 

@@ -37,6 +37,7 @@ export default function Shortlist() {
   const [isDesktop, setIsDesktop] = useState(isDesktopViewport)
   const [showMessage, setShowMessage] = useState(false)
   const [showCalendly, setShowCalendly] = useState(false)
+  const [actionError, setActionError] = useState('')
 
   useEffect(() => {
     const mql = window.matchMedia(DESKTOP_QUERY)
@@ -69,9 +70,15 @@ export default function Shortlist() {
         setLoading(false)
         return
       }
-      setEntries(data || [])
+      // A candidate rejected via Shortlist Review keeps their shortlists
+      // row (so the reject/re-promote history survives) with status set to
+      // 'rejected' rather than being deleted — this page's job is to show
+      // active shortlist entries, so those are filtered back out here
+      // rather than rendered as if they were still active.
+      const active = (data || []).filter((e) => e.status !== 'rejected')
+      setEntries(active)
 
-      const candidateIds = (data || []).map((e) => e.candidate_id)
+      const candidateIds = active.map((e) => e.candidate_id)
       if (candidateIds.length > 0) {
         const { data: videos } = await supabase
           .from('candidate_videos')
@@ -93,6 +100,7 @@ export default function Shortlist() {
 
   async function remove(shortlistId) {
     const entry = entries.find((e) => e.id === shortlistId)
+    setActionError('')
     setRemovingId(shortlistId)
     const { error: removeError } = await supabase.from('shortlists').delete().eq('id', shortlistId)
     if (!removeError) {
@@ -102,6 +110,8 @@ export default function Shortlist() {
       // "shortlisted" forever, which is what fed a stale count into the
       // role pipeline cards on the dashboard.
       await syncApplicationStatus(entry?.role_id, entry?.candidate_id, 'reviewing')
+    } else {
+      setActionError('Could not remove that candidate from the shortlist — please try again.')
     }
     setRemovingId(null)
   }
@@ -171,6 +181,11 @@ export default function Shortlist() {
     return (
       <div className="section">
         <h1 style={{ fontSize: 28 }}>Shortlisted talent</h1>
+        {actionError && (
+          <p className="form-error" style={{ marginTop: 12 }}>
+            {actionError}
+          </p>
+        )}
         {reviewLinks && <div style={{ marginTop: 16 }}>{reviewLinks}</div>}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 20 }}>
           {entries.map((entry) => {
@@ -230,6 +245,11 @@ export default function Shortlist() {
         <h1 style={{ fontSize: 28 }}>Shortlisted talent</h1>
         {reviewLinks}
       </div>
+      {actionError && (
+        <p className="form-error" style={{ marginTop: 12 }}>
+          {actionError}
+        </p>
+      )}
 
       <div className="shortlist-split-layout">
         <div className="shortlist-split-list">

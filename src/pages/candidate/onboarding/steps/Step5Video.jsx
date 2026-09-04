@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../../../lib/supabase.js'
 import { useHideChrome } from '../../../../components/Layout.jsx'
 import VideoRecorderModal from '../../../../components/VideoRecorderModal.jsx'
@@ -64,11 +64,23 @@ export default function Step5Video({ initial, userId, onFinish, onBack, onSaveFo
   const [uploading, setUploading] = useState(false)
   const [showRecorder, setShowRecorder] = useState(false)
 
+  // Tracks the current blob: URL (only set when `file` is truthy — a
+  // locally selected/recorded video, never the persisted remote
+  // intro_video_url) in a ref kept current every render, so the unmount
+  // cleanup below revokes whatever the LATEST object URL actually was
+  // rather than one captured from the very first render's (always null)
+  // values, which is what silently leaked every blob created after mount.
+  const blobUrlRef = useRef(null)
+  useEffect(() => {
+    const current = file ? previewUrl : null
+    if (blobUrlRef.current && blobUrlRef.current !== current) URL.revokeObjectURL(blobUrlRef.current)
+    blobUrlRef.current = current
+  }, [file, previewUrl])
+
   useEffect(() => {
     return () => {
-      if (file && previewUrl) URL.revokeObjectURL(previewUrl)
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   if (showTips) {
@@ -144,8 +156,12 @@ export default function Step5Video({ initial, userId, onFinish, onBack, onSaveFo
     setUploading(true)
     setError('')
     try {
-      const ext = file.name.split('.').pop() || 'mp4'
-      const path = `${userId}/intro.${ext}`
+      // No extension in the path — content type is already set correctly
+      // via `contentType` below, and matches EditProfileForm.jsx's own
+      // fixed path for the same file, so a later re-upload from either
+      // place always overwrites the same object instead of orphaning it
+      // under a different extension-suffixed key.
+      const path = `${userId}/intro`
       const { error: uploadError } = await supabase.storage
         .from('candidate-videos')
         .upload(path, file, { upsert: true, contentType: file.type })

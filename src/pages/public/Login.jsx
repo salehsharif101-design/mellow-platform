@@ -126,7 +126,25 @@ export default function Login() {
       if (row.user_type === 'employer') {
         const { employerId, isOwner } = await resolveEmployerId(confirmedSession.user.id)
         if (cancelled) return
-        destination = employerId && !isOwner ? '/employer/dashboard' : '/employer/onboarding'
+        if (employerId && !isOwner) {
+          // A team-invite acceptor joining an existing company — never
+          // onboarding, regardless of anything below.
+          destination = '/employer/dashboard'
+        } else if (employerId) {
+          // The owner re-clicking an old (or resent) confirmation link.
+          // Only route into onboarding if it's genuinely unfinished —
+          // otherwise a fully-onboarded employer got dropped back into the
+          // company-details form every time they hit a stale link.
+          const { data: employer } = await supabase
+            .from('employer_profiles')
+            .select('onboarding_step')
+            .eq('id', employerId)
+            .maybeSingle()
+          if (cancelled) return
+          destination = (employer?.onboarding_step || 1) >= 2 ? '/employer/dashboard' : '/employer/onboarding'
+        } else {
+          destination = '/employer/onboarding'
+        }
       }
       // Deliberately not resetting checkingConfirmation here — this
       // component is about to unmount as the route changes, and flipping
@@ -264,6 +282,10 @@ export default function Login() {
         // normally accompanies a removal didn't go through — this row is the
         // fallback marker for that case (see api/team-remove.js). Don't let
         // them back into the dashboard with stale access.
+        // Suppressed first — otherwise AuthContext's generic SIGNED_OUT
+        // handler races this component's own error message with a redirect
+        // to /login that discards the ?type= query param.
+        suppressNextAuthRedirect()
         await supabase.auth.signOut()
         setError('Your team access has been removed. Please sign up for a new account if you would like to use Mellow.')
         return
@@ -272,6 +294,10 @@ export default function Login() {
       if (row?.user_type && row.user_type !== type) {
         // Wrong login page for this account — don't leave them signed in
         // here, send them to the login page that actually matches.
+        // Suppressed first — this branch drives its own delayed redirect
+        // below, which a race against AuthContext's generic SIGNED_OUT
+        // handler would otherwise strip the ?type= param from.
+        suppressNextAuthRedirect()
         await supabase.auth.signOut()
         setError(
           row.user_type === 'employer'

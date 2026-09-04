@@ -33,9 +33,13 @@ export default function CompanyProfile() {
           'id, user_id, company_name, logo_url, industry, company_size, country, headline, about, culture_description, company_highlight, typical_roles, linkedin_url, website_url, intro_video_url, is_visible',
         )
         .eq('company_slug', slug)
+        // Filtered server-side (not just checked after the fact) so a
+        // hidden company's about/culture/video/links never leave the
+        // database for a visitor who isn't supposed to see them.
+        .eq('is_visible', true)
         .maybeSingle()
 
-      if (error || !data || !data.is_visible) {
+      if (error || !data) {
         setNotFound(true)
         setLoading(false)
         return
@@ -111,7 +115,7 @@ export default function CompanyProfile() {
                     label={company.company_name}
                     size={15}
                   />
-                  <ShareButton url={`https://beta.joinmellow.xyz/company/${slug}`} label="Share profile" />
+                  <ShareButton url={`${window.location.origin}/company/${slug}`} label="Share profile" />
                 </div>
               </div>
               {sizeLine && (
@@ -185,7 +189,7 @@ export default function CompanyProfile() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {roles.map((role) => {
-                const roleTypeLabel = role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')
+                const roleTypeLabel = role.role_type ? role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ') : null
                 const deadlineLabel = formatDeadline(role.deadline)
                 const salaryLabel = formatSalary(role)
                 return (
@@ -197,7 +201,8 @@ export default function CompanyProfile() {
                   >
                     <h3 style={{ fontSize: 17 }}>{role.title}</h3>
                     <p style={{ marginTop: 4, fontSize: 13, color: 'var(--color-text-muted)' }}>
-                      {role.location} · {roleTypeLabel}
+                      {role.location}
+                      {roleTypeLabel && ` · ${roleTypeLabel}`}
                     </p>
                     <div className="profile-tag-row" style={{ marginTop: 8 }}>
                       {salaryLabel && (
