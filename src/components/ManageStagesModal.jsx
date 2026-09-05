@@ -2,14 +2,18 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import Modal from './Modal.jsx'
 import ConfirmModal from './ConfirmModal.jsx'
-import { STATUS_COLORS, statusForStage } from '../lib/pipelineStages.js'
+import { STATUS_COLORS, statusForStage, shortlistedStageId } from '../lib/pipelineStages.js'
 
 // New and Rejected are the only two stages that are never rows in
 // role_pipeline_stages — they're fixed, hardcoded here to render locked at
 // the top/bottom, which is what keeps "New always first, Rejected always
-// last" true without needing a column to enforce it. Everything else
-// (Reviewing, Shortlisted, and any custom stage) is a regular row: freely
-// renamable, reorderable, and deletable, rendered from `stages` below.
+// last" true without needing a column to enforce it. Reviewing and any
+// custom stage are freely renamable, reorderable, and deletable. Shortlisted
+// is a row too (so it can be reordered like the others) but its name and
+// existence are load-bearing elsewhere — the shortlists table sync, the
+// dashboard's shortlisted count, candidate notification emails, and the
+// post-meeting follow-up loop all key off the builtin Shortlisted stage
+// specifically — so its rename and delete controls are suppressed below.
 const FIXED_BEFORE = { label: 'New', color: { background: 'var(--color-bg-soft)', color: 'var(--color-primary)' } }
 const FIXED_END = [{ label: 'Rejected', color: STATUS_COLORS.rejected }]
 
@@ -47,6 +51,7 @@ export default function ManageStagesModal({ roleId, stages, applications, onClos
   }
 
   function startEditing(stage) {
+    if (stage.id === shortlistedStageId(roleId)) return
     setError('')
     setEditingId(stage.id)
     setEditValue(stage.name)
@@ -113,6 +118,7 @@ export default function ManageStagesModal({ roleId, stages, applications, onClos
 
   function handleDeleteClick(stage) {
     setError('')
+    if (stage.id === shortlistedStageId(roleId)) return
     const destination = destinationFor(stage)
     if (!destination) {
       setError('You need at least one other stage between New and Rejected before you can delete this one.')
@@ -145,8 +151,8 @@ export default function ManageStagesModal({ roleId, stages, applications, onClos
     <>
       <Modal title="Manage pipeline stages" onClose={onClose} width={480}>
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 16 }}>
-          New and Rejected always stay first and last. Everything else — Reviewing, Shortlisted, and any custom
-          stages — can be freely reordered, renamed, or removed.
+          New and Rejected always stay first and last. Reviewing and any custom stages can be freely reordered,
+          renamed, or removed. Shortlisted can be moved but not renamed or deleted.
         </p>
 
         {error && <p className="form-error" style={{ marginBottom: 12 }}>{error}</p>}
@@ -154,7 +160,9 @@ export default function ManageStagesModal({ roleId, stages, applications, onClos
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <FixedStageRow {...FIXED_BEFORE} />
 
-          {sorted.map((stage, index) => (
+          {sorted.map((stage, index) => {
+            const isShortlisted = stage.id === shortlistedStageId(roleId)
+            return (
             <div
               key={stage.id}
               style={{
@@ -223,6 +231,19 @@ export default function ManageStagesModal({ roleId, stages, applications, onClos
                     onBlur={() => commitRename(stage)}
                     style={{ padding: '6px 10px', fontSize: 14 }}
                   />
+                ) : isShortlisted ? (
+                  <span
+                    title="Shortlisted can't be renamed — other parts of the platform (the shortlist page, dashboard counts, notification emails) key off this stage specifically"
+                    style={{
+                      display: 'block',
+                      padding: '6px 4px',
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: 'var(--color-text)',
+                    }}
+                  >
+                    {stage.name}
+                  </span>
                 ) : (
                   <button
                     type="button"
@@ -245,6 +266,7 @@ export default function ManageStagesModal({ roleId, stages, applications, onClos
                 )}
               </div>
 
+              {!isShortlisted && (
               <button
                 type="button"
                 onClick={() => handleDeleteClick(stage)}
@@ -267,8 +289,10 @@ export default function ManageStagesModal({ roleId, stages, applications, onClos
                   <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                 </svg>
               </button>
+              )}
             </div>
-          ))}
+            )
+          })}
 
           {FIXED_END.map((stage) => (
             <FixedStageRow key={stage.label} {...stage} />
