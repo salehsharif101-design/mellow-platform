@@ -11,6 +11,7 @@ import QuickMessageModal from '../../components/QuickMessageModal.jsx'
 import CandidateNotesThread from '../../components/CandidateNotesThread.jsx'
 import CandidateActivityTimeline from '../../components/CandidateActivityTimeline.jsx'
 import RoleAnalyticsPanel from '../../components/RoleAnalyticsPanel.jsx'
+import ManageStagesModal from '../../components/ManageStagesModal.jsx'
 
 const STATUS_LABELS = { applied: 'New', reviewing: 'Reviewing', shortlisted: 'Shortlisted', rejected: 'Rejected' }
 const STATUS_COLORS = {
@@ -59,6 +60,7 @@ export default function RoleApplicants() {
   const [activityOpenIds, setActivityOpenIds] = useState(new Set())
   const [addingStageId, setAddingStageId] = useState(null)
   const [newStageDraft, setNewStageDraft] = useState('')
+  const [showManageStages, setShowManageStages] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -322,6 +324,23 @@ export default function RoleApplicants() {
     return !updateError
   }
 
+  // Candidates parked in a deleted custom stage keep applications.status =
+  // 'reviewing' throughout (custom stages never change status itself — see
+  // parseStageValue above), so this only ever needs to clear custom_stage_id,
+  // not touch status or run it through syncShortlist.
+  function handleCandidatesMovedToReviewing(stageId) {
+    const affectedCandidateIds = applications
+      .filter((a) => a.custom_stage_id === stageId)
+      .map((a) => a.candidate_profiles?.id)
+      .filter(Boolean)
+    setApplications((prev) =>
+      prev.map((a) => (a.custom_stage_id === stageId ? { ...a, status: 'reviewing', custom_stage_id: null } : a)),
+    )
+    affectedCandidateIds.forEach((candidateId) => {
+      prependActivity(candidateId, { event_type: 'status_changed', detail: STATUS_LABELS.reviewing })
+    })
+  }
+
   function handleStatusSelect(applicationId, rawValue) {
     const { status } = parseStageValue(rawValue)
     if (status === 'rejected') {
@@ -368,7 +387,12 @@ export default function RoleApplicants() {
       <Link to="/employer/roles" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}>
         ← Manage roles
       </Link>
-      <h1 style={{ fontSize: 28, marginTop: 8 }}>Applicants for {role.title}</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginTop: 8 }}>
+        <h1 style={{ fontSize: 28 }}>Applicants for {role.title}</h1>
+        <button type="button" className="btn btn-ghost" style={{ fontSize: 13, padding: '8px 14px' }} onClick={() => setShowManageStages(true)}>
+          Manage stages
+        </button>
+      </div>
 
       <RoleAnalyticsPanel role={role} applications={applications} hires={hires} />
 
@@ -646,6 +670,16 @@ export default function RoleApplicants() {
               prependActivity(candidateId, { event_type: 'message_sent', detail: (message?.body || '').slice(0, 140) })
             }
           }}
+        />
+      )}
+
+      {showManageStages && (
+        <ManageStagesModal
+          stages={pipelineStages}
+          applications={applications}
+          onClose={() => setShowManageStages(false)}
+          onStagesUpdated={setPipelineStages}
+          onCandidatesMovedToReviewing={handleCandidatesMovedToReviewing}
         />
       )}
     </div>
