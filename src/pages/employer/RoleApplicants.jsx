@@ -12,24 +12,30 @@ import CandidateNotesThread from '../../components/CandidateNotesThread.jsx'
 import CandidateActivityTimeline from '../../components/CandidateActivityTimeline.jsx'
 import RoleAnalyticsPanel from '../../components/RoleAnalyticsPanel.jsx'
 import ManageStagesModal from '../../components/ManageStagesModal.jsx'
+import {
+  STATUS_LABELS,
+  STATUS_COLORS,
+  ensureBuiltinStages,
+  backfillBuiltinStageIds,
+  statusForStage,
+  stageBadgeColor,
+} from '../../lib/pipelineStages.js'
 
-const STATUS_LABELS = { applied: 'New', reviewing: 'Reviewing', shortlisted: 'Shortlisted', rejected: 'Rejected' }
-const STATUS_COLORS = {
-  applied: { background: 'var(--color-bg-soft)', color: 'var(--color-primary)' },
-  reviewing: { background: '#fff6e0', color: '#8a6100' },
-  shortlisted: { background: '#e3f9e9', color: '#0f7a3d' },
-  rejected: { background: '#fdeceb', color: '#d92d20' },
-}
-const CUSTOM_STAGE_COLOR = { background: '#f1e8fd', color: '#6b21a8' }
 const ADD_CUSTOM_STAGE_VALUE = '__add_custom_stage__'
 
-// A custom pipeline stage is layered on top of the 'reviewing' status
-// rather than replacing it (see migration 0056) — this turns a raw <select>
-// value ('applied' | 'reviewing' | 'shortlisted' | 'rejected' |
-// `custom:<stage id>`) into the { status, customStageId } pair applications
-// actually stores.
-function parseStageValue(value) {
-  if (value.startsWith('custom:')) return { status: 'reviewing', customStageId: value.slice(7) }
+// Every non-fixed stage — the builtin Reviewing/Shortlisted rows and any
+// employer-added custom one — is layered on top of the 'reviewing' status
+// rather than replacing it, except the builtin Shortlisted row (see
+// statusForStage in lib/pipelineStages.js). This turns a raw <select> value
+// ('applied' | 'rejected' | `custom:<stage id>`) into the
+// { status, customStageId } pair applications actually stores. 'applied'
+// and 'rejected' are the only two values that are never a stage row.
+function parseStageValue(value, roleId, stages) {
+  if (value.startsWith('custom:')) {
+    const id = value.slice(7)
+    const stage = stages.find((s) => s.id === id) || { id }
+    return { status: statusForStage(stage, roleId), customStageId: id }
+  }
   return { status: value, customStageId: null }
 }
 
@@ -100,7 +106,7 @@ export default function RoleApplicants() {
 
       const candidateIds = (apps || []).map((a) => a.candidate_profiles?.id).filter(Boolean)
 
-      const [{ data: stages }, { data: notes }, { data: activity }, { data: hireRows }] = await Promise.all([
+      const [{ data: stagesData }, { data: notes }, { data: activity }, { data: hireRows }] = await Promise.all([
         supabase.from('role_pipeline_stages').select('id, name, position').eq('role_id', roleId).order('position', { ascending: true }),
         candidateIds.length > 0
           ? supabase
@@ -121,7 +127,10 @@ export default function RoleApplicants() {
         supabase.from('hires').select('candidate_id, confirmed_at').eq('role_id', roleId),
       ])
 
-      setPipelineStages(stages || [])
+      const seededStages = await ensureBuiltinStages(supabase, roleId, stagesData || [])
+      setPipelineStages(seededStages)
+      const patchedApps = await backfillBuiltinStageIds(supabase, roleId, apps || [], seededStages)
+      setApplications(patchedApps)
 
       const noteMap = {}
       ;(notes || []).forEach((n) => {
@@ -230,10 +239,12 @@ export default function RoleApplicants() {
 
   // Creates a custom stage from the "+ Add custom stage" option in an
   // applicant card's dropdown (see the select's onChange below) — the new
-  // stage is appended to the shared pipelineStages list, which makes it
-  // show up in every applicant card's dropdown on this role immediately,
-  // and this candidate is moved into it right away since that's the
-  // natural intent of adding a stage from a specific candidate's dropdown.
+  // stage is appended (last position, right before Rejected) to the shared
+  // pipelineStages list, which makes it show up in every applicant card's
+  // dropdown on this role immediately, and this candidate is moved into it
+  // right away since that's the natural intent of adding a stage from a
+  // specific candidate's dropdown. The employer can freely reorder it
+  // afterward from Manage Stages.
   //
   // The id is generated client-side and sent explicitly on insert (Postgres
   // only applies a column's default when it's omitted, so this is a normal,
@@ -293,7 +304,7 @@ export default function RoleApplicants() {
   async function changeStatus(applicationId, rawValue, options = {}) {
     const application = applications.find((a) => a.id === applicationId)
     const previousStatus = options.previousStatus ?? application?.status
-    const { status, customStageId } = parseStageValue(rawValue)
+    const { status, customStageId } = parseStageValue(rawValue, role.id, pipelineStages)
     setUpdatingId(applicationId)
     setStatusError('')
     const { data, error: updateError } = await supabase
@@ -324,25 +335,30 @@ export default function RoleApplicants() {
     return !updateError
   }
 
-  // Candidates parked in a deleted custom stage keep applications.status =
-  // 'reviewing' throughout (custom stages never change status itself — see
-  // parseStageValue above), so this only ever needs to clear custom_stage_id,
-  // not touch status or run it through syncShortlist.
-  function handleCandidatesMovedToReviewing(stageId) {
-    const affectedCandidateIds = applications
-      .filter((a) => a.custom_stage_id === stageId)
-      .map((a) => a.candidate_profiles?.id)
-      .filter(Boolean)
+  // A deleted stage's candidates land on whichever neighboring stage
+  // ManageStagesModal picked as the destination (it also already moved them
+  // there in the DB) — this mirrors that into local state and, since the
+  // destination might be the builtin Shortlisted stage (or the candidate
+  // might be leaving it), runs the same shortlist-table sync a normal
+  // status change would.
+  function handleStageDeleted(stageId, destination) {
+    const destStatus = statusForStage(destination, role.id)
+    const affected = applications.filter((a) => a.custom_stage_id === stageId)
     setApplications((prev) =>
-      prev.map((a) => (a.custom_stage_id === stageId ? { ...a, status: 'reviewing', custom_stage_id: null } : a)),
+      prev.map((a) => (a.custom_stage_id === stageId ? { ...a, status: destStatus, custom_stage_id: destination.id } : a)),
     )
-    affectedCandidateIds.forEach((candidateId) => {
-      prependActivity(candidateId, { event_type: 'status_changed', detail: STATUS_LABELS.reviewing })
+    affected.forEach((a) => {
+      const candidateId = a.candidate_profiles?.id
+      if (!candidateId) return
+      prependActivity(candidateId, { event_type: 'status_changed', detail: destination.name })
+      syncShortlist(candidateId, destStatus, a.status).then((change) => {
+        if (change) prependActivity(candidateId, { event_type: change })
+      })
     })
   }
 
   function handleStatusSelect(applicationId, rawValue) {
-    const { status } = parseStageValue(rawValue)
+    const { status } = parseStageValue(rawValue, role.id, pipelineStages)
     if (status === 'rejected') {
       setPendingRejectionId(applicationId)
       return
@@ -442,7 +458,7 @@ export default function RoleApplicants() {
                 const unviewed = !a.viewed_at
                 const customStage = a.custom_stage_id ? pipelineStages.find((s) => s.id === a.custom_stage_id) : null
                 const badgeLabel = customStage ? customStage.name : STATUS_LABELS[a.status]
-                const badgeColors = customStage ? CUSTOM_STAGE_COLOR : STATUS_COLORS[a.status]
+                const badgeColors = customStage ? stageBadgeColor(customStage, role.id) : STATUS_COLORS[a.status]
                 const candidateNotes = notesByCandidate[c.id] || []
                 const events = activityByCandidate[c.id] || []
                 const notesOpen = notesOpenIds.has(a.id)
@@ -551,13 +567,13 @@ export default function RoleApplicants() {
                             style={{ width: 'auto', padding: '8px 12px' }}
                           >
                             <option value="applied">{STATUS_LABELS.applied}</option>
-                            <option value="reviewing">{STATUS_LABELS.reviewing}</option>
-                            {pipelineStages.map((s) => (
-                              <option key={s.id} value={`custom:${s.id}`}>
-                                {s.name}
-                              </option>
-                            ))}
-                            <option value="shortlisted">{STATUS_LABELS.shortlisted}</option>
+                            {[...pipelineStages]
+                              .sort((s1, s2) => s1.position - s2.position)
+                              .map((s) => (
+                                <option key={s.id} value={`custom:${s.id}`}>
+                                  {s.name}
+                                </option>
+                              ))}
                             <option value="rejected">{STATUS_LABELS.rejected}</option>
                             <option value={ADD_CUSTOM_STAGE_VALUE}>+ Add custom stage</option>
                           </select>
@@ -675,11 +691,12 @@ export default function RoleApplicants() {
 
       {showManageStages && (
         <ManageStagesModal
+          roleId={role.id}
           stages={pipelineStages}
           applications={applications}
           onClose={() => setShowManageStages(false)}
           onStagesUpdated={setPipelineStages}
-          onCandidatesMovedToReviewing={handleCandidatesMovedToReviewing}
+          onStageDeleted={handleStageDeleted}
         />
       )}
     </div>
