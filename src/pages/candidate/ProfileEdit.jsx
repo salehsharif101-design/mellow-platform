@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useHideChrome } from '../../components/Layout.jsx'
 import { supabase } from '../../lib/supabase.js'
@@ -20,6 +20,7 @@ const LAST_STEP = 5
 export default function ProfileEdit() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [profile, setProfile] = useState(null)
   const [step, setStep] = useState(1)
@@ -72,10 +73,30 @@ export default function ProfileEdit() {
   }, [user])
 
   const isComplete = (profile?.onboarding_step || 1) > LAST_STEP
+
+  // A candidate who used "Save my profile and come back later" at the video
+  // step (Step5Video.jsx's onSaveForLater) has onboarding_step stuck at
+  // exactly LAST_STEP forever — never advancing past it, but never resetting
+  // either, since steps 1-4 always fully collected real data before they got
+  // here. That's a genuinely different situation from someone who abandoned
+  // onboarding partway through steps 1-4 (nothing to deep-link into yet) or
+  // who never started at all — only for this one, a profile-strength
+  // checklist link for anything other than the intro video itself should go
+  // straight to Edit Profile's real section instead of back through the
+  // wizard, since the data those links point at already exists. The intro
+  // video link is the one exception: it's deliberately still routed to the
+  // wizard's own video step below, matching the "add a video, go live"
+  // funnel this candidate is already partway through.
+  const savedForLaterAtVideoStep = (profile?.onboarding_step || 1) === LAST_STEP
+  const deepLinkHash = location.hash
+  const bypassWizardForDeepLink =
+    savedForLaterAtVideoStep && deepLinkHash && deepLinkHash !== '#video-section'
+
   // `isComplete` defaults to false while `profile` is still null (loading),
   // so this hides chrome by default and only reveals it once we've
-  // confirmed the profile is actually complete — no flash on refresh.
-  useHideChrome(!isComplete || justCompleted)
+  // confirmed the profile is actually complete (or is taking the Edit
+  // Profile deep-link bypass just above) — no flash on refresh.
+  useHideChrome((!isComplete && !bypassWizardForDeepLink) || justCompleted)
 
   async function saveStep(fields, nextStep) {
     setSaving(true)
@@ -149,7 +170,7 @@ export default function ProfileEdit() {
     )
   }
 
-  if (isComplete) {
+  if (isComplete || bypassWizardForDeepLink) {
     if (justCompleted) {
       return <OnboardingCelebration username={profile.username || profile.id} candidateId={profile.id} userId={profile.user_id} />
     }
