@@ -339,15 +339,25 @@ async function sendCustomStageNotification(supabase, applicationId) {
   const role = unwrap(
     await supabase.from('roles').select('title, employer_profiles(company_name)').eq('id', application.role_id).single(),
   )
+  const candidate = unwrap(
+    await supabase.from('candidate_profiles').select('calendly_url').eq('id', application.candidate_id).single(),
+  )
   const { email } = await getCandidateContact(supabase, application.candidate_id)
   const companyName = role.employer_profiles?.company_name || 'the company'
+
+  // Same Calendly nudge as sendShortlistNotification, and same reason —
+  // only shown when the candidate doesn't already have one set.
+  const calendlyNudge = candidate.calendly_url
+    ? ''
+    : '<br><br>Make it easy for employers to reach you. Add your Calendly link to your profile so they can book a meeting with you directly.<br><br>' +
+      `<a href="${SITE_URL}/profile/edit" style="color:#005ef5;font-weight:700;text-decoration:none;">Add your Calendly link</a>`
 
   return sendEmail({
     to: email,
     subject: `Your application at ${companyName} is moving forward`,
     html: renderEmailHtml({
       heading: 'Good news',
-      bodyText: `Your application at ${escapeHtml(companyName)} for ${escapeHtml(role.title)} is progressing. The team is reviewing your profile and will be in touch soon. Keep an eye on your messages.`,
+      bodyText: `Your application at ${escapeHtml(companyName)} for ${escapeHtml(role.title)} is progressing. The team is reviewing your profile and will be in touch soon. Keep an eye on your messages.${calendlyNudge}`,
       ctaLabel: 'View my applications',
       ctaUrl: `${SITE_URL}/applications`,
       illustration: 'Client_to_creative.png',
