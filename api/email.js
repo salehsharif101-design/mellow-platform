@@ -17,6 +17,10 @@ import { sendEmail } from './_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from './_lib/email-template.js'
 import { getServiceClient, unwrap, getCandidateContact, getEmployerEmails } from './_lib/db.js'
 import { escapeHtml } from './_lib/html.js'
+// Pure functions only (no supabase import, no env var reads) — safe to
+// import here unlike src/lib/employerAccess.js (see getCandidateContact's
+// own comment in db.js for why that one specifically can't be).
+import { reviewingStageId, shortlistedStageId } from '../src/lib/pipelineStages.js'
 
 function getAnonClient() {
   return createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY, {
@@ -286,6 +290,71 @@ async function sendRejectionNotification(supabase, applicationId) {
   })
 }
 
+// Fires when an employer moves a candidate into a genuine custom pipeline
+// stage (Interview, Technical test, Final offer, etc.) — never for New,
+// Reviewing, Shortlisted, or Rejected, which have their own notifications
+// (or none) elsewhere. Deliberately vague about which stage: the point is
+// "you're progressing," not exposing the employer's internal pipeline
+// naming to the candidate.
+//
+// custom_stage_id is checked against the role's own builtin Reviewing/
+// Shortlisted ids (see src/lib/pipelineStages.js) rather than trusted from
+// the caller, since RoleApplicants.jsx already generalizes all three kinds
+// of stage through the same custom_stage_id column.
+//
+// Dedup ("once per stage, no resend for back-and-forth") piggybacks on the
+// candidate_activity_log rows migration 0057's own DB trigger already
+// writes on every custom_stage_id change (detail = the stage's current
+// name) rather than a new column — this call always runs after that
+// trigger's insert has committed (same transaction as the status update
+// that triggered it), so more than one existing row with this exact detail
+// means a prior visit to this same-named stage already sent the email.
+async function sendCustomStageNotification(supabase, applicationId) {
+  const application = unwrap(
+    await supabase.from('applications').select('candidate_id, role_id, custom_stage_id').eq('id', applicationId).single(),
+  )
+  if (
+    !application.custom_stage_id ||
+    application.custom_stage_id === reviewingStageId(application.role_id) ||
+    application.custom_stage_id === shortlistedStageId(application.role_id)
+  ) {
+    return { skipped: true }
+  }
+
+  const stage = unwrap(
+    await supabase.from('role_pipeline_stages').select('name').eq('id', application.custom_stage_id).single(),
+  )
+
+  const priorNotices = unwrap(
+    await supabase
+      .from('candidate_activity_log')
+      .select('id')
+      .eq('candidate_id', application.candidate_id)
+      .eq('role_id', application.role_id)
+      .eq('event_type', 'status_changed')
+      .eq('detail', stage.name),
+  )
+  if (priorNotices.length > 1) return { skipped: true }
+
+  const role = unwrap(
+    await supabase.from('roles').select('title, employer_profiles(company_name)').eq('id', application.role_id).single(),
+  )
+  const { email } = await getCandidateContact(supabase, application.candidate_id)
+  const companyName = role.employer_profiles?.company_name || 'the company'
+
+  return sendEmail({
+    to: email,
+    subject: `Your application at ${companyName} is moving forward`,
+    html: renderEmailHtml({
+      heading: 'Good news',
+      bodyText: `Your application at ${escapeHtml(companyName)} for ${escapeHtml(role.title)} is progressing. The team is reviewing your profile and will be in touch soon. Keep an eye on your messages.`,
+      ctaLabel: 'View my applications',
+      ctaUrl: `${SITE_URL}/applications`,
+      illustration: 'Client_to_creative.png',
+    }),
+  })
+}
+
 async function sendLiveNotification(supabase, candidateId) {
   const { email, username } = await getCandidateContact(supabase, candidateId)
 
@@ -411,6 +480,9 @@ export default async function handler(req, res) {
         break
       case 'rejection-notification':
         await sendRejectionNotification(supabase, body.applicationId)
+        break
+      case 'custom-stage-notification':
+        await sendCustomStageNotification(supabase, body.applicationId)
         break
       case 'live-notification':
         await sendLiveNotification(supabase, body.candidateId)

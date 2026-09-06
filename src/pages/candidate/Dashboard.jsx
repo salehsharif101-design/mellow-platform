@@ -672,7 +672,7 @@ export default function CandidateDashboard() {
               .map((a) => (
               <Link
                 key={a.id}
-                to={`/jobs/${a.roles.slug}`}
+                to="/applications"
                 className="card stat-card-link"
                 style={{ padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
               >

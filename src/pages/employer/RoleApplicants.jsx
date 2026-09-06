@@ -19,7 +19,15 @@ import {
   backfillBuiltinStageIds,
   statusForStage,
   stageBadgeColor,
+  reviewingStageId,
+  shortlistedStageId,
 } from '../../lib/pipelineStages.js'
+
+// True only for a genuine employer-added custom stage — never New, Rejected
+// (neither is ever a row), or the builtin Reviewing/Shortlisted rows.
+function isGenuineCustomStage(stageId, roleId) {
+  return Boolean(stageId) && stageId !== reviewingStageId(roleId) && stageId !== shortlistedStageId(roleId)
+}
 
 const ADD_CUSTOM_STAGE_VALUE = '__add_custom_stage__'
 
@@ -328,6 +336,9 @@ export default function RoleApplicants() {
       if (candidateId && shortlistChange) {
         prependActivity(candidateId, { event_type: shortlistChange })
       }
+      if (isGenuineCustomStage(customStageId, role.id)) {
+        notify('custom-stage-notification', { applicationId })
+      }
     } else {
       setStatusError("Could not update that applicant's status — please try again.")
     }
@@ -347,6 +358,7 @@ export default function RoleApplicants() {
     setApplications((prev) =>
       prev.map((a) => (a.custom_stage_id === stageId ? { ...a, status: destStatus, custom_stage_id: destination.id } : a)),
     )
+    const destIsGenuineCustomStage = isGenuineCustomStage(destination.id, role.id)
     affected.forEach((a) => {
       const candidateId = a.candidate_profiles?.id
       if (!candidateId) return
@@ -354,6 +366,9 @@ export default function RoleApplicants() {
       syncShortlist(candidateId, destStatus, a.status).then((change) => {
         if (change) prependActivity(candidateId, { event_type: change })
       })
+      if (destIsGenuineCustomStage) {
+        notify('custom-stage-notification', { applicationId: a.id })
+      }
     })
   }
 
