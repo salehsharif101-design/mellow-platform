@@ -356,18 +356,28 @@ async function sendCustomStageNotification(supabase, applicationId) {
     : '<br><br>Make it easy for employers to reach you. Add your Calendly link to your profile so they can book a meeting with you directly.<br><br>' +
       `<a href="${SITE_URL}/profile/edit#links-section" style="color:#005ef5;font-weight:700;text-decoration:none;">Add your Calendly link</a>`
 
-  console.log(`[custom-stage-notification] sending to application ${applicationId} for stage "${stage.name}"`)
+  const emailHtml = renderEmailHtml({
+    heading: 'Good news',
+    bodyText: `Your application at ${escapeHtml(companyName)} for ${escapeHtml(role.title)} is progressing. The team is reviewing your profile and will be in touch soon. Keep an eye on your messages.${calendlyNudge}`,
+    ctaLabel: 'View my applications',
+    ctaUrl: `${SITE_URL}/applications`,
+    illustration: 'Client_to_creative.png',
+  })
+
+  // Logged in full (not just a one-line summary) specifically so this is
+  // checkable straight from Vercel's function logs in production, where
+  // there's no other way to see what actually got generated for a given
+  // send. ctaUrl above is a template literal built from SITE_URL
+  // ('https://beta.joinmellow.xyz') + '/applications' — there is no other
+  // ctaUrl in this function and no path that falls through to '/dashboard'.
+  console.log(
+    `[custom-stage-notification] sending to application ${applicationId} for stage "${stage.name}", to=${email}\n${emailHtml}`,
+  )
 
   return sendEmail({
     to: email,
     subject: `Your application at ${companyName} is moving forward`,
-    html: renderEmailHtml({
-      heading: 'Good news',
-      bodyText: `Your application at ${escapeHtml(companyName)} for ${escapeHtml(role.title)} is progressing. The team is reviewing your profile and will be in touch soon. Keep an eye on your messages.${calendlyNudge}`,
-      ctaLabel: 'View my applications',
-      ctaUrl: `${SITE_URL}/applications`,
-      illustration: 'Client_to_creative.png',
-    }),
+    html: emailHtml,
   })
 }
 
