@@ -82,7 +82,7 @@ export default function EmployerDashboard() {
         supabase
           .from('employer_profiles')
           .select(
-            'id, company_name, company_slug, logo_url, intro_video_url, about, culture_description, company_highlight, typical_roles, linkedin_url, website_url, last_viewed_applications_at',
+            'id, user_id, company_name, company_slug, logo_url, intro_video_url, about, culture_description, company_highlight, typical_roles, linkedin_url, website_url, last_viewed_applications_at',
           )
           .eq('id', employerId)
           .maybeSingle(),
@@ -160,7 +160,7 @@ export default function EmployerDashboard() {
       // all goes out in one batch instead of one round trip at a time.
       // Applications are filtered by employer via the embedded roles join
       // rather than a separate "get my role ids first" query.
-      const [rolesResult, applicationsResult, shortlistResult, companyViewsResult, senderProfilesResult, activityResult] = await Promise.all([
+      const [rolesResult, applicationsResult, shortlistResult, companyViewsResult, senderProfilesResult, activityResult, teamMembersResult] = await Promise.all([
         supabase.from('roles').select('id, title, is_active, created_at, view_count').eq('employer_id', emp.id).order('created_at', { ascending: false }),
         supabase
           .from('applications')
@@ -175,7 +175,7 @@ export default function EmployerDashboard() {
         senderIds.length > 0
           ? supabase.from('candidate_profiles').select('user_id, full_name').in('user_id', senderIds)
           : Promise.resolve({ data: [] }),
-        // A teammate's own shortlist/note/status actions were previously
+        // Someone else's shortlist/note/status actions were previously
         // invisible to the rest of the team's "what's new" feed — visible
         // in the per-applicant activity timeline, but never surfaced here,
         // despite this being exactly the kind of event a shared team
@@ -188,6 +188,11 @@ export default function EmployerDashboard() {
           .in('event_type', ['shortlisted', 'note_added', 'status_changed'])
           .gt('created_at', sinceIso)
           .order('created_at', { ascending: false }),
+        // Needed to turn an activity row's actor_user_id into an actual
+        // "by <email>" — or, when the actor is the owner (or unresolvable,
+        // e.g. a removed teammate), no attribution at all. See
+        // resolveActorLabel below.
+        supabase.from('employer_team_members').select('user_id, invited_email').eq('employer_id', emp.id).eq('status', 'active'),
       ])
 
       const myRoles = rolesResult.data || []
@@ -195,7 +200,20 @@ export default function EmployerDashboard() {
       const shortlistTotal = shortlistResult.count || 0
       const views = companyViewsResult.data || []
       const namesBySenderId = Object.fromEntries((senderProfilesResult.data || []).map((p) => [p.user_id, p.full_name]))
-      const teammateActivity = (activityResult.data || []).filter((e) => e.actor_user_id !== user.id)
+      const teamEmailsByUserId = Object.fromEntries(
+        (teamMembersResult.data || []).filter((m) => m.user_id).map((m) => [m.user_id, m.invited_email]),
+      )
+      // Only ever null for 'status_changed'/'shortlisted' rows — the DB
+      // triggers that write those (migration 0057) never record who
+      // performed the action, unlike note_added's, which does. Rather than
+      // guess, an unknown actor gets no attribution at all — silence is
+      // never wrong, "by a teammate" when it was actually the owner (or
+      // there's no team) is.
+      function resolveActorLabel(actorUserId) {
+        if (!actorUserId || actorUserId === emp.user_id) return null
+        return teamEmailsByUserId[actorUserId] || null
+      }
+      const otherActivity = (activityResult.data || []).filter((e) => e.actor_user_id !== user.id)
 
       const newApps = apps.filter((a) => a.applied_at && new Date(a.applied_at).getTime() > sinceMs)
       const newAppsByRole = new Map()
@@ -240,13 +258,18 @@ export default function EmployerDashboard() {
         })
       }
 
-      teammateActivity.forEach((e) => {
+      otherActivity.forEach((e) => {
         const candidateName = e.candidate_profiles?.full_name || 'a candidate'
         const profileLink = `/profile/${e.candidate_profiles?.username || e.candidate_id}`
+        const actorLabel = resolveActorLabel(e.actor_user_id)
         let text
-        if (e.event_type === 'shortlisted') text = `${candidateName} was shortlisted by a teammate`
-        else if (e.event_type === 'note_added') text = `A teammate added a note about ${candidateName}`
-        else text = `${candidateName}'s status was changed to ${e.detail || 'a new stage'} by a teammate`
+        if (e.event_type === 'shortlisted') {
+          text = `${candidateName} was shortlisted${actorLabel ? ` by ${actorLabel}` : ''}`
+        } else if (e.event_type === 'note_added') {
+          text = actorLabel ? `${actorLabel} added a note about ${candidateName}` : `A note was added about ${candidateName}`
+        } else {
+          text = `${candidateName}'s status was changed to ${e.detail || 'a new stage'}${actorLabel ? ` by ${actorLabel}` : ''}`
+        }
         items.push({ id: `activity-${e.id}`, text, link: profileLink, timestamp: e.created_at })
       })
 
