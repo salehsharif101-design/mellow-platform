@@ -28,9 +28,20 @@ const PROFILE_STRENGTH_CHECKS = [
   { key: 'work_video', label: 'At least one work video added', anchor: '#work-videos-section', tip: 'Add a work video to stand out more.' },
   { key: 'skills', label: 'Skills filled in', anchor: '#skills-section', tip: 'Add a few skills so the right roles find you.' },
   { key: 'bio', label: 'Bio complete', anchor: '#basics-section', tip: 'Write a short bio to help employers get to know you.' },
-  { key: 'linkedin', label: 'LinkedIn added', anchor: '#linkedin-section', tip: 'Add your LinkedIn to build more trust with employers.' },
+  { key: 'linkedin', label: 'LinkedIn added', anchor: '#links-section', tip: 'Add your LinkedIn to build more trust with employers.' },
   { key: 'education', label: 'Education added', anchor: '#education-section', tip: 'Add your education to round out your profile.' },
   { key: 'photo', label: 'Profile photo uploaded', anchor: '#photo-section', tip: 'Add a profile photo — profiles with photos get more attention.' },
+  // hideWhenComplete: unlike every other check above (which keeps showing a
+  // checked-off row once done), there's nothing more to nudge once a
+  // candidate has a Calendly link — the row disappears entirely rather
+  // than sitting there permanently checked.
+  {
+    key: 'calendly',
+    label: 'Calendly link added',
+    anchor: '#links-section',
+    tip: 'Add your Calendly link so employers can book time with you directly.',
+    hideWhenComplete: true,
+  },
 ]
 
 export default function CandidateDashboard() {
@@ -393,6 +404,7 @@ export default function CandidateDashboard() {
     else if (check.key === 'linkedin') complete = Boolean(profile.linkedin_url)
     else if (check.key === 'education') complete = Boolean(profile.education_level || profile.institution_name)
     else if (check.key === 'photo') complete = Boolean(profile.avatar_url)
+    else if (check.key === 'calendly') complete = Boolean(profile.calendly_url)
     return { ...check, complete }
   })
   const completedCount = strengthChecks.filter((c) => c.complete).length
@@ -599,7 +611,9 @@ export default function CandidateDashboard() {
           </div>
           <p style={{ marginTop: 10, fontSize: 14, color: 'var(--color-text-muted)' }}>{strengthMessage}</p>
           <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {strengthChecks.map((check) => (
+            {strengthChecks
+              .filter((check) => !(check.hideWhenComplete && check.complete))
+              .map((check) => (
               <div key={check.key} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
                 <span
                   aria-hidden="true"

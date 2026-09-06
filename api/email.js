@@ -350,7 +350,7 @@ async function sendCustomStageNotification(supabase, applicationId) {
   const calendlyNudge = candidate.calendly_url
     ? ''
     : '<br><br>Make it easy for employers to reach you. Add your Calendly link to your profile so they can book a meeting with you directly.<br><br>' +
-      `<a href="${SITE_URL}/profile/edit" style="color:#005ef5;font-weight:700;text-decoration:none;">Add your Calendly link</a>`
+      `<a href="${SITE_URL}/profile/edit#links-section" style="color:#005ef5;font-weight:700;text-decoration:none;">Add your Calendly link</a>`
 
   return sendEmail({
     to: email,

@@ -783,7 +783,7 @@ function LinkedInSection({
   fieldRefs,
 }) {
   return (
-    <section id="linkedin-section">
+    <section id="links-section">
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Links</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 420 }}>
         <div className="field">
