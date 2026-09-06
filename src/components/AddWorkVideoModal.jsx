@@ -4,11 +4,13 @@ import { supabase } from '../lib/supabase.js'
 
 const MAX_FILE_BYTES = 100 * 1024 * 1024
 const ACCEPTED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm']
-const LABEL_OPTIONS = ['Recent project', 'Technical skill', 'Case study', 'Other']
+const LABEL_OPTIONS = ['Recent project', 'Technical skill', 'Case study', 'Custom']
 const MAX_DESCRIPTION_LENGTH = 100
+const MAX_CUSTOM_LABEL_LENGTH = 40
 
 export default function AddWorkVideoModal({ candidateId, userId, onClose, onAdded }) {
   const [label, setLabel] = useState(LABEL_OPTIONS[0])
+  const [customLabel, setCustomLabel] = useState('')
   const [description, setDescription] = useState('')
   const [file, setFile] = useState(null)
   const [error, setError] = useState('')
@@ -30,12 +32,24 @@ export default function AddWorkVideoModal({ candidateId, userId, onClose, onAdde
     setFile(selected)
   }
 
+  const isCustom = label === 'Custom'
+  const trimmedCustomLabel = customLabel.trim()
+
   async function handleSubmit(e) {
     e.preventDefault()
     if (!file) return
+    if (isCustom && !trimmedCustomLabel) {
+      setError('Enter a label for this video.')
+      return
+    }
     setUploading(true)
     setError('')
     try {
+      // A custom label is saved as the video's actual label (not the
+      // literal word "Custom") so every place that already just renders
+      // v.label verbatim — the profile-edit list, the public profile, the
+      // employer-facing views — shows it correctly with no changes needed.
+      const savedLabel = isCustom ? trimmedCustomLabel : label
       const ext = file.name.split('.').pop() || 'mp4'
       const path = `${userId}/work-${Date.now()}.${ext}`
       const { error: uploadError } = await supabase.storage
@@ -47,7 +61,7 @@ export default function AddWorkVideoModal({ candidateId, userId, onClose, onAdde
 
       const { data: row, error: insertError } = await supabase
         .from('candidate_videos')
-        .insert({ candidate_id: candidateId, label, description: description.trim() || null, video_url: publicData.publicUrl })
+        .insert({ candidate_id: candidateId, label: savedLabel, description: description.trim() || null, video_url: publicData.publicUrl })
         .select()
         .single()
       if (insertError) throw insertError
@@ -86,6 +100,17 @@ export default function AddWorkVideoModal({ candidateId, userId, onClose, onAdde
               </option>
             ))}
           </select>
+          {isCustom && (
+            <input
+              autoFocus
+              className="input"
+              value={customLabel}
+              onChange={(e) => setCustomLabel(e.target.value.slice(0, MAX_CUSTOM_LABEL_LENGTH))}
+              placeholder="e.g. Client pitch, Teaching session, Live performance, Product demo"
+              maxLength={MAX_CUSTOM_LABEL_LENGTH}
+              style={{ marginTop: 8 }}
+            />
+          )}
         </div>
         <div className="field">
           <label htmlFor="video-description">Description (optional)</label>
@@ -116,7 +141,7 @@ export default function AddWorkVideoModal({ candidateId, userId, onClose, onAdde
           <button type="button" className="btn btn-ghost" onClick={onClose} disabled={uploading}>
             Cancel
           </button>
-          <button className="btn btn-primary" type="submit" disabled={!file || uploading}>
+          <button className="btn btn-primary" type="submit" disabled={!file || uploading || (isCustom && !trimmedCustomLabel)}>
             {uploading ? 'Uploading…' : 'Upload video'}
           </button>
         </div>
