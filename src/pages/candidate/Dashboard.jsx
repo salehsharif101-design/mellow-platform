@@ -437,7 +437,7 @@ export default function CandidateDashboard() {
           <p style={{ marginTop: 6, fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
             Your profile is almost ready. Add your video to go live and start getting discovered by employers.
           </p>
-          <Link to="/profile/edit" className="btn btn-primary" style={{ marginTop: 14, display: 'inline-block' }}>
+          <Link to="/profile/edit#video-section" className="btn btn-primary" style={{ marginTop: 14, display: 'inline-block' }}>
             Add my video
           </Link>
         </div>

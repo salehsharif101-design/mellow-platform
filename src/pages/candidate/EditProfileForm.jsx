@@ -103,10 +103,12 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
     setErrorField(null)
     setSaveError('')
     setSaving(true)
-    // Removing the intro video without also clearing is_live left a
-    // candidate marked "live" with an empty video slot — inconsistent with
-    // the dashboard's own "not yet live" banner logic, and with the apply
-    // flow elsewhere, which blocks exactly that state.
+    // is_live always tracks whether an intro video is actually present —
+    // set here exactly like Step5Video's onFinish does for the onboarding
+    // wizard — so uploading a video from Edit Profile clears the
+    // dashboard's "not yet live" banner immediately, and removing one
+    // (without a replacement) doesn't leave a candidate marked "live" with
+    // an empty video slot, which the apply flow elsewhere blocks anyway.
     const introVideoRemoved = !introVideoUrl && Boolean(profile.intro_video_url)
     const { data, error } = await supabase
       .from('candidate_profiles')
@@ -131,7 +133,7 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
         calendly_url: calendlyUrl.trim() || null,
         website_url: websiteUrl.trim() || null,
         intro_video_url: introVideoUrl || null,
-        ...(introVideoRemoved ? { is_live: false } : {}),
+        is_live: Boolean(introVideoUrl),
       })
       .eq('id', profile.id)
       .select()

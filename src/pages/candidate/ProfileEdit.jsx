@@ -78,28 +78,24 @@ export default function ProfileEdit() {
   // step (Step5Video.jsx's onSaveForLater) has onboarding_step stuck at
   // exactly LAST_STEP forever — never advancing past it, but never resetting
   // either, since steps 1-4 always fully collected real data before they got
-  // here. That's a genuinely different situation from someone who abandoned
-  // onboarding partway through steps 1-4 (nothing to deep-link into yet) or
-  // who never started at all — only for this one, a profile-strength
-  // checklist link for anything other than the intro video itself should go
-  // straight to Edit Profile's real section instead of back through the
-  // wizard, since the data those links point at already exists. The intro
-  // video link is the one exception: it's deliberately still routed to the
-  // wizard's own video step below, matching the "add a video, go live"
-  // funnel this candidate is already partway through.
+  // here. The wizard's own signup flow is the only place it should still
+  // appear for such a candidate (resuming mid-step, handled by `step` below,
+  // with no navigation involved) — every dashboard-driven link, including
+  // the profile-strength checklist's own intro-video item and the "not yet
+  // live" banner, should land on the real Edit Profile form (and its
+  // #video-section, for the intro video specifically) from here on, never
+  // back through the wizard.
   const savedForLaterAtVideoStep = (profile?.onboarding_step || 1) === LAST_STEP
   const deepLinkHash = location.hash
-  const bypassWizardForDeepLink =
-    savedForLaterAtVideoStep && deepLinkHash && deepLinkHash !== '#video-section'
 
   // The Edit Profile button (Dashboard.jsx, PublicProfile.jsx) always links
   // to plain /profile/edit with no hash — "Edit profile" should always mean
   // Edit Profile, regardless of onboarding progress, so a hash-less visit
-  // always shows the real edit form instead of resuming the wizard. Every
-  // profile-strength checklist link (including "Add your intro video",
-  // which deliberately still routes to the wizard's own video step above)
-  // carries its own #anchor hash, so this leaves all of those untouched.
-  const showEditProfileForm = isComplete || bypassWizardForDeepLink || !deepLinkHash
+  // always shows the real edit form instead of resuming the wizard. The
+  // wizard is reserved for a candidate genuinely still partway through
+  // steps 1-4 (savedForLaterAtVideoStep false, isComplete false, and a
+  // hash present — nothing to deep-link into yet at that point anyway).
+  const showEditProfileForm = isComplete || savedForLaterAtVideoStep || !deepLinkHash
 
   // `isComplete` defaults to false while `profile` is still null (loading),
   // so this hides chrome by default and only reveals it once we've
@@ -146,12 +142,11 @@ export default function ProfileEdit() {
   // already was on arrival at this step) rather than treating it like a
   // normal saveStep(fields, 5) — profile.onboarding_step > LAST_STEP is what
   // `isComplete` checks, and keeping it at exactly 5 is what keeps the
-  // dashboard's "not yet live" banner and the "Add your intro video"
-  // checklist item (its own #video-section deep link still routes here,
-  // see bypassWizardForDeepLink above) pointing back at this same
-  // Step5Video step. A plain /profile/edit visit — the Edit Profile button
-  // itself — always goes to EditProfileForm's own video section instead,
-  // regardless of this step number; see showEditProfileForm above.
+  // dashboard's "not yet live" banner showing until a real video gets
+  // uploaded. Every link back to /profile/edit from here on — the banner,
+  // the checklist's intro-video item, the Edit Profile button itself — goes
+  // straight to EditProfileForm (and its #video-section) instead of this
+  // Step5Video step; see showEditProfileForm above.
   // video_reminder_started_at is only ever stamped the first time — it's
   // the timestamp api/cron/video-reminder.js measures the 24h/72h/7d
   // reminder delays from, and repeat "save for later" clicks shouldn't
