@@ -41,10 +41,10 @@ async function sendMeetingFollowUps(supabase) {
 
     await sendEmail({
       to: employerEmail,
-      subject: `Your meeting with ${candidateName} - how did it go?`,
+      subject: `Did you connect with ${candidateName}?`,
       html: renderEmailHtml({
         heading: 'Checking in',
-        bodyText: `You recently connected with ${candidateName} through Mellow. Whether your meeting has already happened or is coming up soon, we wanted to check in. If you have already met, how did it go? Did you make a hire? If your meeting is still ahead, good luck. We hope it goes well.`,
+        bodyText: `You recently showed interest in ${candidateName} on Mellow. We wanted to check in, did you get a chance to connect with them?`,
         ctaLabel: 'We made a hire',
         ctaUrl: `${SITE_URL}/hire-confirmed?candidate=${meeting.candidate_id}&employer=${meeting.employer_id}`,
         secondaryCtaLabel: 'Still in progress',
@@ -93,10 +93,10 @@ async function sendSecondFollowUps(supabase) {
 
     await sendEmail({
       to: employerEmail,
-      subject: `Still searching? How is it going with ${candidateName}?`,
+      subject: `Any updates on ${candidateName}?`,
       html: renderEmailHtml({
         heading: 'Just checking in',
-        bodyText: `A couple of weeks ago you let us know you were still deciding on ${candidateName}. We wanted to check back in, did things move forward?`,
+        bodyText: `We wanted to follow up, did you end up connecting with ${candidateName}? We would love to know how things progressed.`,
         ctaLabel: 'We made a hire',
         ctaUrl: `${SITE_URL}/hire-confirmed?candidate=${meeting.candidate_id}&employer=${meeting.employer_id}`,
         secondaryCtaLabel: 'Not this time',
