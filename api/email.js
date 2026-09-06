@@ -20,7 +20,7 @@ import { escapeHtml } from './_lib/html.js'
 // Pure functions only (no supabase import, no env var reads) — safe to
 // import here unlike src/lib/employerAccess.js (see getCandidateContact's
 // own comment in db.js for why that one specifically can't be).
-import { reviewingStageId, shortlistedStageId } from '../src/lib/pipelineStages.js'
+import { reviewingStageId, shortlistedStageId, STATUS_LABELS } from '../src/lib/pipelineStages.js'
 
 function getAnonClient() {
   return createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY, {
@@ -302,13 +302,19 @@ async function sendRejectionNotification(supabase, applicationId) {
 // the caller, since RoleApplicants.jsx already generalizes all three kinds
 // of stage through the same custom_stage_id column.
 //
-// Dedup ("once per stage, no resend for back-and-forth") piggybacks on the
-// candidate_activity_log rows migration 0057's own DB trigger already
-// writes on every custom_stage_id change (detail = the stage's current
-// name) rather than a new column — this call always runs after that
-// trigger's insert has committed (same transaction as the status update
-// that triggered it), so more than one existing row with this exact detail
-// means a prior visit to this same-named stage already sent the email.
+// Dedup ("once per candidate per role, ever — not once per stage") piggy-
+// backs on the candidate_activity_log rows migration 0057's own DB trigger
+// already writes on every custom_stage_id change (detail = the stage's
+// current name) rather than a new column — this call always runs after
+// that trigger's insert has committed (same transaction as the status
+// update that triggered it). Counts every status_changed row for this
+// candidate+role whose detail isn't one of the four built-in stage labels
+// (New/Reviewing/Shortlisted/Rejected, see STATUS_LABELS) — i.e. every past
+// or present visit to ANY genuine custom stage — so a candidate who was
+// already notified once for this role stays suppressed even after being
+// moved to a different custom stage later.
+const BUILTIN_STAGE_LABELS = Object.values(STATUS_LABELS)
+
 async function sendCustomStageNotification(supabase, applicationId) {
   const application = unwrap(
     await supabase.from('applications').select('candidate_id, role_id, custom_stage_id').eq('id', applicationId).single(),
@@ -326,17 +332,19 @@ async function sendCustomStageNotification(supabase, applicationId) {
     await supabase.from('role_pipeline_stages').select('name').eq('id', application.custom_stage_id).single(),
   )
 
-  const priorNotices = unwrap(
+  const allStageChanges = unwrap(
     await supabase
       .from('candidate_activity_log')
-      .select('id')
+      .select('detail')
       .eq('candidate_id', application.candidate_id)
       .eq('role_id', application.role_id)
-      .eq('event_type', 'status_changed')
-      .eq('detail', stage.name),
+      .eq('event_type', 'status_changed'),
   )
-  if (priorNotices.length > 1) {
-    console.log(`[custom-stage-notification] skipped application ${applicationId}: already notified for stage "${stage.name}"`)
+  const priorCustomStageVisits = allStageChanges.filter((row) => !BUILTIN_STAGE_LABELS.includes(row.detail))
+  if (priorCustomStageVisits.length > 1) {
+    console.log(
+      `[custom-stage-notification] skipped application ${applicationId}: already notified once for role ${application.role_id}`,
+    )
     return { skipped: true }
   }
 
