@@ -92,11 +92,20 @@ export default function ProfileEdit() {
   const bypassWizardForDeepLink =
     savedForLaterAtVideoStep && deepLinkHash && deepLinkHash !== '#video-section'
 
+  // The Edit Profile button (Dashboard.jsx, PublicProfile.jsx) always links
+  // to plain /profile/edit with no hash — "Edit profile" should always mean
+  // Edit Profile, regardless of onboarding progress, so a hash-less visit
+  // always shows the real edit form instead of resuming the wizard. Every
+  // profile-strength checklist link (including "Add your intro video",
+  // which deliberately still routes to the wizard's own video step above)
+  // carries its own #anchor hash, so this leaves all of those untouched.
+  const showEditProfileForm = isComplete || bypassWizardForDeepLink || !deepLinkHash
+
   // `isComplete` defaults to false while `profile` is still null (loading),
   // so this hides chrome by default and only reveals it once we've
-  // confirmed the profile is actually complete (or is taking the Edit
-  // Profile deep-link bypass just above) — no flash on refresh.
-  useHideChrome((!isComplete && !bypassWizardForDeepLink) || justCompleted)
+  // confirmed the profile is actually complete (or is taking one of the
+  // bypasses above) — no flash on refresh.
+  useHideChrome(!showEditProfileForm || justCompleted)
 
   async function saveStep(fields, nextStep) {
     setSaving(true)
@@ -136,9 +145,13 @@ export default function ProfileEdit() {
   // Deliberately leaves onboarding_step untouched (stays at 5, same as it
   // already was on arrival at this step) rather than treating it like a
   // normal saveStep(fields, 5) — profile.onboarding_step > LAST_STEP is what
-  // `isComplete` checks, and keeping it at exactly 5 is what sends the
-  // candidate straight back to this same Step5Video step (not the separate
-  // EditProfileForm video section) the next time they land on /profile/edit.
+  // `isComplete` checks, and keeping it at exactly 5 is what keeps the
+  // dashboard's "not yet live" banner and the "Add your intro video"
+  // checklist item (its own #video-section deep link still routes here,
+  // see bypassWizardForDeepLink above) pointing back at this same
+  // Step5Video step. A plain /profile/edit visit — the Edit Profile button
+  // itself — always goes to EditProfileForm's own video section instead,
+  // regardless of this step number; see showEditProfileForm above.
   // video_reminder_started_at is only ever stamped the first time — it's
   // the timestamp api/cron/video-reminder.js measures the 24h/72h/7d
   // reminder delays from, and repeat "save for later" clicks shouldn't
@@ -170,7 +183,7 @@ export default function ProfileEdit() {
     )
   }
 
-  if (isComplete || bypassWizardForDeepLink) {
+  if (showEditProfileForm) {
     if (justCompleted) {
       return <OnboardingCelebration username={profile.username || profile.id} candidateId={profile.id} userId={profile.user_id} />
     }
