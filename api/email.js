@@ -318,6 +318,7 @@ async function sendCustomStageNotification(supabase, applicationId) {
     application.custom_stage_id === reviewingStageId(application.role_id) ||
     application.custom_stage_id === shortlistedStageId(application.role_id)
   ) {
+    console.log(`[custom-stage-notification] skipped application ${applicationId}: not a genuine custom stage`)
     return { skipped: true }
   }
 
@@ -334,7 +335,10 @@ async function sendCustomStageNotification(supabase, applicationId) {
       .eq('event_type', 'status_changed')
       .eq('detail', stage.name),
   )
-  if (priorNotices.length > 1) return { skipped: true }
+  if (priorNotices.length > 1) {
+    console.log(`[custom-stage-notification] skipped application ${applicationId}: already notified for stage "${stage.name}"`)
+    return { skipped: true }
+  }
 
   const role = unwrap(
     await supabase.from('roles').select('title, employer_profiles(company_name)').eq('id', application.role_id).single(),
@@ -351,6 +355,8 @@ async function sendCustomStageNotification(supabase, applicationId) {
     ? ''
     : '<br><br>Make it easy for employers to reach you. Add your Calendly link to your profile so they can book a meeting with you directly.<br><br>' +
       `<a href="${SITE_URL}/profile/edit#links-section" style="color:#005ef5;font-weight:700;text-decoration:none;">Add your Calendly link</a>`
+
+  console.log(`[custom-stage-notification] sending to application ${applicationId} for stage "${stage.name}"`)
 
   return sendEmail({
     to: email,
