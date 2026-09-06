@@ -28,6 +28,20 @@ export function AuthProvider({ children }) {
   // fires a spurious SIGNED_IN here and yanks the user off the page they
   // were already on and into the dashboard.
   const currentUserIdRef = useRef(null)
+  // GoTrue's own startup flow re-emits a genuine SIGNED_IN (not just
+  // INITIAL_SESSION) for an already-valid session restored from storage on
+  // every hard page load — not only on an actual new login — and it can
+  // fire before this component's own getSession() call below has had a
+  // chance to set currentUserIdRef. When that happens, previousUserId is
+  // still this ref's initial null, so an ordinary already-logged-in page
+  // load (e.g. clicking a link straight from an email, or any other fresh
+  // navigation to a protected route) reads as "a different user just
+  // signed in" and gets redirected to the generic dashboard, overriding
+  // wherever the URL actually pointed. Ignoring every SIGNED_IN/SIGNED_OUT
+  // until the initial getSession() below has resolved at least once closes
+  // that window — a genuine subsequent auth change (a real login, a
+  // cross-tab logout) always arrives well after that first resolution.
+  const initialSessionResolvedRef = useRef(false)
 
   useEffect(() => {
     // A URL hash carrying auth tokens means this page load landed here
@@ -44,6 +58,7 @@ export function AuthProvider({ children }) {
       currentUserIdRef.current = data.session?.user?.id ?? null
       setSession(data.session)
       setLoading(false)
+      initialSessionResolvedRef.current = true
     })
 
     // Supabase syncs the session across same-origin tabs via localStorage,
@@ -60,6 +75,7 @@ export function AuthProvider({ children }) {
 
       if (event !== 'SIGNED_IN' && event !== 'SIGNED_OUT') return
       if (consumeAuthRedirectSuppression()) return
+      if (!initialSessionResolvedRef.current) return
 
       // Redirect only on an actual identity change — a different (or newly
       // present/absent) user id than this tab already had. A same-user
@@ -88,6 +104,16 @@ export function AuthProvider({ children }) {
   }, [navigate])
 
   useEffect(() => {
+    // Wait for the session itself to resolve first. Otherwise, on initial
+    // mount `session` is still null (not yet determined, indistinguishable
+    // from "confirmed logged out"), this branch sets profileLoading false,
+    // and that stale false lingers into the render right after getSession()
+    // comes back with a real session but before this effect has re-run to
+    // flip profileLoading back to true — a window where ProtectedRoute sees
+    // a session with profileLoading false and userType still null, reads it
+    // as "wrong type," and bounces a logged-in candidate off the page they
+    // asked for (e.g. /applications, /roles) to "/".
+    if (loading) return
     if (!session?.user) {
       setProfile(null)
       setProfileLoading(false)
@@ -103,7 +129,7 @@ export function AuthProvider({ children }) {
         setProfile(data ?? null)
         setProfileLoading(false)
       })
-  }, [session?.user])
+  }, [session?.user, loading])
 
   async function signUp({ email, password, userType, emailRedirectTo }) {
     // If this signUp establishes a session immediately (email confirmation
