@@ -73,6 +73,12 @@ export default function CandidateDashboard() {
   // clearDashboardBadges() has already overwritten it, collapsing the
   // feed's "since" window to almost nothing on every subsequent poll.
   const sinceMsRef = useRef(null)
+  // Guards clearDashboardBadges() to fire exactly once per mount, same as
+  // sinceMsRef above — but this one is checked and set at the END of load(),
+  // not derived from sinceMsRef itself, since the whole point of moving the
+  // call is to stop it firing at the same instant sinceMs is computed (see
+  // below).
+  const hasClearedBadgeRef = useRef(false)
 
   useEffect(() => {
     if (!user) return
@@ -108,18 +114,17 @@ export default function CandidateDashboard() {
       // "Since last visit," capped to the last 7 days regardless of how
       // long it's actually been. Frozen after the first load — see
       // sinceMsRef above. clearDashboardBadges() (which overwrites
-      // last_viewed_dashboard_at to now) fires right here, strictly after
-      // that column's pre-update value has been read into sinceMs — not
-      // from a separate effect keyed on `loading`/`profile`, which raced
-      // against this fetch whenever a cached dashboard made `loading` start
-      // out already false: the badge's UPDATE could land before this
-      // SELECT, so sinceMs came back as "now" and the feed looked empty
-      // even with real unseen activity.
+      // last_viewed_dashboard_at to now) deliberately does NOT fire here
+      // anymore — it fires once, at the very end of load(), only after the
+      // feed's items have actually been fetched and set into state (see
+      // hasClearedBadgeRef below). Stamping "now" this early, before any of
+      // the queries below have even run, marked the visit as seen before
+      // the candidate had actually seen the loaded feed, which is what let
+      // the "since" window drift from what was really shown.
       if (sinceMsRef.current === null) {
         const sevenDaysAgoMs = Date.now() - SEVEN_DAYS_MS
         const lastViewedMs = candidate.last_viewed_dashboard_at ? new Date(candidate.last_viewed_dashboard_at).getTime() : 0
         sinceMsRef.current = Math.max(sevenDaysAgoMs, lastViewedMs)
-        clearDashboardBadgesRef.current()
       }
       const sinceMs = sinceMsRef.current
       const sinceIso = new Date(sinceMs).toISOString()
@@ -348,6 +353,15 @@ export default function CandidateDashboard() {
       setFeedItems(items)
       setStandingNudges(standingNudges)
       setLoading(false)
+
+      // Only now — after the feed above has actually been fetched and
+      // handed to setFeedItems — is this visit truly "seen." Guarded
+      // separately from sinceMsRef since by this point that ref is already
+      // non-null; this one's job is purely "once per mount."
+      if (!hasClearedBadgeRef.current) {
+        hasClearedBadgeRef.current = true
+        clearDashboardBadgesRef.current()
+      }
 
       if (cacheKey) {
         setCachedDashboard(cacheKey, {

@@ -64,6 +64,11 @@ export default function EmployerDashboard() {
   // re-reading the (by then already-updated) column, which would otherwise
   // collapse the feed's window to almost nothing after the first poll.
   const sinceMsRef = useRef(null)
+  // Guards clearApplicationsBadge() to fire exactly once per mount — set at
+  // the END of load(), after the feed has actually been fetched and set
+  // into state, not tied to sinceMsRef (already non-null by then) or to
+  // unmounting (see load()'s own comment on this below).
+  const hasClearedBadgeRef = useRef(false)
 
   useEffect(() => {
     if (!user) return
@@ -137,8 +142,8 @@ export default function EmployerDashboard() {
         // it as part of the very first load would zero it out before the
         // employer ever got a chance to see it, so it could only ever show
         // a count for an application that arrives while they're already on
-        // this page. It's cleared instead once they've actually seen the
-        // dashboard and move on — see the unmount effect below.
+        // this page. It's cleared instead once the feed below has actually
+        // been fetched and set into state — see the end of load().
       }
       const sinceMs = sinceMsRef.current
       const sinceIso = new Date(sinceMs).toISOString()
@@ -283,6 +288,16 @@ export default function EmployerDashboard() {
       setFeedItems(items)
       setLoading(false)
 
+      // Only now — after the feed above has actually been fetched and
+      // handed to setFeedItems — is this visit truly "seen." Previously
+      // this fired on unmount instead, which cleared the badge even if the
+      // employer navigated away before load() ever finished, marking a
+      // visit as seen that never actually showed them anything.
+      if (!hasClearedBadgeRef.current) {
+        hasClearedBadgeRef.current = true
+        clearApplicationsBadgeRef.current()
+      }
+
       if (cacheKey) {
         setCachedDashboard(cacheKey, {
           employer: emp,
@@ -297,10 +312,7 @@ export default function EmployerDashboard() {
 
     load()
     const interval = setInterval(load, POLL_MS)
-    return () => {
-      clearInterval(interval)
-      clearApplicationsBadgeRef.current()
-    }
+    return () => clearInterval(interval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
