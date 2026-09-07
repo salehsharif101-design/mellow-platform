@@ -124,57 +124,41 @@ async function sendEmployerWelcome(supabase, userId) {
   })
 }
 
-async function sendFirstRoleVideoNudge(supabase, employerId) {
-  // Re-checked here (not trusted from the client) so this only fires once,
-  // exactly on the role that brings the employer's total from 0 to 1 —
-  // matches the dedup pattern sendProfileViewNotification uses below.
-  const roles = unwrap(await supabase.from('roles').select('id').eq('employer_id', employerId))
-  if (roles.length !== 1) return { skipped: true }
-
-  const employer = unwrap(
-    await supabase.from('employer_profiles').select('user_id, video_nudge_sent').eq('id', employerId).single(),
+// Fires once per role posted (previously two separate emails landed
+// together for an employer's first role — this one and a plain "Your role
+// is live on Mellow" notice, since dropped as a pure duplicate of the CTA
+// below). "Add your company video" only shows once, disappearing for good
+// the moment the employer actually has one — checked fresh against
+// employer_profiles.intro_video_url on every send rather than a one-time
+// "did we ever nudge them" flag, so it tracks the real current state
+// instead of just whether this was their first role.
+async function sendRoleLiveNotification(supabase, roleId) {
+  const role = unwrap(
+    await supabase.from('roles').select('slug, employer_id').eq('id', roleId).single(),
   )
-  // Belt and suspenders on top of the role-count check: guarantees a single
-  // send per employer even across delete-and-repost cycles, which could
-  // otherwise bring the count back to 1 a second time.
-  if (employer.video_nudge_sent) return { skipped: true }
-
-  const emails = await getEmployerEmails(supabase, employerId)
+  const employer = unwrap(
+    await supabase.from('employer_profiles').select('intro_video_url').eq('id', role.employer_id).single(),
+  )
+  const emails = await getEmployerEmails(supabase, role.employer_id)
   if (emails.length === 0) return { skipped: true }
 
-  const result = await sendEmail({
+  const hasVideo = Boolean(employer.intro_video_url)
+
+  return sendEmail({
     to: emails,
     subject: 'Your role is live, now make it stand out',
     html: renderEmailHtml({
       heading: 'Your role is live',
       bodyText:
         'Employers who add a company video get more applications. Talent wants to know who they will be working with before they apply, a 60-second video gives them exactly that. It takes two minutes to record and makes your role stand out from every other posting.',
-      ctaLabel: 'Add your company video',
-      ctaUrl: `${SITE_URL}/employer/profile/edit`,
-      illustration: 'Client_to_creative.png',
-    }),
-  })
-
-  unwrap(await supabase.from('employer_profiles').update({ video_nudge_sent: true }).eq('id', employerId))
-
-  return result
-}
-
-async function sendRoleLiveNotification(supabase, roleId) {
-  const role = unwrap(
-    await supabase.from('roles').select('title, slug, employer_id').eq('id', roleId).single(),
-  )
-  const emails = await getEmployerEmails(supabase, role.employer_id)
-  if (emails.length === 0) return { skipped: true }
-
-  return sendEmail({
-    to: emails,
-    subject: 'Your role is live on Mellow',
-    html: renderEmailHtml({
-      heading: 'Your role is live',
-      bodyText: `Your ${escapeHtml(role.title)} role has been posted successfully. Talent can now discover and apply to it on Mellow. Share it widely to get the best applications.`,
       ctaLabel: 'View your role',
       ctaUrl: `${SITE_URL}/jobs/${role.slug}`,
+      ...(hasVideo
+        ? {}
+        : {
+            secondaryCtaLabel: 'Add your company video',
+            secondaryCtaUrl: `${SITE_URL}/employer/profile/edit#intro-video-section`,
+          }),
       illustration: 'Collaborate2.png',
     }),
   })
@@ -477,9 +461,6 @@ export default async function handler(req, res) {
         break
       case 'employer-welcome':
         await sendEmployerWelcome(supabase, body.userId)
-        break
-      case 'first-role-video-nudge':
-        await sendFirstRoleVideoNudge(supabase, body.employerId)
         break
       case 'role-live-notification':
         await sendRoleLiveNotification(supabase, body.roleId)
