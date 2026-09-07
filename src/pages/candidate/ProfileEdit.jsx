@@ -17,7 +17,7 @@ import HashScroll from '../../components/HashScroll.jsx'
 
 const LAST_STEP = 5
 
-export default function ProfileEdit() {
+export default function ProfileEdit({ forceWizard = false }) {
   const { user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -95,7 +95,15 @@ export default function ProfileEdit() {
   // wizard is reserved for a candidate genuinely still partway through
   // steps 1-4 (savedForLaterAtVideoStep false, isComplete false, and a
   // hash present — nothing to deep-link into yet at that point anyway).
-  const showEditProfileForm = isComplete || savedForLaterAtVideoStep || !deepLinkHash
+  //
+  // forceWizard overrides that hash-less default — it's how /onboarding
+  // (the confirm-your-email and just-signed-up redirect target, see
+  // Login.jsx and Signup.jsx) reaches this same component and still gets
+  // the wizard on a first, hash-less visit. isComplete/savedForLaterAtVideoStep
+  // still win over it, so a stale onboarding link for an already-onboarded
+  // candidate falls through to the real form rather than re-running the
+  // wizard.
+  const showEditProfileForm = isComplete || savedForLaterAtVideoStep || (!deepLinkHash && !forceWizard)
 
   // `isComplete` defaults to false while `profile` is still null (loading),
   // so this hides chrome by default and only reveals it once we've

@@ -122,7 +122,7 @@ export default function Login() {
         return
       }
 
-      let destination = '/profile/edit'
+      let destination = '/onboarding'
       if (row.user_type === 'employer') {
         const { employerId, isOwner } = await resolveEmployerId(confirmedSession.user.id)
         if (cancelled) return

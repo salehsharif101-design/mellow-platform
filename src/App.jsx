@@ -110,6 +110,21 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        {/* Landing target for a newly confirmed (or just signed-up) candidate
+            — see Login.jsx's confirmedParam routing and Signup.jsx's
+            immediate-session path. Same component as /profile/edit, just
+            forced into wizard mode so a first, hash-less visit doesn't fall
+            through to the real edit form (ProfileEdit.jsx's own
+            showEditProfileForm comment explains why that's the default for
+            a plain /profile/edit visit). */}
+        <Route
+          path="/onboarding"
+          element={
+            <ProtectedRoute requireUserType="candidate">
+              <ProfileEdit forceWizard />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/roles"
           element={

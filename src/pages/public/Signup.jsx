@@ -86,7 +86,7 @@ export default function Signup() {
       // Not resetting loading here — navigating away, so this component is
       // about to unmount; resetting first would flip the submit button back
       // to its idle label for a frame before the route actually changes.
-      navigate(userType === 'employer' ? '/employer/onboarding' : '/profile/edit')
+      navigate(userType === 'employer' ? '/employer/onboarding' : '/onboarding')
     } catch (err) {
       setError(err.message)
       setLoading(false)
