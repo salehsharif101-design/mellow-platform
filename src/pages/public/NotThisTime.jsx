@@ -2,11 +2,13 @@ import { useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useHideChrome } from '../../components/Layout.jsx'
 
-// Reached from the second employer follow-up email's "Not this time"
-// button (api/cron/meeting-follow-up.js's sendSecondFollowUps). Recording
-// the outcome happens server-side in api/meeting-outcome.js's
-// "not_this_time" action, this page just fires that request and shows the
-// moment — no further follow-up emails go out after this.
+// Reached from either the first follow-up email's "We didn't connect"
+// button or the second follow-up email's "Not this time" button
+// (api/cron/meeting-follow-up.js's sendMeetingFollowUps and
+// sendSecondFollowUps respectively). Recording the outcome happens
+// server-side in api/meeting-outcome.js's "not_this_time" action, this page
+// just fires that request and shows the moment — no further follow-up
+// emails go out after this.
 export default function NotThisTime() {
   const [searchParams] = useSearchParams()
   const candidateId = searchParams.get('candidate')

@@ -49,6 +49,15 @@ async function sendMeetingFollowUps(supabase) {
         ctaUrl: `${SITE_URL}/hire-confirmed?candidate=${meeting.candidate_id}&employer=${meeting.employer_id}`,
         secondaryCtaLabel: 'Still in progress',
         secondaryCtaUrl: `${SITE_URL}/still-deciding?candidate=${meeting.candidate_id}&employer=${meeting.employer_id}`,
+        // Same /not-this-time page and "not_this_time" outcome action as the
+        // second follow-up's own "Not this time" button (see
+        // sendSecondFollowUps below and api/meeting-outcome.js) — reusing it
+        // here rather than a new action means clicking this also naturally
+        // skips the second follow-up entirely: sendSecondFollowUps only
+        // ever selects meetings with still_in_progress_at set, which this
+        // path never touches.
+        extraCtaLabel: "We didn't connect",
+        extraCtaUrl: `${SITE_URL}/not-this-time?candidate=${meeting.candidate_id}&employer=${meeting.employer_id}`,
         illustration: 'Collaborate2.png',
       }),
     })
