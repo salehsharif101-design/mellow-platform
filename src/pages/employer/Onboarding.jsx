@@ -4,7 +4,6 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { useHideChrome } from '../../components/Layout.jsx'
 import { useDraftAutosave } from '../../lib/useDraftAutosave.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
-import { COUNTRIES } from '../../lib/countries.js'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
@@ -324,20 +323,14 @@ export default function EmployerOnboarding() {
               </select>
             </div>
             <div className="field">
-              <label htmlFor="country">Country (optional)</label>
+              <label htmlFor="country">Country</label>
               <input
                 id="country"
                 className="input"
-                list="country-options"
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
                 placeholder="e.g. Bahrain"
               />
-              <datalist id="country-options">
-                {COUNTRIES.map((c) => (
-                  <option key={c} value={c} />
-                ))}
-              </datalist>
             </div>
             <div className="field">
               <label htmlFor="headline">Company headline (optional)</label>
