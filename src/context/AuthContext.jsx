@@ -159,6 +159,34 @@ export function AuthProvider({ children }) {
   }
 
   async function resendConfirmation(email, emailRedirectTo) {
+    // Supabase's own resend() returns a clean, error-free success for an
+    // already-confirmed account without actually sending anything — same
+    // anti-enumeration silence as signUp() (see api/check-email.js) — so
+    // callers (ResendConfirmationButton.jsx) had no way to tell that apart
+    // from a genuine send: the button showed its normal countdown while
+    // nothing ever arrived. Checked here first so an already-confirmed
+    // account gets a real, honest message instead. Best-effort: a failure
+    // of this check itself (network, 500) falls through to the normal
+    // resend attempt rather than blocking the whole flow on it.
+    try {
+      const res = await fetch('/api/check-email-confirmed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.confirmed) {
+        throw new Error('This email is already confirmed. You can log in now.')
+      }
+    } catch (err) {
+      if (err instanceof TypeError) {
+        // fetch itself failed (offline, DNS, etc.) — fall through to the
+        // normal resend attempt rather than blocking on this check.
+      } else {
+        throw err
+      }
+    }
+
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email,

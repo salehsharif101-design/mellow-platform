@@ -20,6 +20,7 @@ const { default: emailHandler } = await import('../api/email.js')
 const { default: deleteAccountHandler } = await import('../api/delete-account.js')
 const { default: waitlistHandler } = await import('../api/waitlist.js')
 const { default: checkEmailHandler } = await import('../api/check-email.js')
+const { default: checkEmailConfirmedHandler } = await import('../api/check-email-confirmed.js')
 const { default: checkRemovedMemberHandler } = await import('../api/check-removed-member.js')
 const { default: teamInviteHandler } = await import('../api/team-invite.js')
 const { default: teamRemoveHandler } = await import('../api/team-remove.js')
@@ -43,6 +44,7 @@ const ROUTES = {
   '/api/delete-account': deleteAccountHandler,
   '/api/waitlist': waitlistHandler,
   '/api/check-email': checkEmailHandler,
+  '/api/check-email-confirmed': checkEmailConfirmedHandler,
   '/api/check-removed-member': checkRemovedMemberHandler,
   '/api/team-invite': teamInviteHandler,
   '/api/team-remove': teamRemoveHandler,
