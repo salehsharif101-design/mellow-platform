@@ -29,6 +29,10 @@ export default function ProfileEdit({ forceWizard = false }) {
   const [loadError, setLoadError] = useState('')
   const [showWelcome, setShowWelcome] = useState(true)
   const [justCompleted, setJustCompleted] = useState(false)
+  // Snapshot of onboarding_step as it was the moment the profile first
+  // loaded — see savedForLaterAtVideoStep below for why this has to be
+  // frozen rather than read live off `profile`.
+  const [initialOnboardingStep, setInitialOnboardingStep] = useState(null)
 
   useEffect(() => {
     if (!user) return
@@ -50,6 +54,7 @@ export default function ProfileEdit({ forceWizard = false }) {
 
       if (data) {
         setProfile(data)
+        setInitialOnboardingStep(data.onboarding_step || 1)
         setStep(Math.min(data.onboarding_step || 1, LAST_STEP))
       } else {
         // ignoreDuplicates suppresses the row on conflict, so re-fetch it
@@ -64,6 +69,7 @@ export default function ProfileEdit({ forceWizard = false }) {
           return
         }
         setProfile(existing)
+        setInitialOnboardingStep(existing.onboarding_step || 1)
         setStep(Math.min(existing.onboarding_step || 1, LAST_STEP))
       }
       setLoading(false)
@@ -85,7 +91,15 @@ export default function ProfileEdit({ forceWizard = false }) {
   // live" banner, should land on the real Edit Profile form (and its
   // #video-section, for the intro video specifically) from here on, never
   // back through the wizard.
-  const savedForLaterAtVideoStep = (profile?.onboarding_step || 1) === LAST_STEP
+  //
+  // Read off initialOnboardingStep (frozen at load), not the live
+  // profile.onboarding_step — a candidate progressing through the wizard in
+  // THIS session also passes through onboarding_step === LAST_STEP for the
+  // one render right after finishing step 4 (saveStep's own update lands
+  // before Step5Video ever mounts), which would otherwise satisfy this same
+  // check and bounce them to the real edit form before they ever see the
+  // video step.
+  const savedForLaterAtVideoStep = initialOnboardingStep === LAST_STEP
   const deepLinkHash = location.hash
 
   // The Edit Profile button (Dashboard.jsx, PublicProfile.jsx) always links
