@@ -29,10 +29,6 @@ export default function ProfileEdit({ forceWizard = false }) {
   const [loadError, setLoadError] = useState('')
   const [showWelcome, setShowWelcome] = useState(true)
   const [justCompleted, setJustCompleted] = useState(false)
-  // Snapshot of onboarding_step as it was the moment the profile first
-  // loaded — see savedForLaterAtVideoStep below for why this has to be
-  // frozen rather than read live off `profile`.
-  const [initialOnboardingStep, setInitialOnboardingStep] = useState(null)
 
   useEffect(() => {
     if (!user) return
@@ -54,7 +50,6 @@ export default function ProfileEdit({ forceWizard = false }) {
 
       if (data) {
         setProfile(data)
-        setInitialOnboardingStep(data.onboarding_step || 1)
         setStep(Math.min(data.onboarding_step || 1, LAST_STEP))
       } else {
         // ignoreDuplicates suppresses the row on conflict, so re-fetch it
@@ -69,7 +64,6 @@ export default function ProfileEdit({ forceWizard = false }) {
           return
         }
         setProfile(existing)
-        setInitialOnboardingStep(existing.onboarding_step || 1)
         setStep(Math.min(existing.onboarding_step || 1, LAST_STEP))
       }
       setLoading(false)
@@ -84,22 +78,26 @@ export default function ProfileEdit({ forceWizard = false }) {
   // step (Step5Video.jsx's onSaveForLater) has onboarding_step stuck at
   // exactly LAST_STEP forever — never advancing past it, but never resetting
   // either, since steps 1-4 always fully collected real data before they got
-  // here. The wizard's own signup flow is the only place it should still
-  // appear for such a candidate (resuming mid-step, handled by `step` below,
-  // with no navigation involved) — every dashboard-driven link, including
-  // the profile-strength checklist's own intro-video item and the "not yet
-  // live" banner, should land on the real Edit Profile form (and its
-  // #video-section, for the intro video specifically) from here on, never
-  // back through the wizard.
+  // here. Every dashboard-driven link, including the profile-strength
+  // checklist's own intro-video item and the "not yet live" banner, should
+  // land on the real Edit Profile form (and its #video-section, for the
+  // intro video specifically) from here on, never back through the wizard.
   //
-  // Read off initialOnboardingStep (frozen at load), not the live
-  // profile.onboarding_step — a candidate progressing through the wizard in
-  // THIS session also passes through onboarding_step === LAST_STEP for the
-  // one render right after finishing step 4 (saveStep's own update lands
-  // before Step5Video ever mounts), which would otherwise satisfy this same
-  // check and bounce them to the real edit form before they ever see the
-  // video step.
-  const savedForLaterAtVideoStep = initialOnboardingStep === LAST_STEP
+  // onboarding_step alone can't tell that candidate apart from one who
+  // simply reached step 5 moments ago in the current wizard session — both
+  // read onboarding_step === LAST_STEP, since saveStep's own update lands
+  // the moment step 4 finishes, before Step5Video ever mounts. That
+  // ambiguity isn't just a same-session render race either: navigating away
+  // from step 5 (the guide link, a tab switch, a phone discarding a
+  // background tab) and coming back re-mounts this component from scratch,
+  // re-reading the same persisted onboarding_step === LAST_STEP with
+  // nothing left to say "this was mid-wizard, not a deliberate pause."
+  // video_reminder_started_at is that missing signal — onSaveForLater is the
+  // ONLY place that ever stamps it (see its own comment below), so its
+  // presence is exactly "this candidate deliberately left the wizard at the
+  // video step," true only once they've actually clicked that button, in
+  // this session or any prior one.
+  const savedForLaterAtVideoStep = (profile?.onboarding_step || 1) === LAST_STEP && Boolean(profile?.video_reminder_started_at)
   const deepLinkHash = location.hash
 
   // The Edit Profile button (Dashboard.jsx, PublicProfile.jsx) always links
