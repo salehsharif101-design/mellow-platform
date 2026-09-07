@@ -160,7 +160,7 @@ export default function EmployerRoles() {
           }}
         >
           <p style={{ fontSize: 14, fontWeight: 600 }}>Add a company video to get more applications</p>
-          <Link to="/employer/profile/edit" className="btn btn-primary" style={{ whiteSpace: 'nowrap' }}>
+          <Link to="/employer/profile/edit#intro-video-section" className="btn btn-primary" style={{ whiteSpace: 'nowrap' }}>
             Add video
           </Link>
         </div>

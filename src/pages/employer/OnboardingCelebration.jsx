@@ -1,8 +1,10 @@
+import { useNavigate } from 'react-router-dom'
 import Confetti from '../../components/Confetti.jsx'
 import WorkLibraryTip from './WorkLibraryTip.jsx'
 import { usePersistedState } from '../../lib/usePersistedState.js'
 
 export default function OnboardingCelebration() {
+  const navigate = useNavigate()
   // Persisted so a same-tab reload (see Onboarding.jsx's justCompleted
   // comment for why that happens) that already made it past the confetti
   // screen to the work-library tip resumes there, not back at the confetti.
@@ -39,7 +41,7 @@ export default function OnboardingCelebration() {
           <button
             type="button"
             className="btn btn-ghost"
-            onClick={() => setShowTip(true)}
+            onClick={() => navigate('/employer/roles/new')}
             style={{ padding: '14px 28px', fontSize: 15 }}
           >
             Post a role

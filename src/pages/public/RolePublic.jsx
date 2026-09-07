@@ -369,7 +369,7 @@ export default function RolePublic() {
               <p style={{ fontSize: 14, fontWeight: 600 }}>
                 Please add your profile video before applying. Employers want to meet you first.
               </p>
-              <Link to="/profile/edit" className="btn btn-primary" style={{ marginTop: 12, display: 'inline-flex' }}>
+              <Link to="/profile/edit#video-section" className="btn btn-primary" style={{ marginTop: 12, display: 'inline-flex' }}>
                 Add your profile video
               </Link>
             </div>

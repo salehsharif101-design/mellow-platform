@@ -236,7 +236,7 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
           <p style={{ fontSize: 14, fontWeight: 600 }}>
             Please add your profile video before applying. Employers want to meet you first.
           </p>
-          <Link to="/profile/edit" className="btn btn-primary" style={{ marginTop: 12, display: 'inline-flex' }}>
+          <Link to="/profile/edit#video-section" className="btn btn-primary" style={{ marginTop: 12, display: 'inline-flex' }}>
             Add your profile video
           </Link>
         </div>
@@ -876,7 +876,7 @@ export default function BrowseRoles() {
             Please add your profile video before applying. Employers want to meet you first.
           </p>
           <Link
-            to="/profile/edit"
+            to="/profile/edit#video-section"
             className="btn btn-primary"
             style={{ marginTop: 16, display: 'inline-flex' }}
             onClick={() => setNeedsVideoRoleId(null)}
