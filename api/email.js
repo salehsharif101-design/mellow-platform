@@ -124,17 +124,17 @@ async function sendEmployerWelcome(supabase, userId) {
   })
 }
 
-// Fires once per role posted (previously two separate emails landed
-// together for an employer's first role — this one and a plain "Your role
-// is live on Mellow" notice, since dropped as a pure duplicate of the CTA
-// below). "Add your company video" only shows once, disappearing for good
-// the moment the employer actually has one — checked fresh against
-// employer_profiles.intro_video_url on every send rather than a one-time
-// "did we ever nudge them" flag, so it tracks the real current state
-// instead of just whether this was their first role.
+// Fires once per role posted, in one of two variants. The fuller "make it
+// stand out" pitch (with the second "Add your company video" CTA) only
+// goes out for a genuinely first-ever active role from an employer who
+// still has no company video — every other case (a second-or-later role,
+// or a video already on file) gets the plain, role-specific notice
+// instead. "First role" is re-checked here by counting the employer's
+// OTHER active roles (excluding this one) rather than trusted from the
+// caller — zero means this is their first.
 async function sendRoleLiveNotification(supabase, roleId) {
   const role = unwrap(
-    await supabase.from('roles').select('slug, employer_id').eq('id', roleId).single(),
+    await supabase.from('roles').select('title, slug, employer_id').eq('id', roleId).single(),
   )
   const employer = unwrap(
     await supabase.from('employer_profiles').select('intro_video_url').eq('id', role.employer_id).single(),
@@ -142,23 +142,42 @@ async function sendRoleLiveNotification(supabase, roleId) {
   const emails = await getEmployerEmails(supabase, role.employer_id)
   if (emails.length === 0) return { skipped: true }
 
+  const priorActiveRoles = unwrap(
+    await supabase
+      .from('roles')
+      .select('id')
+      .eq('employer_id', role.employer_id)
+      .eq('is_active', true)
+      .neq('id', roleId),
+  )
+  const isFirstRole = priorActiveRoles.length === 0
   const hasVideo = Boolean(employer.intro_video_url)
+
+  if (isFirstRole && !hasVideo) {
+    return sendEmail({
+      to: emails,
+      subject: 'Your role is live, now make it stand out',
+      html: renderEmailHtml({
+        heading: 'Your role is live',
+        bodyText:
+          'Employers who add a company video get more applications. Talent wants to know who they will be working with before they apply, a 60-second video gives them exactly that. It takes two minutes to record and makes your role stand out from every other posting.',
+        ctaLabel: 'View your role',
+        ctaUrl: `${SITE_URL}/jobs/${role.slug}`,
+        secondaryCtaLabel: 'Add your company video',
+        secondaryCtaUrl: `${SITE_URL}/employer/profile/edit#intro-video-section`,
+        illustration: 'Collaborate2.png',
+      }),
+    })
+  }
 
   return sendEmail({
     to: emails,
-    subject: 'Your role is live, now make it stand out',
+    subject: 'Your role is live on Mellow',
     html: renderEmailHtml({
       heading: 'Your role is live',
-      bodyText:
-        'Employers who add a company video get more applications. Talent wants to know who they will be working with before they apply, a 60-second video gives them exactly that. It takes two minutes to record and makes your role stand out from every other posting.',
+      bodyText: `Your ${escapeHtml(role.title)} role has been posted successfully. Talent can now discover and apply to it on Mellow. Share it widely to get the best applications.`,
       ctaLabel: 'View your role',
       ctaUrl: `${SITE_URL}/jobs/${role.slug}`,
-      ...(hasVideo
-        ? {}
-        : {
-            secondaryCtaLabel: 'Add your company video',
-            secondaryCtaUrl: `${SITE_URL}/employer/profile/edit#intro-video-section`,
-          }),
       illustration: 'Collaborate2.png',
     }),
   })
