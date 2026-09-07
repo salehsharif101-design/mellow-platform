@@ -351,7 +351,7 @@ function AvatarSection({ profile, userId, onUpdated }) {
   }
 
   return (
-    <section id="photo-section">
+    <section id="avatar-section">
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Profile picture</h3>
       <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
         <div

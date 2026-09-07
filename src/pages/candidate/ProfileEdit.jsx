@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useHideChrome } from '../../components/Layout.jsx'
 import { supabase } from '../../lib/supabase.js'
@@ -21,7 +21,6 @@ const LAST_STEP = 5
 export default function ProfileEdit({ forceWizard = false }) {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
 
   const [profile, setProfile] = useState(null)
   const [step, setStep] = useState(1)
@@ -106,24 +105,23 @@ export default function ProfileEdit({ forceWizard = false }) {
   // video step," true only once they've actually clicked that button, in
   // this session or any prior one.
   const savedForLaterAtVideoStep = (profile?.onboarding_step || 1) === LAST_STEP && Boolean(profile?.video_reminder_started_at)
-  const deepLinkHash = location.hash
 
-  // The Edit Profile button (Dashboard.jsx, PublicProfile.jsx) always links
-  // to plain /profile/edit with no hash — "Edit profile" should always mean
-  // Edit Profile, regardless of onboarding progress, so a hash-less visit
-  // always shows the real edit form instead of resuming the wizard. The
-  // wizard is reserved for a candidate genuinely still partway through
-  // steps 1-4 (savedForLaterAtVideoStep false, isComplete false, and a
-  // hash present — nothing to deep-link into yet at that point anyway).
+  // /onboarding (forceWizard, see Login.jsx and Signup.jsx) is the only
+  // legitimate entry point into the wizard — every other route to this
+  // component is plain /profile/edit, which should always mean Edit
+  // Profile, full stop, regardless of onboarding progress or whether the
+  // link carries a #section hash. Every dashboard-driven link (the
+  // profile-strength checklist, the "not yet live" banner, the Edit
+  // Profile button itself) points at /profile/edit#some-section for the
+  // scroll-to-section behavior (HashScroll below reads the hash directly
+  // off window.location, independent of this), not to resume the wizard —
+  // a hash here is never a signal to show it.
   //
-  // forceWizard overrides that hash-less default — it's how /onboarding
-  // (the confirm-your-email and just-signed-up redirect target, see
-  // Login.jsx and Signup.jsx) reaches this same component and still gets
-  // the wizard on a first, hash-less visit. isComplete/savedForLaterAtVideoStep
-  // still win over it, so a stale onboarding link for an already-onboarded
-  // candidate falls through to the real form rather than re-running the
-  // wizard.
-  const showEditProfileForm = isComplete || savedForLaterAtVideoStep || (!deepLinkHash && !forceWizard)
+  // isComplete/savedForLaterAtVideoStep still apply on /onboarding itself,
+  // so a stale onboarding link for an already-onboarded (or genuinely
+  // saved-for-later) candidate falls through to the real form rather than
+  // re-running the wizard.
+  const showEditProfileForm = !forceWizard || isComplete || savedForLaterAtVideoStep
 
   // `isComplete` defaults to false while `profile` is still null (loading),
   // so this hides chrome by default and only reveals it once we've
