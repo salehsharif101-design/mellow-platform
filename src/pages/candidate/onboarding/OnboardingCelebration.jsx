@@ -1,10 +1,14 @@
 import { useState } from 'react'
 import Confetti from '../../../components/Confetti.jsx'
 import WorkVideoTip from './WorkVideoTip.jsx'
+import { usePersistedState } from '../../../lib/usePersistedState.js'
 
 export default function OnboardingCelebration({ username, candidateId, userId }) {
   const [copied, setCopied] = useState(false)
-  const [showTip, setShowTip] = useState(false)
+  // Persisted so a same-tab reload (see ProfileEdit.jsx's justCompleted
+  // comment for why that happens) that already made it past the confetti
+  // screen to the work-video tip resumes there, not back at the confetti.
+  const [showTip, setShowTip] = usePersistedState('mellow_onboarding_candidate_celebration_tip_shown', false)
 
   const profileUrl = `${window.location.host}/profile/${username}`
 

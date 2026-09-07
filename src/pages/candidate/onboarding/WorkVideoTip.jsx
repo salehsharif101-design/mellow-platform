@@ -1,10 +1,15 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AddWorkVideoModal from '../../../components/AddWorkVideoModal.jsx'
+import { usePersistedState } from '../../../lib/usePersistedState.js'
 
 export default function WorkVideoTip({ candidateId, userId }) {
   const navigate = useNavigate()
-  const [showAddVideo, setShowAddVideo] = useState(false)
+  // Persisted so the modal survives a same-tab reload triggered by its own
+  // "How to record a great video" link opening /guide in a new tab — the
+  // exact scenario that used to bounce this whole page to Edit Profile
+  // (see ProfileEdit.jsx's justCompleted and OnboardingCelebration.jsx's
+  // showTip, both fixed the same way).
+  const [showAddVideo, setShowAddVideo] = usePersistedState('mellow_onboarding_candidate_add_video_modal_open', false)
 
   return (
     <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', padding: '48px 24px' }}>

@@ -1,7 +1,8 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { suppressNextAuthRedirect, consumeAuthRedirectSuppression } from '../lib/authRedirectGuard.js'
+import { clearPersistedOnboardingState } from '../lib/usePersistedState.js'
 
 const AuthContext = createContext(undefined)
 
@@ -85,6 +86,7 @@ export function AuthProvider({ children }) {
       if (newSession?.user?.id === previousUserId) return
 
       if (event === 'SIGNED_OUT') {
+        clearPersistedOnboardingState()
         navigate('/login', { replace: true })
         return
       }
@@ -129,7 +131,14 @@ export function AuthProvider({ children }) {
         setProfile(data ?? null)
         setProfileLoading(false)
       })
-  }, [session?.user, loading])
+    // Keyed on the user id, not the session/user object itself — GoTrue
+    // hands back a brand-new session object (new access token, same user)
+    // on every periodic token refresh and on the tab-focus/visibility
+    // revalidation mentioned above, and keying on the object reference
+    // re-ran this refetch — and the profileLoading true/false flicker that
+    // comes with it — on every single one of those for no reason, since the
+    // actual user never changed.
+  }, [session?.user?.id, loading])
 
   async function signUp({ email, password, userType, emailRedirectTo }) {
     // If this signUp establishes a session immediately (email confirmation
@@ -202,11 +211,19 @@ export function AuthProvider({ children }) {
     suppressNextAuthRedirect()
     const { error } = await supabase.auth.signOut()
     if (error) throw error
+    clearPersistedOnboardingState()
   }
+
+  // Stable across a token refresh or a same-user SIGNED_IN re-fire (see
+  // currentUserIdRef's comment above) — session.user is a brand-new object
+  // on both, and every consumer keying an effect off `user` (ProfileEdit.jsx
+  // among them) would otherwise re-run that effect on every one of those for
+  // no reason, since the actual signed-in user never changed.
+  const stableUser = useMemo(() => session?.user ?? null, [session?.user?.id])
 
   const value = {
     session,
-    user: session?.user ?? null,
+    user: stableUser,
     profile,
     userType: profile?.user_type ?? null,
     loading,

@@ -1,9 +1,12 @@
-import { useState } from 'react'
 import Confetti from '../../components/Confetti.jsx'
 import WorkLibraryTip from './WorkLibraryTip.jsx'
+import { usePersistedState } from '../../lib/usePersistedState.js'
 
 export default function OnboardingCelebration() {
-  const [showTip, setShowTip] = useState(false)
+  // Persisted so a same-tab reload (see Onboarding.jsx's justCompleted
+  // comment for why that happens) that already made it past the confetti
+  // screen to the work-library tip resumes there, not back at the confetti.
+  const [showTip, setShowTip] = usePersistedState('mellow_onboarding_employer_celebration_tip_shown', false)
 
   if (showTip) {
     return <WorkLibraryTip />

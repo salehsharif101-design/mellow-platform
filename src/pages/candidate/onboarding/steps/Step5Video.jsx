@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../../../lib/supabase.js'
 import { useHideChrome } from '../../../../components/Layout.jsx'
 import VideoRecorderModal from '../../../../components/VideoRecorderModal.jsx'
+import { usePersistedState } from '../../../../lib/usePersistedState.js'
 
 const MAX_DURATION_SECONDS = 60
 const MAX_FILE_BYTES = 100 * 1024 * 1024 // matches the candidate-videos bucket limit
@@ -57,7 +58,12 @@ function PromptCard({ number, prompt }) {
 }
 
 export default function Step5Video({ initial, userId, onFinish, onBack, onSaveForLater, saving }) {
-  const [showTips, setShowTips] = useState(true)
+  // Persisted so switching away from the video upload screen — the guide
+  // link opening /guide in a new tab, another tab, anything that can leave
+  // this one discarded and reloaded when the user comes back — resumes
+  // right where they left off instead of re-showing the tips screen from
+  // scratch.
+  const [showTips, setShowTips] = usePersistedState('mellow_onboarding_candidate_show_video_tips', true)
   const [file, setFile] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(initial.intro_video_url || null)
   const [error, setError] = useState('')

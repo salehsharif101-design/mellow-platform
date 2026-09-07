@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { useHideChrome } from '../../components/Layout.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
+import { usePersistedState } from '../../lib/usePersistedState.js'
 import OnboardingProgress from './onboarding/OnboardingProgress.jsx'
 import OnboardingWelcome from './onboarding/OnboardingWelcome.jsx'
 import OnboardingCelebration from './onboarding/OnboardingCelebration.jsx'
@@ -28,7 +29,14 @@ export default function ProfileEdit({ forceWizard = false }) {
   const [saving, setSaving] = useState(false)
   const [loadError, setLoadError] = useState('')
   const [showWelcome, setShowWelcome] = useState(true)
-  const [justCompleted, setJustCompleted] = useState(false)
+  // Persisted (not plain useState) so a same-tab reload right after
+  // finishing — the browser discarding this tab under the memory pressure
+  // of a link just opened in a new one is the common real-world trigger —
+  // resumes the celebration/work-video-tip flow instead of falling through
+  // to isComplete's own EditProfileForm branch below with no way left to
+  // tell "mid celebration" apart from "a stale tab from before onboarding
+  // even started."
+  const [justCompleted, setJustCompleted] = usePersistedState('mellow_onboarding_candidate_just_completed', false)
 
   useEffect(() => {
     if (!user) return

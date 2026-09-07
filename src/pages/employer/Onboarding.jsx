@@ -9,6 +9,7 @@ import { supabase } from '../../lib/supabase.js'
 import { notify } from '../../lib/notify.js'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
 import { deleteAccount } from '../../lib/deleteAccount.js'
+import { usePersistedState } from '../../lib/usePersistedState.js'
 import OnboardingWelcome from './OnboardingWelcome.jsx'
 import OnboardingCelebration from './OnboardingCelebration.jsx'
 
@@ -31,7 +32,12 @@ export default function EmployerOnboarding() {
   const [wasIncomplete, setWasIncomplete] = useState(true)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showWelcome, setShowWelcome] = useState(false)
-  const [justCompleted, setJustCompleted] = useState(false)
+  // Persisted (not plain useState) so a same-tab reload right after
+  // finishing — the browser discarding this tab under the memory pressure
+  // of a link just opened in a new one is the common real-world trigger —
+  // resumes the celebration/work-library-tip flow instead of losing its
+  // place and falling back to the plain onboarding form.
+  const [justCompleted, setJustCompleted] = usePersistedState('mellow_onboarding_employer_just_completed', false)
 
   const [companyName, setCompanyName] = useState('')
   const [industry, setIndustry] = useState('')
