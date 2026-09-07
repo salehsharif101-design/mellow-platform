@@ -389,22 +389,6 @@ async function sendCustomStageNotification(supabase, applicationId) {
   })
 }
 
-async function sendLiveNotification(supabase, candidateId) {
-  const { email, username } = await getCandidateContact(supabase, candidateId)
-
-  return sendEmail({
-    to: email,
-    subject: 'Your Mellow profile is live',
-    html: renderEmailHtml({
-      heading: 'Your profile is live',
-      bodyText: 'Your Mellow profile is now live and visible to employers. Share it, or sit back while opportunities find you.',
-      ctaLabel: 'View my profile',
-      ctaUrl: `${SITE_URL}/profile/${username || candidateId}`,
-      illustration: 'Collaborate2.png',
-    }),
-  })
-}
-
 async function sendTeamInvite(supabase, teamMemberId) {
   const teamMember = unwrap(
     await supabase
@@ -517,9 +501,6 @@ export default async function handler(req, res) {
         break
       case 'custom-stage-notification':
         await sendCustomStageNotification(supabase, body.applicationId)
-        break
-      case 'live-notification':
-        await sendLiveNotification(supabase, body.candidateId)
         break
       case 'video-library-notification':
         await sendVideoLibraryNotification(supabase, body.candidateId)

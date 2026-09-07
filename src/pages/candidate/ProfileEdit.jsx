@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useHideChrome } from '../../components/Layout.jsx'
 import { supabase } from '../../lib/supabase.js'
-import { notify } from '../../lib/notify.js'
 import { usePersistedState } from '../../lib/usePersistedState.js'
 import OnboardingProgress from './onboarding/OnboardingProgress.jsx'
 import OnboardingWelcome from './onboarding/OnboardingWelcome.jsx'
@@ -141,17 +140,9 @@ export default function ProfileEdit({ forceWizard = false }) {
         .single()
       if (error) throw error
       setProfile(data)
-      if (fields.is_live) {
-        // Only one email here, not two — the video-library nudge used to
-        // fire in the same breath as this, landing in the same minute as
-        // candidate-welcome (fired moments later once the dashboard
-        // mounts). It's dropped rather than just delayed since the
-        // dashboard they're about to land on already shows an equivalent
-        // "add your first work video" banner natively — the email would
-        // have duplicated a message they're seconds away from seeing
-        // in-app anyway.
-        notify('live-notification', { candidateId: data.id })
-      }
+      // No email fired here on going live — Dashboard.jsx's candidate-welcome
+      // notify() already covers it moments later, once the dashboard itself
+      // mounts, and duplicated the same "your profile is live" message.
       if (nextStep > LAST_STEP) {
         setJustCompleted(true)
       } else {
