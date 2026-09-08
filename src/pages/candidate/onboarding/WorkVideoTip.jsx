@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import AddWorkVideoModal from '../../../components/AddWorkVideoModal.jsx'
-import { usePersistedState } from '../../../lib/usePersistedState.js'
+import { usePersistedState, clearPersistedOnboardingState } from '../../../lib/usePersistedState.js'
 
 export default function WorkVideoTip({ candidateId, userId }) {
   const navigate = useNavigate()
@@ -10,6 +10,18 @@ export default function WorkVideoTip({ candidateId, userId }) {
   // (see ProfileEdit.jsx's justCompleted and OnboardingCelebration.jsx's
   // showTip, both fixed the same way).
   const [showAddVideo, setShowAddVideo] = usePersistedState('mellow_onboarding_candidate_add_video_modal_open', false)
+
+  // This is the actual exit from the onboarding flow — every persisted
+  // onboarding flag (justCompleted included) must be cleared right here,
+  // not left to linger until sign-out, or ProfileEdit.jsx's own
+  // `justCompleted` check keeps reading true on every /profile/edit visit
+  // for the rest of this tab session (Edit Profile, every profile-strength
+  // checklist link) and shows this celebration flow again instead of the
+  // real form, even though the candidate is fully onboarded in the DB.
+  function goToDashboard() {
+    clearPersistedOnboardingState()
+    navigate('/dashboard')
+  }
 
   return (
     <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', padding: '48px 24px' }}>
@@ -35,7 +47,7 @@ export default function WorkVideoTip({ candidateId, userId }) {
         <div style={{ marginTop: 18 }}>
           <button
             type="button"
-            onClick={() => navigate('/dashboard')}
+            onClick={goToDashboard}
             style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
           >
             Skip for now, go to my dashboard
@@ -48,7 +60,7 @@ export default function WorkVideoTip({ candidateId, userId }) {
           candidateId={candidateId}
           userId={userId}
           onClose={() => setShowAddVideo(false)}
-          onAdded={() => navigate('/dashboard')}
+          onAdded={goToDashboard}
         />
       )}
     </div>
