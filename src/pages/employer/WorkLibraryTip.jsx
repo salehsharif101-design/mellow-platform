@@ -1,7 +1,12 @@
 import { useNavigate } from 'react-router-dom'
 
-export default function WorkLibraryTip() {
+// destination is which button on the celebration screen sent the employer
+// here — 'role' makes Post a role the primary (first, highlighted) option
+// with Browse the talent feed as the secondary one; anything else (the
+// default 'talent') keeps the original Browse-first layout.
+export default function WorkLibraryTip({ destination = 'talent' }) {
   const navigate = useNavigate()
+  const primaryIsRole = destination === 'role'
 
   return (
     <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', padding: '48px 24px' }}>
@@ -17,22 +22,45 @@ export default function WorkLibraryTip() {
           you hire them.
         </p>
         <div style={{ marginTop: 36, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button
-            className="btn btn-ghost"
-            type="button"
-            onClick={() => navigate('/employer/talent')}
-            style={{ padding: '14px 28px', fontSize: 15 }}
-          >
-            Browse the talent feed
-          </button>
-          <button
-            className="btn btn-ghost"
-            type="button"
-            onClick={() => navigate('/employer/roles/new')}
-            style={{ padding: '14px 28px', fontSize: 15 }}
-          >
-            Post a role
-          </button>
+          {primaryIsRole ? (
+            <>
+              <button
+                className="btn btn-primary"
+                type="button"
+                onClick={() => navigate('/employer/roles/new')}
+                style={{ padding: '14px 28px', fontSize: 15 }}
+              >
+                Post a role
+              </button>
+              <button
+                className="btn btn-ghost"
+                type="button"
+                onClick={() => navigate('/employer/talent')}
+                style={{ padding: '14px 28px', fontSize: 15 }}
+              >
+                Browse the talent feed
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                className="btn btn-ghost"
+                type="button"
+                onClick={() => navigate('/employer/talent')}
+                style={{ padding: '14px 28px', fontSize: 15 }}
+              >
+                Browse the talent feed
+              </button>
+              <button
+                className="btn btn-ghost"
+                type="button"
+                onClick={() => navigate('/employer/roles/new')}
+                style={{ padding: '14px 28px', fontSize: 15 }}
+              >
+                Post a role
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

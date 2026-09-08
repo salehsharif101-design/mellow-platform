@@ -1,17 +1,21 @@
-import { useNavigate } from 'react-router-dom'
 import Confetti from '../../components/Confetti.jsx'
 import WorkLibraryTip from './WorkLibraryTip.jsx'
 import { usePersistedState } from '../../lib/usePersistedState.js'
 
 export default function OnboardingCelebration() {
-  const navigate = useNavigate()
   // Persisted so a same-tab reload (see Onboarding.jsx's justCompleted
   // comment for why that happens) that already made it past the confetti
   // screen to the work-library tip resumes there, not back at the confetti.
   const [showTip, setShowTip] = usePersistedState('mellow_onboarding_employer_celebration_tip_shown', false)
+  // Which button on the confetti screen sent the employer into the tip
+  // screen — the tip screen's own primary button (and exit destination)
+  // needs to match, so "Post a role" doesn't quietly turn into "browse
+  // talent" once the tip is in the way. Persisted alongside showTip for
+  // the same same-tab-reload reason.
+  const [destination, setDestination] = usePersistedState('mellow_onboarding_employer_celebration_destination', 'talent')
 
   if (showTip) {
-    return <WorkLibraryTip />
+    return <WorkLibraryTip destination={destination} />
   }
 
   return (
@@ -33,7 +37,10 @@ export default function OnboardingCelebration() {
           <button
             type="button"
             className="btn btn-primary"
-            onClick={() => setShowTip(true)}
+            onClick={() => {
+              setDestination('talent')
+              setShowTip(true)
+            }}
             style={{ padding: '14px 28px', fontSize: 15 }}
           >
             Browse the talent feed
@@ -41,7 +48,10 @@ export default function OnboardingCelebration() {
           <button
             type="button"
             className="btn btn-ghost"
-            onClick={() => navigate('/employer/roles/new')}
+            onClick={() => {
+              setDestination('role')
+              setShowTip(true)
+            }}
             style={{ padding: '14px 28px', fontSize: 15 }}
           >
             Post a role
