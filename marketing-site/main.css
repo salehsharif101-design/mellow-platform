@@ -122,6 +122,10 @@ footer{background:var(--blue);padding:22px 64px;}
 .flinks{display:flex;gap:20px;}
 .flinks a{font-size:12px;color:rgba(255,255,255,0.5);text-decoration:none;transition:color .18s;}
 .flinks a:hover{color:#fff;}
+.fsocial{display:flex;flex-direction:row;align-items:center;gap:14px;}
+.fsocial a{color:#fff;display:flex;align-items:center;opacity:0.85;transition:opacity .18s;}
+.fsocial a:hover{opacity:1;}
+.fsocial svg{width:18px;height:18px;display:block;}
 
 /* MOBILE */
 @media(max-width:768px){
@@ -141,6 +145,7 @@ footer{background:var(--blue);padding:22px 64px;}
   .faq{max-width:100%;}
   footer{padding:20px;}
   .footer-inner{flex-direction:column;gap:12px;text-align:center;}
+  .flinks,.fsocial{justify-content:center;}
   .hform{flex-direction:column;max-width:100%;}
   .hform input{border-right:1.5px solid var(--blue);border-bottom:none;border-radius:7px 7px 0 0;}
   .hform button{border-radius:0 0 7px 7px;}

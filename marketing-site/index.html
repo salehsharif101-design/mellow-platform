@@ -139,6 +139,10 @@ footer{background:var(--blue);padding:22px 64px;}
 .flinks{display:flex;gap:20px;}
 .flinks a{font-size:12px;color:rgba(255,255,255,0.5);text-decoration:none;transition:color .18s;}
 .flinks a:hover{color:#fff;}
+.fsocial{display:flex;flex-direction:row;align-items:center;gap:14px;}
+.fsocial a{color:#fff;display:flex;align-items:center;opacity:0.85;transition:opacity .18s;}
+.fsocial a:hover{opacity:1;}
+.fsocial svg{width:18px;height:18px;display:block;}
 
 /* MOBILE */
 @media(max-width:768px){
@@ -158,6 +162,7 @@ footer{background:var(--blue);padding:22px 64px;}
   .faq{max-width:100%;}
   footer{padding:20px;}
   .footer-inner{flex-direction:column;gap:12px;text-align:center;}
+  .flinks,.fsocial{justify-content:center;}
   .hform{flex-direction:column;max-width:100%;}
   .hform input{border-right:1.5px solid var(--blue);border-bottom:none;border-radius:7px 7px 0 0;}
   .hform button{border-radius:0 0 7px 7px;}
@@ -390,6 +395,17 @@ body.has-banner .pw{padding-top:104px;}
       <a href="talent.html">For Talent</a>
       <a href="employers.html">For Employers</a>
       <a href="about.html">About</a>
+    </div>
+    <div class="fsocial">
+      <a href="https://www.instagram.com/joinmellow_" target="_blank" rel="noopener noreferrer" aria-label="Mellow on Instagram">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.8"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor"/></svg>
+      </a>
+      <a href="https://www.linkedin.com/company/joinmellow/" target="_blank" rel="noopener noreferrer" aria-label="Mellow on LinkedIn">
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45z"/></svg>
+      </a>
+      <a href="https://x.com/joinmellow_" target="_blank" rel="noopener noreferrer" aria-label="Mellow on X">
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M18.244 2h3.308l-7.227 8.26 8.502 11.24h-6.657l-5.214-6.817L4.99 21.5H1.68l7.73-8.835L1.254 2h6.826l4.713 6.231L18.244 2zm-1.161 17.52h1.833L7.084 3.884H5.117L17.083 19.52z"/></svg>
+      </a>
     </div>
   </div>
 </footer>
