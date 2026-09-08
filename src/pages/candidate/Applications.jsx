@@ -6,6 +6,7 @@ import { getCandidateStatusLabel } from '../../lib/roleFormat.js'
 import { getCachedPage, setCachedPage } from '../../lib/dashboardCache.js'
 import EmptyState from '../../components/EmptyState.jsx'
 import ListPageSkeleton from '../../components/ListPageSkeleton.jsx'
+import CompanyAvatar from '../../components/CompanyAvatar.jsx'
 
 const STATUS_LABEL_STYLES = {
   Applied: { background: 'var(--color-bg-soft)', color: 'var(--color-primary)' },
@@ -106,7 +107,7 @@ export default function Applications() {
 
       const { data, error: appsError } = await supabase
         .from('applications')
-        .select('id, status, applied_at, viewed_at, status_changed_at, roles(title, employer_profiles(company_name))')
+        .select('id, status, applied_at, viewed_at, status_changed_at, roles(title, employer_profiles(company_name, logo_url, company_slug))')
         .eq('candidate_id', candidate.id)
         .order('applied_at', { ascending: false })
 
@@ -165,14 +166,32 @@ export default function Applications() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 28, maxWidth: 640 }}>
           {applications.map((a) => {
             const expanded = expandedIds.has(a.id)
+            const employer = a.roles?.employer_profiles
+            const avatar = <CompanyAvatar logoUrl={employer?.logo_url} companyName={employer?.company_name} size={40} />
             return (
               <div key={a.id} className="card" style={{ padding: 20 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                  <div>
-                    <p style={{ fontWeight: 700, fontSize: 15 }}>{a.roles?.title}</p>
-                    <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
-                      {a.roles?.employer_profiles?.company_name} · Applied {formatDate(a.applied_at)}
-                    </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                    {employer?.company_slug ? (
+                      <Link to={`/company/${employer.company_slug}`} style={{ flexShrink: 0, lineHeight: 0 }}>
+                        {avatar}
+                      </Link>
+                    ) : (
+                      avatar
+                    )}
+                    <div>
+                      <p style={{ fontWeight: 700, fontSize: 15 }}>{a.roles?.title}</p>
+                      <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
+                        {employer?.company_slug ? (
+                          <Link to={`/company/${employer.company_slug}`} style={{ color: 'inherit', fontWeight: 600 }}>
+                            {employer.company_name}
+                          </Link>
+                        ) : (
+                          employer?.company_name
+                        )}{' '}
+                        · Applied {formatDate(a.applied_at)}
+                      </p>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <StatusTag status={a.status} />

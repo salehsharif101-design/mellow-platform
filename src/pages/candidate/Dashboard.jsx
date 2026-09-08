@@ -8,6 +8,7 @@ import { getCandidateStatusLabel, roleMatchesCandidate, daysUntil } from '../../
 import { getCachedDashboard, setCachedDashboard } from '../../lib/dashboardCache.js'
 import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
 import DashboardSkeleton from '../../components/DashboardSkeleton.jsx'
+import CompanyAvatar from '../../components/CompanyAvatar.jsx'
 
 // Matches NotificationContext's poll interval so the pipeline cards' New
 // counts stay current even if the candidate leaves this tab open.
@@ -141,7 +142,7 @@ export default function CandidateDashboard() {
         supabase
           .from('applications')
           .select(
-            'id, status, status_changed_at, applied_at, viewed_at, role_id, roles(id, slug, title, employer_id, employer_profiles(company_name, user_id))',
+            'id, status, status_changed_at, applied_at, viewed_at, role_id, roles(id, slug, title, employer_id, employer_profiles(company_name, user_id, logo_url, company_slug))',
           )
           .eq('candidate_id', candidate.id)
           .order('applied_at', { ascending: false }),
@@ -703,20 +704,49 @@ export default function CandidateDashboard() {
             {applications
               .filter((a) => a.roles?.slug)
               .slice(0, 3)
-              .map((a) => (
-              <Link
-                key={a.id}
-                to="/applications"
-                className="card stat-card-link"
-                style={{ padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-              >
-                <div>
-                  <p style={{ fontWeight: 600, fontSize: 14 }}>{a.roles?.title}</p>
-                  <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{a.roles?.employer_profiles?.company_name}</p>
-                </div>
-                <span className="tag">{getCandidateStatusLabel(a.status)}</span>
-              </Link>
-            ))}
+              .map((a) => {
+                const employer = a.roles?.employer_profiles
+                const avatar = <CompanyAvatar logoUrl={employer?.logo_url} companyName={employer?.company_name} size={36} />
+                return (
+                  <div
+                    key={a.id}
+                    className="card stat-card-link"
+                    onClick={() => navigate('/applications')}
+                    style={{ padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, cursor: 'pointer' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                      {employer?.company_slug ? (
+                        <Link
+                          to={`/company/${employer.company_slug}`}
+                          style={{ flexShrink: 0, lineHeight: 0 }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {avatar}
+                        </Link>
+                      ) : (
+                        avatar
+                      )}
+                      <div>
+                        <p style={{ fontWeight: 600, fontSize: 14 }}>{a.roles?.title}</p>
+                        <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+                          {employer?.company_slug ? (
+                            <Link
+                              to={`/company/${employer.company_slug}`}
+                              style={{ color: 'inherit' }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {employer.company_name}
+                            </Link>
+                          ) : (
+                            employer?.company_name
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="tag">{getCandidateStatusLabel(a.status)}</span>
+                  </div>
+                )
+              })}
           </div>
           <Link
             to="/applications"
