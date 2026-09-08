@@ -12,11 +12,30 @@ import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
 import MessageIconButton from '../../components/MessageIconButton.jsx'
 import BookMeetingButton from '../../components/BookMeetingButton.jsx'
 import ShareButton from '../../components/ShareButton.jsx'
-import { syncApplicationStatus } from '../../lib/shortlistSync.js'
+import { ensureBuiltinStages, statusForStage } from '../../lib/pipelineStages.js'
 
 const STATUSES = ['reviewing', 'shortlisted', 'rejected']
 const STATUS_LABELS = { reviewing: 'Reviewing', shortlisted: 'Shortlisted', rejected: 'Rejected' }
 const SECTION_TITLE_STYLE = { fontSize: 20, marginBottom: 16 }
+
+// The shortlists table only ever tracks the coarse reviewing/shortlisted/
+// rejected status — the actual stage assignment (built-in or a
+// employer-added custom one) lives on the matching application row, same
+// as RoleApplicants.jsx. custom_stage_id is merged onto each entry
+// client-side in load() below from that application, purely for display
+// and for round-tripping back through parseStageValue on save.
+function stageValueFor(entry) {
+  return entry.custom_stage_id ? `custom:${entry.custom_stage_id}` : entry.status
+}
+
+function parseStageValue(rawValue, roleId, stages) {
+  if (rawValue.startsWith('custom:')) {
+    const id = rawValue.slice(7)
+    const stage = stages.find((s) => s.id === id) || { id }
+    return { status: statusForStage(stage, roleId), customStageId: id }
+  }
+  return { status: rawValue, customStageId: null }
+}
 
 const CANDIDATE_SELECT =
   'id, user_id, username, full_name, job_title, current_company, location, bio, headline, proud_of, skills, languages, availability, work_style, years_of_experience, intro_video_url, avatar_url, education_level, field_of_study, institution_name, graduation_year, linkedin_url, calendly_url, website_url'
@@ -30,6 +49,7 @@ export default function ShortlistReview() {
   const [employerId, setEmployerId] = useState(null)
   const [roleTitle, setRoleTitle] = useState(null)
   const [entries, setEntries] = useState([])
+  const [pipelineStages, setPipelineStages] = useState([])
   const [workVideosByCandidate, setWorkVideosByCandidate] = useState({})
   const [index, setIndex] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -65,10 +85,33 @@ export default function ShortlistReview() {
         setLoading(false)
         return
       }
-      setEntries(data || [])
-      setRoleTitle(roleParam === 'general' ? null : data?.[0]?.roles?.title || null)
 
       const candidateIds = (data || []).map((e) => e.candidate_id)
+
+      // Role-scoped review only — a "general" shortlist (from the Talent
+      // Feed, not tied to a role) has no pipeline stages to speak of.
+      let stages = []
+      let entriesWithStage = data || []
+      if (roleParam !== 'general' && candidateIds.length > 0) {
+        const [{ data: stagesData }, { data: apps }] = await Promise.all([
+          supabase
+            .from('role_pipeline_stages')
+            .select('id, name, position')
+            .eq('role_id', roleParam)
+            .order('position', { ascending: true }),
+          supabase.from('applications').select('candidate_id, custom_stage_id').eq('role_id', roleParam).in('candidate_id', candidateIds),
+        ])
+        stages = await ensureBuiltinStages(supabase, roleParam, stagesData || [])
+        const stageByCandidate = {}
+        ;(apps || []).forEach((a) => {
+          stageByCandidate[a.candidate_id] = a.custom_stage_id
+        })
+        entriesWithStage = (data || []).map((e) => ({ ...e, custom_stage_id: stageByCandidate[e.candidate_id] ?? null }))
+      }
+      setPipelineStages(stages)
+      setEntries(entriesWithStage)
+      setRoleTitle(roleParam === 'general' ? null : data?.[0]?.roles?.title || null)
+
       if (candidateIds.length > 0) {
         const { data: videos } = await supabase
           .from('candidate_videos')
@@ -108,11 +151,15 @@ export default function ShortlistReview() {
   // Returns whether the update actually succeeded — confirmRejection below
   // only fires the rejection email when it did, rather than unconditionally
   // (which would otherwise send a candidate a "you weren't selected" email
-  // for a status change that never actually took effect).
-  async function changeStatus(status) {
+  // for a status change that never actually took effect). Writes the
+  // application's status/custom_stage_id unconditionally (not just when
+  // the coarse status changes) — two different custom stages can share the
+  // same underlying status (both 'reviewing'), so gating on that would
+  // silently drop a move between them.
+  async function changeStatus(rawValue) {
     const entry = entries[index]
     if (!entry) return false
-    const previousStatus = entry.status
+    const { status, customStageId } = parseStageValue(rawValue, entry.role_id, pipelineStages)
     setUpdating(true)
     const { data, error: updateError } = await supabase
       .from('shortlists')
@@ -121,25 +168,33 @@ export default function ShortlistReview() {
       .select()
       .single()
     if (!updateError) {
-      setEntries((prev) => prev.map((e, i) => (i === index ? { ...e, status: data.status } : e)))
-      if (status !== previousStatus) {
-        // Otherwise the matching application (if any) keeps reading as
-        // "shortlisted" forever, which is what fed a stale count into the
-        // role pipeline cards on the dashboard.
-        await syncApplicationStatus(entry.role_id, entry.candidate_id, status)
+      setEntries((prev) =>
+        prev.map((e, i) => (i === index ? { ...e, status: data.status, custom_stage_id: customStageId } : e)),
+      )
+      if (entry.role_id) {
+        // Otherwise the matching application (if any) keeps reading as its
+        // old stage forever, which is what fed a stale count into the role
+        // pipeline cards on the dashboard.
+        await supabase
+          .from('applications')
+          .update({ status, custom_stage_id: customStageId })
+          .eq('role_id', entry.role_id)
+          .eq('candidate_id', entry.candidate_id)
       }
     }
     setUpdating(false)
     return !updateError
   }
 
-  function handleStatusSelect(newStatus) {
-    if (newStatus === 'rejected') {
+  function handleStatusSelect(rawValue) {
+    const entry = entries[index]
+    const { status } = parseStageValue(rawValue, entry?.role_id, pipelineStages)
+    if (status === 'rejected') {
       setPendingRejection(true)
       return
     }
     setPendingRejection(false)
-    changeStatus(newStatus)
+    changeStatus(rawValue)
   }
 
   // Mirrors RoleApplicants.jsx's confirmRejection — rejects either way, and
@@ -424,16 +479,29 @@ export default function ShortlistReview() {
         </button>
         <select
           className="input"
-          value={pendingRejection ? 'rejected' : entry.status}
+          value={pendingRejection ? 'rejected' : stageValueFor(entry)}
           disabled={updating}
           onChange={(e) => handleStatusSelect(e.target.value)}
           style={{ width: 'auto', padding: '8px 12px' }}
         >
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {STATUS_LABELS[s]}
-            </option>
-          ))}
+          {pipelineStages.length > 0 ? (
+            <>
+              {[...pipelineStages]
+                .sort((s1, s2) => s1.position - s2.position)
+                .map((s) => (
+                  <option key={s.id} value={`custom:${s.id}`}>
+                    {s.name}
+                  </option>
+                ))}
+              <option value="rejected">Rejected</option>
+            </>
+          ) : (
+            STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {STATUS_LABELS[s]}
+              </option>
+            ))
+          )}
         </select>
         <button
           type="button"
