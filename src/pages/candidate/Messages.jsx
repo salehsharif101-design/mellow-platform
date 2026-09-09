@@ -46,14 +46,41 @@ export default function CandidateMessages() {
         return
       }
 
+      // A message's other party is whichever individual sent/received it —
+      // the owner (employer_profiles.user_id directly) or any team member,
+      // active or removed. Messages always display the *company's*
+      // identity, never the individual team member's, so every otherId
+      // needs to resolve back to one employer_profiles row either way.
+      // employer_team_members isn't otherwise readable by a candidate (its
+      // invite_token/invited_email columns are sensitive, so there's no
+      // broad RLS policy on it like employer_profiles has) — this RPC is
+      // the narrow, security-definer path built for exactly this lookup;
+      // see migration 0065.
+      const { data: teamMatches } = await supabase.rpc('employer_ids_for_team_users', { uids: otherIds })
+      const employerIdByOtherId = Object.fromEntries(
+        (teamMatches || []).filter((m) => m.matched_user_id).map((m) => [m.matched_user_id, m.employer_id]),
+      )
+      const teamEmployerIds = Array.from(new Set(Object.values(employerIdByOtherId)))
+
       const { data: employers } = await supabase
         .from('employer_profiles')
-        .select('user_id, company_name, logo_url, company_slug')
-        .in('user_id', otherIds)
+        .select('id, user_id, company_name, logo_url, company_slug')
+        .or(
+          [`user_id.in.(${otherIds.join(',')})`, teamEmployerIds.length > 0 ? `id.in.(${teamEmployerIds.join(',')})` : null]
+            .filter(Boolean)
+            .join(','),
+        )
 
-      const infoByUserId = Object.fromEntries(
-        (employers || []).map((e) => [e.user_id, { name: e.company_name, logoUrl: e.logo_url, companySlug: e.company_slug }]),
-      )
+      const employerByEmployerId = Object.fromEntries((employers || []).map((e) => [e.id, e]))
+      const infoByUserId = {}
+      ;(employers || []).forEach((e) => {
+        infoByUserId[e.user_id] = { name: e.company_name, logoUrl: e.logo_url, companySlug: e.company_slug }
+      })
+      otherIds.forEach((otherId) => {
+        if (infoByUserId[otherId]) return
+        const employer = employerByEmployerId[employerIdByOtherId[otherId]]
+        if (employer) infoByUserId[otherId] = { name: employer.company_name, logoUrl: employer.logo_url, companySlug: employer.company_slug }
+      })
 
       const convos = otherIds.map((otherId) => {
         const lastMessage = messages.find((m) => m.sender_id === otherId || m.recipient_id === otherId)
