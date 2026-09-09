@@ -48,14 +48,14 @@ export default function CandidateMessages() {
 
       // A message's other party is whichever individual sent/received it —
       // the owner (employer_profiles.user_id directly) or any team member,
-      // active or removed. Messages always display the *company's*
-      // identity, never the individual team member's, so every otherId
-      // needs to resolve back to one employer_profiles row either way.
-      // employer_team_members isn't otherwise readable by a candidate (its
-      // invite_token/invited_email columns are sensitive, so there's no
-      // broad RLS policy on it like employer_profiles has) — this RPC is
-      // the narrow, security-definer path built for exactly this lookup;
-      // see migration 0065.
+      // active or removed (see migration 0065's employer_ids_for_team_users
+      // RPC — employer_team_members isn't otherwise readable by a
+      // candidate, since invite_token/invited_email are sensitive and RLS
+      // cannot restrict by column the way employer_profiles' own broad read
+      // policy can). Conversations are grouped by that resolved company,
+      // not by the raw individual id: otherwise a reply from a different
+      // teammate than whoever sent the last message looked like a whole
+      // new conversation instead of a continuation of the same one.
       const { data: teamMatches } = await supabase.rpc('employer_ids_for_team_users', { uids: otherIds })
       const employerIdByOtherId = Object.fromEntries(
         (teamMatches || []).filter((m) => m.matched_user_id).map((m) => [m.matched_user_id, m.employer_id]),
@@ -72,30 +72,50 @@ export default function CandidateMessages() {
         )
 
       const employerByEmployerId = Object.fromEntries((employers || []).map((e) => [e.id, e]))
-      const infoByUserId = {}
-      ;(employers || []).forEach((e) => {
-        infoByUserId[e.user_id] = { name: e.company_name, logoUrl: e.logo_url, companySlug: e.company_slug }
-      })
+      const employerByOwnerUserId = Object.fromEntries((employers || []).map((e) => [e.user_id, e]))
+
+      // The group key is the employer's own id whenever resolvable — via a
+      // direct owner match or via the RPC above — so every individual who
+      // has ever messaged on that company's behalf lands in the same
+      // conversation. Falls back to the raw otherId itself (a group of
+      // one) for the one case that should not be able to happen in
+      // practice — a sender who is neither an employer owner nor any known
+      // team member — so a message still shows up rather than vanishing.
+      const idsByGroup = new Map()
       otherIds.forEach((otherId) => {
-        if (infoByUserId[otherId]) return
-        const employer = employerByEmployerId[employerIdByOtherId[otherId]]
-        if (employer) infoByUserId[otherId] = { name: employer.company_name, logoUrl: employer.logo_url, companySlug: employer.company_slug }
+        const key = employerByOwnerUserId[otherId]?.id || employerIdByOtherId[otherId] || otherId
+        if (!idsByGroup.has(key)) idsByGroup.set(key, [])
+        idsByGroup.get(key).push(otherId)
       })
 
-      const convos = otherIds.map((otherId) => {
-        const lastMessage = messages.find((m) => m.sender_id === otherId || m.recipient_id === otherId)
-        const info = infoByUserId[otherId]
-        const unread = messages.some((m) => m.sender_id === otherId && m.recipient_id === user.id && !m.read_at)
+      const convos = Array.from(idsByGroup.entries()).map(([key, ids]) => {
+        const idSet = new Set(ids)
+        // messages is already sorted sent_at desc, and filter() preserves
+        // that order, so the first match is the group's most recent message.
+        const groupMessages = messages.filter((m) => idSet.has(m.sender_id) || idSet.has(m.recipient_id))
+        const lastMessage = groupMessages[0]
+        const employer = employerByEmployerId[key]
+        const unread = groupMessages.some((m) => idSet.has(m.sender_id) && m.recipient_id === user.id && !m.read_at)
         return {
-          otherId,
-          label: info?.name || 'Employer',
-          logoUrl: info?.logoUrl || null,
-          profileUrl: info?.companySlug ? `/company/${info.companySlug}` : null,
+          key,
+          otherIds: ids,
+          // Where a new outgoing message is addressed — the owner's id is
+          // permanent, so this keeps working even if every teammate who
+          // ever messaged this candidate has since been removed.
+          sendToUserId: employer?.user_id || ids[0],
+          label: employer?.company_name || 'Employer',
+          logoUrl: employer?.logo_url || null,
+          profileUrl: employer?.company_slug ? `/company/${employer.company_slug}` : null,
           lastBody: lastMessage?.body,
           lastAt: lastMessage?.sent_at,
           unread,
         }
       })
+      // Grouping can pull a conversation's most-recent message from a
+      // member other than whichever individual happened to appear first in
+      // otherIds, so the natural (already-sorted) order from otherIds can
+      // no longer be trusted — sort explicitly instead.
+      convos.sort((a, b) => new Date(b.lastAt || 0) - new Date(a.lastAt || 0))
 
       setConversations(convos)
       setLoading(false)
@@ -112,16 +132,18 @@ export default function CandidateMessages() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
-  function selectConversation(otherId) {
-    setSelected(otherId)
+  function selectConversation(key) {
+    setSelected(key)
     // Opening a conversation is what triggers MessageThread to mark it
     // read server-side — reflect that here too, immediately, so switching
     // to a different conversation and back doesn't show the dot again
     // while waiting for the next poll to catch up.
-    setConversations((prev) => prev.map((c) => (c.otherId === otherId ? { ...c, unread: false } : c)))
+    setConversations((prev) => prev.map((c) => (c.key === key ? { ...c, unread: false } : c)))
   }
 
   if (loading) return <MessagesSkeleton />
+
+  const selectedConvo = conversations.find((c) => c.key === selected)
 
   return (
     <div className="section">
@@ -141,7 +163,7 @@ export default function CandidateMessages() {
               // that's an async DB write — selecting the conversation is
               // what should make the dot disappear right away rather than
               // waiting on that round trip.
-              const showUnreadDot = c.unread && selected !== c.otherId
+              const showUnreadDot = c.unread && selected !== c.key
               const avatar = (
                 <div style={{ position: 'relative', flexShrink: 0 }}>
                   <CompanyAvatar logoUrl={c.logoUrl} companyName={c.label} size={36} />
@@ -150,14 +172,14 @@ export default function CandidateMessages() {
               )
               return (
               <div
-                key={c.otherId}
-                onClick={() => selectConversation(c.otherId)}
+                key={c.key}
+                onClick={() => selectConversation(c.key)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
-                    selectConversation(c.otherId)
+                    selectConversation(c.key)
                   }
                 }}
                 className="card"
@@ -165,7 +187,7 @@ export default function CandidateMessages() {
                   textAlign: 'left',
                   padding: 14,
                   cursor: 'pointer',
-                  border: selected === c.otherId ? '1.5px solid var(--color-primary)' : undefined,
+                  border: selected === c.key ? '1.5px solid var(--color-primary)' : undefined,
                   background: '#fff',
                 }}
               >
@@ -202,13 +224,14 @@ export default function CandidateMessages() {
           </div>
 
           <div className="card" style={{ flex: 1, padding: 24, maxWidth: 480 }}>
-            {selected ? (
+            {selectedConvo ? (
               <MessageThread
-                otherUserId={selected}
-                otherUserLabel={conversations.find((c) => c.otherId === selected)?.label}
-                otherAvatarUrl={conversations.find((c) => c.otherId === selected)?.logoUrl}
+                otherUserId={selectedConvo.sendToUserId}
+                otherUserIds={selectedConvo.otherIds}
+                otherUserLabel={selectedConvo.label}
+                otherAvatarUrl={selectedConvo.logoUrl}
                 otherAvatarType="company"
-                otherProfileUrl={conversations.find((c) => c.otherId === selected)?.profileUrl}
+                otherProfileUrl={selectedConvo.profileUrl}
               />
             ) : (
               <p style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>Select a conversation to view messages.</p>

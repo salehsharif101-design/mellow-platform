@@ -12,11 +12,24 @@ import CompanyAvatar from './CompanyAvatar.jsx'
 // was sent to/from — defaults to just the current user for the normal
 // one-person-per-account case (candidates, or an employer with no team).
 //
+// `otherUserIds` is the same idea for the *other* side of the thread: a
+// candidate's conversation with a company can span however many different
+// team members have messaged them (owner, active teammates, removed ones —
+// see migration 0065), and all of it needs to render as one continuous
+// thread rather than splintering per sender. Falls back to the single
+// `otherUserId` for callers where the other party really is just one
+// person (the employer inbox, the public-profile contact modal).
+// `otherUserId` itself is still what a new outgoing message is addressed
+// to — callers with a multi-person other side should pass a permanent id
+// there (e.g. the company owner) rather than whichever individual happens
+// to be selected.
+//
 // `otherAvatarUrl`/`otherAvatarType`/`otherProfileUrl` are all optional —
 // callers that don't pass them (e.g. the contact modal on a public profile)
 // get the original avatar-less thread unchanged.
 export default function MessageThread({
   otherUserId,
+  otherUserIds,
   otherUserLabel,
   myIds,
   otherAvatarUrl,
@@ -33,13 +46,19 @@ export default function MessageThread({
 
   const myIdList = myIds && myIds.length > 0 ? myIds : user ? [user.id] : []
   const myIdKey = myIdList.join(',')
+  const otherIdList = otherUserIds && otherUserIds.length > 0 ? otherUserIds : otherUserId ? [otherUserId] : []
+  const otherIdKey = otherIdList.join(',')
 
   useEffect(() => {
-    if (!user || !otherUserId || myIdList.length === 0) return
+    if (!user || otherIdList.length === 0 || myIdList.length === 0) return
 
     async function load() {
       const filters = myIdList
-        .map((id) => `and(sender_id.eq.${id},recipient_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},recipient_id.eq.${id})`)
+        .flatMap((mid) =>
+          otherIdList.map(
+            (oid) => `and(sender_id.eq.${mid},recipient_id.eq.${oid}),and(sender_id.eq.${oid},recipient_id.eq.${mid})`,
+          ),
+        )
         .join(',')
       const { data, error: fetchError } = await supabase
         .from('messages')
@@ -65,16 +84,21 @@ export default function MessageThread({
 
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, otherUserId, refreshNotifications, myIdKey])
+  }, [user, otherIdKey, refreshNotifications, myIdKey])
 
   async function handleSend(e) {
     e.preventDefault()
     if (!body.trim()) return
+    // A message row needs exactly one recipient — otherUserId is that
+    // fixed send target; otherIdList's first entry only covers a caller
+    // that passed nothing else.
+    const recipientId = otherUserId || otherIdList[0]
+    if (!recipientId) return
     setSending(true)
     setError('')
     const { data, error: sendError } = await supabase
       .from('messages')
-      .insert({ sender_id: user.id, recipient_id: otherUserId, body: body.trim() })
+      .insert({ sender_id: user.id, recipient_id: recipientId, body: body.trim() })
       .select()
       .single()
     if (sendError) {
