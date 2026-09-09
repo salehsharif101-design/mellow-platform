@@ -72,6 +72,13 @@ export default function CandidateDashboard() {
   const [loading, setLoading] = useState(!cached)
   const [togglingVisibility, setTogglingVisibility] = useState(false)
   const [showAddVideo, setShowAddVideo] = useState(false)
+  // localStorage (not sessionStorage) and keyed per-user, so a dismissal is
+  // permanent — it survives a sign-out/sign-in on this browser, unlike the
+  // sessionStorage-backed nudges above — while still not leaking into a
+  // different account that later signs in on the same browser.
+  const [strengthDismissed, setStrengthDismissed] = useState(
+    () => user?.id && localStorage.getItem(`mellow_strength_dismissed_${user.id}`) === '1',
+  )
   // Frozen on first load — see the employer dashboard's identical pattern.
   // Without this, the 30s poll re-reads last_viewed_dashboard_at *after*
   // clearDashboardBadges() has already overwritten it, collapsing the
@@ -83,6 +90,19 @@ export default function CandidateDashboard() {
   // call is to stop it firing at the same instant sinceMs is computed (see
   // below).
   const hasClearedBadgeRef = useRef(false)
+
+  // Re-reads in case user.id wasn't available yet at the lazy useState
+  // initializer above (e.g. a fast client-side navigation into this page).
+  useEffect(() => {
+    if (!user?.id) return
+    setStrengthDismissed(localStorage.getItem(`mellow_strength_dismissed_${user.id}`) === '1')
+  }, [user?.id])
+
+  function dismissStrength() {
+    if (!user?.id) return
+    localStorage.setItem(`mellow_strength_dismissed_${user.id}`, '1')
+    setStrengthDismissed(true)
+  }
 
   useEffect(() => {
     if (!user) return
@@ -616,9 +636,19 @@ export default function CandidateDashboard() {
         View saved roles
       </Link>
 
-      {strengthPct < 100 && (
+      {strengthPct < 100 && !strengthDismissed && (
         <div className="card" style={{ marginTop: 32, padding: 24 }}>
-          <h3 style={{ fontSize: 18 }}>Profile strength</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+            <h3 style={{ fontSize: 18 }}>Profile strength</h3>
+            <button
+              type="button"
+              onClick={dismissStrength}
+              aria-label="Dismiss profile strength"
+              style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--color-text-muted)', lineHeight: 1, flexShrink: 0 }}
+            >
+              ×
+            </button>
+          </div>
           <div style={{ marginTop: 14, height: 8, borderRadius: 4, background: 'var(--color-bg-soft)' }}>
             <div
               style={{
