@@ -140,7 +140,7 @@ export default function Step1Basics({ initial, onContinue, saving }) {
           className="input"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
-          placeholder="Lisbon, Portugal"
+          placeholder="Manama, Bahrain"
           required
         />
       </div>
