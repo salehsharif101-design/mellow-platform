@@ -58,6 +58,27 @@ export async function getEmployerEmails(supabase, employerId) {
   return (users || []).map((u) => u.email).filter(Boolean)
 }
 
+// Server-side equivalent of src/lib/employerAccess.js's
+// getEmployerMessageUserIds. Unlike getEmployerUserIds above (active-only —
+// right for permissions and notification emails), this includes every
+// removed team member too, via removed_user_id (migration 0064): messages
+// are business records that belong to the company, not the individual who
+// sent them, so counting "messages to/from this company" must not silently
+// drop a removed member's history.
+export async function getEmployerMessageUserIds(supabase, employerId) {
+  const [ownerResult, membersResult] = await Promise.all([
+    supabase.from('employer_profiles').select('user_id').eq('id', employerId).maybeSingle(),
+    supabase.from('employer_team_members').select('user_id, removed_user_id').eq('employer_id', employerId),
+  ])
+  const userIds = []
+  if (ownerResult.data?.user_id) userIds.push(ownerResult.data.user_id)
+  ;(membersResult.data || []).forEach((m) => {
+    if (m.user_id) userIds.push(m.user_id)
+    if (m.removed_user_id) userIds.push(m.removed_user_id)
+  })
+  return userIds
+}
+
 // Deletes a user's Supabase Auth account, which cascades away their
 // public.users row (see migration 0001) — used when removing a team member
 // (api/team-remove.js) and, defensively, when check-email.js finds one

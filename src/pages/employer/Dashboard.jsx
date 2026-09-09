@@ -5,7 +5,7 @@ import { useNotifications } from '../../context/NotificationContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { formatRelativeTime, daysSince } from '../../lib/roleFormat.js'
 import { getCachedDashboard, setCachedDashboard } from '../../lib/dashboardCache.js'
-import { resolveEmployerId, getEmployerUserIds } from '../../lib/employerAccess.js'
+import { resolveEmployerId, getEmployerMessageUserIds } from '../../lib/employerAccess.js'
 import ShareButton from '../../components/ShareButton.jsx'
 import DashboardSkeleton from '../../components/DashboardSkeleton.jsx'
 
@@ -111,7 +111,7 @@ export default function EmployerDashboard() {
           )
           .eq('id', employerId)
           .maybeSingle(),
-        getEmployerUserIds(employerId),
+        getEmployerMessageUserIds(employerId),
       ])
 
       const emp = empResult.data

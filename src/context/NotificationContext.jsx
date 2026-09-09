@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useAuth } from './AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
-import { resolveEmployerId, getEmployerUserIds } from '../lib/employerAccess.js'
+import { resolveEmployerId, getEmployerMessageUserIds } from '../lib/employerAccess.js'
 
 const NotificationContext = createContext(undefined)
 
@@ -29,7 +29,7 @@ export function NotificationProvider({ children }) {
         setNewApplications(0)
         return
       }
-      const myIds = await getEmployerUserIds(employerId)
+      const myIds = await getEmployerMessageUserIds(employerId)
       const { count: msgCount } = await supabase
         .from('messages')
         .select('id', { count: 'exact', head: true })

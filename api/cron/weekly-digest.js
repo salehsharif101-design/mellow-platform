@@ -6,7 +6,7 @@
 
 import { sendEmail } from '../_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from '../_lib/email-template.js'
-import { getServiceClient, unwrap, getCandidateContact, getEmployerEmails, getEmployerUserIds } from '../_lib/db.js'
+import { getServiceClient, unwrap, getCandidateContact, getEmployerEmails, getEmployerMessageUserIds } from '../_lib/db.js'
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 // A cron misfire (retried run, manual re-trigger) shouldn't double-send —
@@ -111,7 +111,7 @@ async function sendEmployerDigests(supabase, since) {
     // The whole team's inbox, not just the owner's — a company whose team
     // members do the actual messaging used to get a digest reporting zero
     // messages regardless of how much was actually happening.
-    const teamUserIds = await getEmployerUserIds(supabase, employer.id)
+    const teamUserIds = await getEmployerMessageUserIds(supabase, employer.id)
 
     const [{ count: newApplicants }, { count: messagesThisWeek }, { count: unreadMessages }, { count: companyViews }] = await Promise.all([
       supabase

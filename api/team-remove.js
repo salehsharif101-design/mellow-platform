@@ -22,6 +22,14 @@
 // marker either way — see check-email.js, which recognizes and retries
 // that exact case rather than leaving the email permanently stuck.
 //
+// removed_user_id is stamped onto that same row alongside status —
+// a permanent copy of user_id taken before the auth deletion below nulls
+// the live column. Messages are business records that belong to the
+// company, not whichever teammate happened to send them, so they must
+// stay visible in the shared inbox forever; removed_user_id (plus
+// migration 0064 dropping messages' own FK cascade and widening its RLS
+// policies) is what makes that possible once user_id itself is gone.
+//
 // A member who never accepted their invite (no linked auth account yet) has
 // nothing to revoke or delete — their row is just removed outright.
 
@@ -125,9 +133,15 @@ export default async function handler(req, res) {
       return
     }
 
+    // removed_user_id is a permanent copy of member.user_id, taken here
+    // before deleteAuthAccount below causes the live user_id column to be
+    // nulled out (see migration 0064) — messages.sender_id/recipient_id
+    // policies key off it to keep this member's past messages visible in
+    // the shared inbox even after their account, and their user_id here,
+    // are both long gone.
     const { error: statusError } = await supabase
       .from('employer_team_members')
-      .update({ status: 'removed' })
+      .update({ status: 'removed', removed_user_id: member.user_id })
       .eq('id', member.id)
     if (statusError) throw new Error(statusError.message)
 

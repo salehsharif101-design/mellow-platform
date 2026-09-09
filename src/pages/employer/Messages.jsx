@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
-import { resolveEmployerId, getEmployerUserIds } from '../../lib/employerAccess.js'
+import { resolveEmployerId, getEmployerMessageUserIds } from '../../lib/employerAccess.js'
 import { getCachedPage, setCachedPage } from '../../lib/dashboardCache.js'
 import { formatRelativeTime } from '../../lib/roleFormat.js'
 import MessageThread from '../../components/MessageThread.jsx'
@@ -35,7 +35,7 @@ export default function EmployerMessages() {
       // conversation with "the company" isn't tied to whichever teammate
       // happens to be logged in.
       const { employerId } = await resolveEmployerId(user.id)
-      const ids = employerId ? await getEmployerUserIds(employerId) : [user.id]
+      const ids = employerId ? await getEmployerMessageUserIds(employerId) : [user.id]
       setMyIds(ids)
 
       const orFilter = ids.map((id) => `sender_id.eq.${id},recipient_id.eq.${id}`).join(',')
