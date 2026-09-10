@@ -130,7 +130,8 @@ export default function AnswerQuestion() {
     return (
       <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
         <Logo />
-        <h1 style={{ fontSize: 26, marginTop: 28 }}>This link isn't valid</h1>
+        <img src="/Collaborate.PNG" alt="" style={{ width: '100%', maxWidth: 220, margin: '28px auto 0', display: 'block' }} />
+        <h1 style={{ fontSize: 26, marginTop: 20 }}>This link isn't valid</h1>
         <p style={{ marginTop: 12, color: 'var(--color-text-muted)' }}>
           {loadError || 'Something went wrong loading this question.'}
         </p>
@@ -142,7 +143,8 @@ export default function AnswerQuestion() {
     return (
       <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
         <Logo />
-        <h1 style={{ fontSize: 26, marginTop: 28 }}>You have already answered this question</h1>
+        <img src="/Email_Verification.png" alt="" style={{ width: '100%', maxWidth: 220, margin: '28px auto 0', display: 'block' }} />
+        <h1 style={{ fontSize: 26, marginTop: 20 }}>You have already answered this question</h1>
         <p style={{ marginTop: 12, color: 'var(--color-text-muted)' }}>
           Thanks — {question.companyName} has been notified and can now watch your answer.
         </p>
@@ -154,7 +156,8 @@ export default function AnswerQuestion() {
     return (
       <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
         <Logo />
-        <h1 style={{ fontSize: 26, marginTop: 28 }}>This question has expired</h1>
+        <img src="/Collaborate.PNG" alt="" style={{ width: '100%', maxWidth: 220, margin: '28px auto 0', display: 'block' }} />
+        <h1 style={{ fontSize: 26, marginTop: 20 }}>This question has expired</h1>
         <p style={{ marginTop: 12, color: 'var(--color-text-muted)' }}>
           The {question.answerWindowDays}-day window to answer this question from {question.companyName} has passed.
         </p>
