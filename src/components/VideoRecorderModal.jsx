@@ -240,12 +240,14 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
   // Temporary diagnostics + a recovery attempt for the mobile
   // playback-stall investigation. Real-device testing has now shown: the
   // blob/duration/mimeType are all correct with no error event (ruling out
-  // a decode failure), and — after switching to a data: URL — 'suspend'
-  // firing immediately at currentTime 0 with almost nothing buffered
-  // (readyState 2), meaning iOS Safari gave up loading the resource
-  // before playback even got a chance to start. Back on a blob: URL (see
-  // recorder.onstop below) two different recoveries are used depending on
-  // what the browser is actually telling us:
+  // a decode failure), 'suspend' firing on a data: URL before playback
+  // even started (ruled that approach out — see buildMediaSourceUrl
+  // above), and — back on a blob: URL — the video pausing mid-playback
+  // with the buffer already covering the *entire* file (buffered end past
+  // duration), ruling out buffering/network entirely. That last one means
+  // WebKit's own media-resource-management policy is pausing a
+  // fully-ready video on its own. Three different recoveries are used
+  // depending on what the browser is actually telling us:
   //  - 'stalled'/'waiting' during active playback: a small nudge forward
   //    plus retrying play() — a documented recovery for a decoder that's
   //    gotten stuck waiting on data it considers itself blocked on even
@@ -257,15 +259,30 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
   //    whole file is the routine "nothing left to fetch" case and is left
   //    alone — reloading then would just restart a file that was already
   //    fully ready.
-  // Both share one cooldown so a decoder that's still genuinely stuck
-  // can't turn this into a tight retry loop; the cooldown only starts
-  // once an attempt is actually made, not on every event received.
+  //  - 'pause' that wasn't near a genuine user tap and isn't at the true
+  //    end of the file: WebKit pausing on its own, not the candidate
+  //    stopping playback. The 'pause' event itself carries no flag for
+  //    which case this is, so a short window since the last observed
+  //    touch/click on the element is used as the proxy — a real user
+  //    pause fires in essentially the same tick as the gesture that
+  //    caused it, anything outside that window didn't come from a tap
+  //    here. Resumed directly first; if WebKit rejects that (an automatic
+  //    pause may not carry the same playback permission a user gesture
+  //    does), a one-time retry is armed on the *next* tap on the video —
+  //    a genuine gesture — instead of fighting the player indefinitely.
+  // All three share one cooldown so a decoder/player that's still
+  // genuinely stuck can't turn this into a tight retry loop; the cooldown
+  // only starts once an attempt is actually made, not on every event
+  // received.
   useEffect(() => {
     const videoEl = recordedVideoRef.current
     if (!videoEl || !recordedUrl) return undefined
 
     const COOLDOWN_MS = 1500
+    const GESTURE_WINDOW_MS = 500
     let lastRecoveryAttempt = 0
+    let lastGestureAt = 0
+    let clearArmedRetry = null
 
     function bufferedEnd() {
       const { buffered } = videoEl
@@ -274,6 +291,10 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
     function isUnderBuffered() {
       const duration = videoEl.duration
       return !duration || bufferedEnd() < duration - 0.5
+    }
+    function isNearEnd() {
+      const duration = videoEl.duration
+      return Boolean(duration) && videoEl.currentTime >= duration - 0.35
     }
     function logEvent(type) {
       // eslint-disable-next-line no-console
@@ -295,6 +316,9 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
         act()
       }
     }
+    function markGesture() {
+      lastGestureAt = Date.now()
+    }
 
     const handleStallOrWaiting = withCooldown(
       () => true,
@@ -303,6 +327,7 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
         // eslint-disable-next-line no-console
         console.log('[VideoRecorderModal] nudging currentTime to', target, 'and retrying play()')
         videoEl.currentTime = target
+        videoEl.playbackRate = 1.0
         videoEl.play().catch((err) => {
           // eslint-disable-next-line no-console
           console.log('[VideoRecorderModal] resume play() failed:', err?.message)
@@ -314,6 +339,7 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
       // eslint-disable-next-line no-console
       console.log('[VideoRecorderModal] under-buffered suspend — forcing reload()')
       videoEl.load()
+      videoEl.playbackRate = 1.0
       videoEl.play().catch((err) => {
         // eslint-disable-next-line no-console
         console.log('[VideoRecorderModal] resume play() after reload failed:', err?.message)
@@ -326,16 +352,74 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
       console.log('[VideoRecorderModal] video error:', videoEl.error)
     }
 
+    // A resume attempted directly from the 'pause' handler isn't running
+    // inside a real user gesture — WebKit fired 'pause' on its own, this
+    // handler runs from that, not from a tap. It may still work if this
+    // element already has an active playback session, but iOS can also
+    // reject it and require a fresh gesture. If rejected, arm a one-time
+    // listener so the very next genuine tap on the video retries it.
+    function armGestureRetry() {
+      if (clearArmedRetry) clearArmedRetry()
+      function retry() {
+        clearArmedRetry = null
+        videoEl.playbackRate = 1.0
+        videoEl.play().catch(() => {})
+      }
+      videoEl.addEventListener('touchend', retry, { once: true })
+      videoEl.addEventListener('click', retry, { once: true })
+      clearArmedRetry = () => {
+        videoEl.removeEventListener('touchend', retry)
+        videoEl.removeEventListener('click', retry)
+      }
+    }
+
+    function handlePause(e) {
+      logEvent(e.type)
+      if (videoEl.ended) {
+        // eslint-disable-next-line no-console
+        console.log('[VideoRecorderModal] pause classified as: end of playback')
+        return
+      }
+      const nearEnd = isNearEnd()
+      const userInitiated = Date.now() - lastGestureAt < GESTURE_WINDOW_MS
+      // eslint-disable-next-line no-console
+      console.log(
+        '[VideoRecorderModal] pause classified as:',
+        userInitiated ? 'user-initiated (recent gesture)' : nearEnd ? 'near end' : 'automatic',
+        'at currentTime:', videoEl.currentTime,
+      )
+      if (userInitiated || nearEnd) return
+
+      const now = Date.now()
+      if (now - lastRecoveryAttempt < COOLDOWN_MS) return
+      lastRecoveryAttempt = now
+      videoEl.playbackRate = 1.0
+      videoEl.play().catch((err) => {
+        // eslint-disable-next-line no-console
+        console.log('[VideoRecorderModal] auto-resume after pause failed, arming retry on next tap:', err?.message)
+        armGestureRetry()
+      })
+    }
+
     videoEl.addEventListener('stalled', handleStallOrWaiting)
     videoEl.addEventListener('waiting', handleStallOrWaiting)
     videoEl.addEventListener('suspend', handleSuspend)
     videoEl.addEventListener('error', handleError)
+    videoEl.addEventListener('pause', handlePause)
+    videoEl.addEventListener('touchstart', markGesture)
+    videoEl.addEventListener('touchend', markGesture)
+    videoEl.addEventListener('click', markGesture)
 
     return () => {
       videoEl.removeEventListener('stalled', handleStallOrWaiting)
       videoEl.removeEventListener('waiting', handleStallOrWaiting)
       videoEl.removeEventListener('suspend', handleSuspend)
       videoEl.removeEventListener('error', handleError)
+      videoEl.removeEventListener('pause', handlePause)
+      videoEl.removeEventListener('touchstart', markGesture)
+      videoEl.removeEventListener('touchend', markGesture)
+      videoEl.removeEventListener('click', markGesture)
+      if (clearArmedRetry) clearArmedRetry()
     }
   }, [recordedUrl])
 
