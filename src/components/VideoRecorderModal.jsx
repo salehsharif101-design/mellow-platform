@@ -72,8 +72,7 @@ function mediaSourceCandidates(recordingMimeType) {
 // pipeline is actually built around — for the exact same bytes. Same
 // 'blob:' URL scheme either way (URL.createObjectURL produces one for a
 // MediaSource just like it does for a Blob), so nothing downstream (the
-// duration fix, the recovery listeners below) needs to know which one
-// it's dealing with.
+// recovery listeners below) needs to know which one it's dealing with.
 //
 // Feature-detected and best-effort: resolves to null on any failure —
 // unsupported MediaSource, an unsupported mimeType for it, an error at any
@@ -84,8 +83,7 @@ function mediaSourceCandidates(recordingMimeType) {
 // string) showed appendBuffer can simply never fire 'updateend' or
 // 'error' — it just sits there. Without a timeout that hangs this promise
 // forever, meaning setRecordedUrl never gets called and the preview never
-// appears at all — strictly worse than the original stall-after-10s bug
-// this whole investigation started from.
+// appears at all — strictly worse than a stalled playback.
 const MEDIA_SOURCE_TIMEOUT_MS = 3000
 
 function buildMediaSourceUrl(blob, recordingMimeType) {
@@ -98,14 +96,12 @@ function buildMediaSourceUrl(blob, recordingMimeType) {
     const objectUrl = URL.createObjectURL(mediaSource)
     let settled = false
 
-    const safetyTimeout = setTimeout(() => fail(new Error('timed out waiting for MediaSource to accept the recording')), MEDIA_SOURCE_TIMEOUT_MS)
+    const safetyTimeout = setTimeout(() => fail(), MEDIA_SOURCE_TIMEOUT_MS)
 
-    function fail(err) {
+    function fail() {
       if (settled) return
       settled = true
       clearTimeout(safetyTimeout)
-      // eslint-disable-next-line no-console
-      console.log('[VideoRecorderModal] MediaSource setup failed, falling back to blob: URL:', err?.message || err)
       URL.revokeObjectURL(objectUrl)
       resolve(null)
     }
@@ -126,8 +122,8 @@ function buildMediaSourceUrl(blob, recordingMimeType) {
           sourceBuffer.addEventListener('updateend', succeed, { once: true })
           sourceBuffer.addEventListener('error', fail, { once: true })
           sourceBuffer.appendBuffer(arrayBuffer)
-        } catch (err) {
-          fail(err)
+        } catch {
+          fail()
         }
       },
       { once: true },
@@ -211,42 +207,31 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
     }
   }, [stream])
 
-  // Deliberately no seek-based duration fix here anymore (one used to
-  // seek to 1e101 and back to force the browser to compute a real
-  // duration for a MediaRecorder blob, which normally reports Infinity
-  // until enough of the container has been scanned). Real-device data
-  // showed it backfiring on iOS: 'pause' fired at exactly the duration
-  // that seek had computed (e.g. 42.17s) while audio kept playing well
-  // past that point — meaning the seek itself computed a duration
-  // shorter than the recording's real length (most likely landing where
-  // the video track's own sample table ran out, not the full,
-  // audio-inclusive extent of the file), and forcing that shorter number
-  // onto video.duration is what then made iOS treat the video track as
-  // finished early. video.duration is now left as whatever iOS (or any
-  // other browser) naturally reports for the blob: URL on its own, even
-  // if that's briefly Infinity or NaN before enough of it has loaded.
+  // Deliberately no seek-based duration fix here (one used to seek to
+  // 1e101 and back to force the browser to compute a real duration for a
+  // MediaRecorder blob, which normally reports Infinity until enough of
+  // the container has been scanned). Real-device data showed it
+  // backfiring on iOS: 'pause' fired at exactly the duration that seek
+  // had computed while audio kept playing well past that point — the
+  // seek was landing where the video track's own sample table ran out,
+  // not the full, audio-inclusive extent of the file, and forcing that
+  // shorter number onto video.duration made iOS treat the video track as
+  // finished early. video.duration is left as whatever iOS (or any other
+  // browser) naturally reports for the blob: URL on its own.
 
   // Explicit reload right after the src changes — redundant with what
   // changing the src attribute is already supposed to trigger per spec,
   // but cheap insurance given how much iOS-Safari-specific quirkiness
-  // this whole investigation has already turned up.
+  // mobile playback of a freshly recorded blob: URL has turned up.
   useEffect(() => {
     const videoEl = recordedVideoRef.current
     if (!videoEl || !recordedUrl) return
     videoEl.load()
   }, [recordedUrl])
 
-  // Temporary diagnostics + a recovery attempt for the mobile
-  // playback-stall investigation. Real-device testing has now shown: the
-  // blob/duration/mimeType are all correct with no error event (ruling out
-  // a decode failure), 'suspend' firing on a data: URL before playback
-  // even started (ruled that approach out — see buildMediaSourceUrl
-  // above), and — back on a blob: URL — the video pausing mid-playback
-  // with the buffer already covering the *entire* file (buffered end past
-  // duration), ruling out buffering/network entirely. That last one means
-  // WebKit's own media-resource-management policy is pausing a
-  // fully-ready video on its own. Three different recoveries are used
-  // depending on what the browser is actually telling us:
+  // A recovery attempt for mobile playback issues with a freshly recorded
+  // blob: URL. Real-device testing narrowed this down to three distinct
+  // cases the browser can put the player in:
   //  - 'stalled'/'waiting' during active playback: a small nudge forward
   //    plus retrying play() — a documented recovery for a decoder that's
   //    gotten stuck waiting on data it considers itself blocked on even
@@ -295,19 +280,8 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
       const duration = videoEl.duration
       return Boolean(duration) && videoEl.currentTime >= duration - 0.35
     }
-    function logEvent(type) {
-      // eslint-disable-next-line no-console
-      console.log(
-        '[VideoRecorderModal] video event:', type,
-        'at currentTime:', videoEl.currentTime,
-        'readyState:', videoEl.readyState,
-        'buffered end:', bufferedEnd(),
-        'duration:', videoEl.duration,
-      )
-    }
     function withCooldown(shouldAct, act) {
-      return (e) => {
-        logEvent(e.type)
+      return () => {
         if (!shouldAct()) return
         const now = Date.now()
         if (now - lastRecoveryAttempt < COOLDOWN_MS) return
@@ -323,40 +297,17 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
       () => true,
       () => {
         const target = videoEl.duration ? Math.min(videoEl.currentTime + 0.1, videoEl.duration - 0.05) : videoEl.currentTime + 0.1
-        // eslint-disable-next-line no-console
-        console.log('[VideoRecorderModal] nudging currentTime to', target, 'and retrying play()')
         videoEl.currentTime = target
         videoEl.playbackRate = 1.0
-        videoEl.play().catch((err) => {
-          // eslint-disable-next-line no-console
-          console.log('[VideoRecorderModal] resume play() failed:', err?.message)
-        })
+        videoEl.play().catch(() => {})
       },
     )
 
     const handleSuspend = withCooldown(isUnderBuffered, () => {
-      // eslint-disable-next-line no-console
-      console.log('[VideoRecorderModal] under-buffered suspend — forcing reload()')
       videoEl.load()
       videoEl.playbackRate = 1.0
-      videoEl.play().catch((err) => {
-        // eslint-disable-next-line no-console
-        console.log('[VideoRecorderModal] resume play() after reload failed:', err?.message)
-      })
+      videoEl.play().catch(() => {})
     })
-
-    function handleError() {
-      logEvent('error')
-      // eslint-disable-next-line no-console
-      console.log('[VideoRecorderModal] video error:', videoEl.error)
-    }
-
-    // Logs video.duration as soon as it's known, directly comparable in
-    // the console against the "Audio-only duration via Web Audio API"
-    // line logged from onstop above.
-    function handleLoadedMetadata() {
-      logEvent('loadedmetadata')
-    }
 
     // A resume attempted directly from the 'pause' handler isn't running
     // inside a real user gesture — WebKit fired 'pause' on its own, this
@@ -379,30 +330,17 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
       }
     }
 
-    function handlePause(e) {
-      logEvent(e.type)
-      if (videoEl.ended) {
-        // eslint-disable-next-line no-console
-        console.log('[VideoRecorderModal] pause classified as: end of playback')
-        return
-      }
+    function handlePause() {
+      if (videoEl.ended) return
       const nearEnd = isNearEnd()
       const userInitiated = Date.now() - lastGestureAt < GESTURE_WINDOW_MS
-      // eslint-disable-next-line no-console
-      console.log(
-        '[VideoRecorderModal] pause classified as:',
-        userInitiated ? 'user-initiated (recent gesture)' : nearEnd ? 'near end' : 'automatic',
-        'at currentTime:', videoEl.currentTime,
-      )
       if (userInitiated || nearEnd) return
 
       const now = Date.now()
       if (now - lastRecoveryAttempt < COOLDOWN_MS) return
       lastRecoveryAttempt = now
       videoEl.playbackRate = 1.0
-      videoEl.play().catch((err) => {
-        // eslint-disable-next-line no-console
-        console.log('[VideoRecorderModal] auto-resume after pause failed, arming retry on next tap:', err?.message)
+      videoEl.play().catch(() => {
         armGestureRetry()
       })
     }
@@ -410,9 +348,7 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
     videoEl.addEventListener('stalled', handleStallOrWaiting)
     videoEl.addEventListener('waiting', handleStallOrWaiting)
     videoEl.addEventListener('suspend', handleSuspend)
-    videoEl.addEventListener('error', handleError)
     videoEl.addEventListener('pause', handlePause)
-    videoEl.addEventListener('loadedmetadata', handleLoadedMetadata)
     videoEl.addEventListener('touchstart', markGesture)
     videoEl.addEventListener('touchend', markGesture)
     videoEl.addEventListener('click', markGesture)
@@ -421,9 +357,7 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
       videoEl.removeEventListener('stalled', handleStallOrWaiting)
       videoEl.removeEventListener('waiting', handleStallOrWaiting)
       videoEl.removeEventListener('suspend', handleSuspend)
-      videoEl.removeEventListener('error', handleError)
       videoEl.removeEventListener('pause', handlePause)
-      videoEl.removeEventListener('loadedmetadata', handleLoadedMetadata)
       videoEl.removeEventListener('touchstart', markGesture)
       videoEl.removeEventListener('touchend', markGesture)
       videoEl.removeEventListener('click', markGesture)
@@ -454,58 +388,20 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
     mimeTypeRef.current = mimeType
     chunksRef.current = []
 
-    // Temporary diagnostics for the mobile playback-stall investigation —
-    // safe to strip once that's confirmed resolved on real devices.
-    // eslint-disable-next-line no-console
-    console.log('[VideoRecorderModal] MIME type used:', mimeTypeRef.current)
-
-    // Lowered from 1.5Mbps — real-device testing shows the video track
-    // freezing on its last decoded frame partway through longer
-    // recordings while audio keeps playing, consistent with iOS Safari's
-    // decoder falling behind and giving up on the video track rather than
-    // any container/duration-metadata problem. A lower target bitrate is
-    // less encoding (and, since these are CBR-ish targets a decoder has
-    // to keep pace with, less decoding) work per second of video.
-    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 500_000 })
-    // eslint-disable-next-line no-console
-    console.log('[VideoRecorderModal] recorder.mimeType (what the browser actually selected):', recorder.mimeType)
+    // 1Mbps — a middle ground found via real-device testing: 1.5Mbps let
+    // iOS's decoder fall behind and give up on the video track partway
+    // through longer recordings (video freezes on its last frame while
+    // audio keeps playing), while 500kbps decoded reliably but looked
+    // visibly choppy. This is the target bitrate the encoder aims for,
+    // not a hard cap, so actual output can vary with scene complexity.
+    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 1_000_000 })
     recorder.ondataavailable = (e) => {
-      // eslint-disable-next-line no-console
-      console.log('[VideoRecorderModal] chunk', chunksRef.current.length, 'size:', e.data.size)
       if (e.data.size > 0) chunksRef.current.push(e.data)
     }
     recorder.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: mimeTypeRef.current })
       recordedBlobRef.current = blob
       setRecording(false)
-
-      // eslint-disable-next-line no-console
-      console.log(
-        '[VideoRecorderModal] Blob size:', blob.size,
-        'Blob type:', blob.type,
-        'chunk count:', chunksRef.current.length,
-      )
-
-      // Diagnostic only: decodes just the audio track independently of
-      // the <video> element's own (video-track-gated) playback, to check
-      // whether the audio actually runs the full recorded length even
-      // when the video track freezes partway through — narrows this down
-      // to a video-decoder-specific problem rather than something wrong
-      // with the container or blob as a whole.
-      ;(async () => {
-        try {
-          const AudioCtx = window.AudioContext || window.webkitAudioContext
-          if (!AudioCtx) return
-          const audioCtx = new AudioCtx()
-          const audioBuffer = await audioCtx.decodeAudioData(await blob.arrayBuffer())
-          // eslint-disable-next-line no-console
-          console.log('[VideoRecorderModal] Audio-only duration via Web Audio API:', audioBuffer.duration)
-          audioCtx.close()
-        } catch (err) {
-          // eslint-disable-next-line no-console
-          console.log('[VideoRecorderModal] Could not decode audio track via Web Audio API:', err?.message)
-        }
-      })()
 
       // The camera used to keep running (light stays on, still actively
       // capturing/encoding) for the entire review screen, only released on
@@ -527,34 +423,27 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
       previewTimeoutRef.current = setTimeout(() => {
         previewTimeoutRef.current = null
 
-        // Back to a blob: URL, not a data: URL — real-device testing
+        // A plain blob: URL, not a data: URL — real-device testing
         // showed the data: URL made things worse (see buildMediaSourceUrl
-        // above), so this now tries a MediaSource-backed variant of the
-        // same blob: URL scheme first, falling back to a plain
-        // Blob-backed one if that isn't supported or fails.
+        // above), so this tries a MediaSource-backed variant of the same
+        // blob: URL scheme first, falling back to a plain Blob-backed one
+        // if that isn't supported or fails.
         buildMediaSourceUrl(blob, mimeTypeRef.current).then((mediaSourceUrl) => {
-          if (mediaSourceUrl) {
-            // eslint-disable-next-line no-console
-            console.log('[VideoRecorderModal] Using MediaSource-backed URL for preview')
-            setRecordedUrl(mediaSourceUrl)
-          } else {
-            // eslint-disable-next-line no-console
-            console.log('[VideoRecorderModal] Using plain blob: URL for preview')
-            setRecordedUrl(URL.createObjectURL(blob))
-          }
+          setRecordedUrl(mediaSourceUrl || URL.createObjectURL(blob))
         })
       }, 200)
     }
     mediaRecorderRef.current = recorder
     // A 100ms timeslice makes ondataavailable fire periodically during
     // recording instead of producing one single blob only at stop() —
-    // Safari's MediaRecorder muxes a timesliced recording as fragmented
-    // mp4 (periodic moof/mdat boxes aligned to those chunks) rather than
-    // one non-fragmented file, which iOS's own decoder/demuxer is built
-    // to buffer and seek through more reliably for longer clips. The
-    // final blob assembly (onstop, above) is unchanged — Blob(chunks)
-    // concatenates however many pieces come in into the same byte stream
-    // either way.
+    // this is what actually fixed iOS's video track freezing partway
+    // through longer recordings: Safari's MediaRecorder muxes a
+    // timesliced recording as fragmented mp4 (periodic moof/mdat boxes
+    // aligned to those chunks) rather than one non-fragmented file, which
+    // iOS's own decoder/demuxer buffers and seeks through far more
+    // reliably. The final blob assembly (onstop, above) is unchanged —
+    // Blob(chunks) concatenates however many pieces come in into the same
+    // byte stream either way.
     recorder.start(100)
     setRecording(true)
     setSecondsLeft(MAX_SECONDS)
