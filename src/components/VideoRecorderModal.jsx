@@ -388,13 +388,16 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
     mimeTypeRef.current = mimeType
     chunksRef.current = []
 
-    // 1Mbps — a middle ground found via real-device testing: 1.5Mbps let
-    // iOS's decoder fall behind and give up on the video track partway
-    // through longer recordings (video freezes on its last frame while
-    // audio keeps playing), while 500kbps decoded reliably but looked
-    // visibly choppy. This is the target bitrate the encoder aims for,
-    // not a hard cap, so actual output can vary with scene complexity.
-    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 1_000_000 })
+    // 2.5Mbps — the video-freezes-while-audio-keeps-playing bug (real
+    // device testing, both Safari and Chrome on iOS) turned out to be
+    // caused by MediaRecorder producing one non-fragmented file at
+    // stop(), not by bitrate: recorder.start(100) below, which makes
+    // Safari mux a fragmented mp4 instead, is what actually fixed it.
+    // With that in place bitrate is just a quality/size tradeoff again,
+    // not a decoder-stability one — 2.5Mbps for clear, professional-
+    // looking profile video. This is the target the encoder aims for, not
+    // a hard cap, so actual output can vary with scene complexity.
+    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 2_500_000 })
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data)
     }
