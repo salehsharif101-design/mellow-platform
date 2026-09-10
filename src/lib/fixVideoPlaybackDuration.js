@@ -22,7 +22,14 @@
 // Only worth doing for a blob: URL — a normal http(s) source (an
 // already-submitted, properly-indexed video) doesn't have this problem,
 // and seeking it to the end and back would just waste bandwidth.
-export function attachRecordedVideoDurationFix(videoEl, src) {
+//
+// onFixed, if given, is called with the duration the browser reports once
+// it's finished scanning the blob — read right after the seek, before
+// currentTime is reset and load() is called, since both of those go on to
+// reset duration back to NaN until the reloaded resource re-parses its
+// own metadata. Purely a diagnostic hook for the current mobile
+// playback-stall investigation.
+export function attachRecordedVideoDurationFix(videoEl, src, onFixed) {
   if (!videoEl || !src?.startsWith('blob:')) return undefined
 
   let fixed = false
@@ -32,8 +39,10 @@ export function attachRecordedVideoDurationFix(videoEl, src) {
     videoEl.currentTime = 1e101
     videoEl.ontimeupdate = () => {
       videoEl.ontimeupdate = null
+      const scannedDuration = videoEl.duration
       videoEl.currentTime = 0
       videoEl.load()
+      onFixed?.(scannedDuration)
     }
   }
 

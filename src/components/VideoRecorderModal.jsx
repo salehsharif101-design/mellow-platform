@@ -4,10 +4,20 @@ import { attachRecordedVideoDurationFix } from '../lib/fixVideoPlaybackDuration.
 
 const MAX_SECONDS = 60
 
-// Tried in order — the first the browser actually supports wins. iOS Safari
-// only supports mp4; Chrome/Firefox only support webm, and prefer vp9 when
-// available.
-const MIME_CANDIDATES = ['video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+// Tried in order — the first the browser actually supports wins. An
+// explicit avc1 (H.264) codec string is tried before bare 'video/mp4' —
+// H.264 is what iOS hardware actually decodes natively, so being
+// explicit about it rather than letting the browser pick whatever its
+// 'video/mp4' default codec is removes one more variable when that
+// default turns out not to be it. iOS Safari only supports mp4 at all;
+// Chrome/Firefox only support webm, and prefer vp9 when available.
+const MIME_CANDIDATES = [
+  'video/mp4;codecs=avc1',
+  'video/mp4',
+  'video/webm;codecs=vp9,opus',
+  'video/webm;codecs=vp8,opus',
+  'video/webm',
+]
 
 // iOS Safari (both the browser itself and any other browser on iOS, which
 // is required by Apple to use the same WebKit engine under the hood) has
@@ -110,8 +120,17 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
   // See fixVideoPlaybackDuration.js — without this, mobile Safari/Chrome
   // stall the recorded preview's video track partway through playback
   // while the audio keeps going, since a MediaRecorder blob has no
-  // duration/seek index in its container.
-  useEffect(() => attachRecordedVideoDurationFix(recordedVideoRef.current, recordedUrl), [recordedUrl])
+  // duration/seek index in its container. The onFixed callback is a
+  // temporary diagnostic for the mobile playback-stall investigation —
+  // safe to strip once that's confirmed resolved on real devices.
+  useEffect(
+    () =>
+      attachRecordedVideoDurationFix(recordedVideoRef.current, recordedUrl, (duration) => {
+        // eslint-disable-next-line no-console
+        console.log('[VideoRecorderModal] Video duration after fix:', duration)
+      }),
+    [recordedUrl],
+  )
 
   useEffect(() => {
     return () => {
@@ -133,11 +152,18 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
     mimeTypeRef.current = mimeType
     chunksRef.current = []
 
+    // Temporary diagnostics for the mobile playback-stall investigation —
+    // safe to strip once that's confirmed resolved on real devices.
+    // eslint-disable-next-line no-console
+    console.log('[VideoRecorderModal] MIME type used:', mimeTypeRef.current)
+
     // Caps sustained encoder load alongside the resolution/frame-rate
     // constraints on the stream itself above — an unconstrained default
     // bitrate for a 720p capture can run well past what's needed for a
     // talking-head video, adding to the same mid-recording stall risk.
     const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 1_500_000 })
+    // eslint-disable-next-line no-console
+    console.log('[VideoRecorderModal] recorder.mimeType (what the browser actually selected):', recorder.mimeType)
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data)
     }
@@ -145,6 +171,9 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
       const blob = new Blob(chunksRef.current, { type: mimeTypeRef.current })
       recordedBlobRef.current = blob
       setRecording(false)
+
+      // eslint-disable-next-line no-console
+      console.log('[VideoRecorderModal] Blob size:', blob.size, 'Blob type:', blob.type)
 
       // The camera used to keep running (light stays on, still actively
       // capturing/encoding) for the entire review screen, only released on
