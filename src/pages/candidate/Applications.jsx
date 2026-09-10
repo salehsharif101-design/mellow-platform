@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { getCandidateStatusLabel } from '../../lib/roleFormat.js'
 import { getCachedPage, setCachedPage } from '../../lib/dashboardCache.js'
+import { ANSWER_WINDOW_DAYS, isPastDeadline } from '../../lib/videoQuestions.js'
 import EmptyState from '../../components/EmptyState.jsx'
 import ListPageSkeleton from '../../components/ListPageSkeleton.jsx'
 import CompanyAvatar from '../../components/CompanyAvatar.jsx'
@@ -29,10 +30,45 @@ function formatDate(dateString) {
   return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+const QUESTION_ORDINAL = ['a question', 'a second question']
+
+// One video question can contribute up to three timeline steps — asked,
+// (if answered) answered, (if expired instead) expired — built from the
+// same effective-status logic as the employer side (RoleApplicants.jsx):
+// a 'pending' row past its 3-day window reads as expired here too, rather
+// than waiting on the daily cron to catch up before the candidate sees it.
+function buildQuestionSteps(questions, companyName) {
+  const steps = []
+  questions
+    .slice()
+    .sort((a, b) => new Date(a.asked_at) - new Date(b.asked_at))
+    .forEach((q, i) => {
+      const effectiveStatus = q.status === 'pending' && isPastDeadline(q.asked_at) ? 'expired' : q.status
+      steps.push({
+        label: `${companyName} asked you ${QUESTION_ORDINAL[i] || `question ${i + 1}`}`,
+        date: q.asked_at,
+        link: effectiveStatus === 'pending' ? `/answer-question/${q.answer_token}` : null,
+      })
+      if (q.answered_at) {
+        steps.push({ label: 'You answered their question', date: q.answered_at })
+      } else if (effectiveStatus === 'expired') {
+        steps.push({
+          label: 'Question expired',
+          date: q.expired_at || new Date(new Date(q.asked_at).getTime() + ANSWER_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString(),
+          muted: true,
+        })
+      }
+    })
+  return steps
+}
+
 // Only steps that have actually happened appear here — an unviewed
 // profile or a status still sitting at "applied" simply isn't a step yet,
-// rather than a step shown with a "Not yet" placeholder.
-function Timeline({ application }) {
+// rather than a step shown with a "Not yet" placeholder. Question steps are
+// merged in and the whole list re-sorted chronologically rather than
+// appended at the end, since a question can land between any two of the
+// other events in real time.
+function Timeline({ application, questions }) {
   const steps = [{ label: 'Applied', date: application.applied_at }]
   if (application.viewed_at) {
     steps.push({ label: 'Profile viewed by employer', date: application.viewed_at })
@@ -43,11 +79,14 @@ function Timeline({ application }) {
       date: application.status_changed_at,
     })
   }
+  const companyName = application.roles?.employer_profiles?.company_name || 'The employer'
+  steps.push(...buildQuestionSteps(questions, companyName))
+  steps.sort((a, b) => new Date(a.date) - new Date(b.date))
 
   return (
     <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--color-border)' }}>
       {steps.map((step, i) => (
-        <div key={step.label} style={{ display: 'flex', gap: 12 }}>
+        <div key={`${step.label}-${step.date}`} style={{ display: 'flex', gap: 12 }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <span
               aria-hidden="true"
@@ -56,13 +95,21 @@ function Timeline({ application }) {
                 height: 12,
                 borderRadius: '50%',
                 flexShrink: 0,
-                background: 'var(--color-primary)',
+                background: step.muted ? 'var(--color-border)' : 'var(--color-primary)',
               }}
             />
             {i < steps.length - 1 && <span style={{ width: 2, flex: 1, minHeight: 24, background: 'var(--color-border)' }} />}
           </div>
           <div style={{ paddingBottom: 18 }}>
-            <p style={{ fontSize: 13, fontWeight: 600 }}>{step.label}</p>
+            <p style={{ fontSize: 13, fontWeight: 600, color: step.muted ? 'var(--color-text-muted)' : 'inherit' }}>
+              {step.link ? (
+                <Link to={step.link} style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+                  {step.label}
+                </Link>
+              ) : (
+                step.label
+              )}
+            </p>
             <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>{formatDate(step.date)}</p>
           </div>
         </div>
@@ -78,6 +125,7 @@ export default function Applications() {
   const cached = cacheKey ? getCachedPage(cacheKey) : null
 
   const [applications, setApplications] = useState(cached?.applications ?? [])
+  const [questionsByRole, setQuestionsByRole] = useState(cached?.questionsByRole ?? {})
   // Only a genuinely cold load (nothing cached yet from an earlier visit
   // this session) shows the skeleton — a return visit renders the cached
   // data immediately while load() quietly refreshes it in the background.
@@ -105,21 +153,37 @@ export default function Applications() {
         return
       }
 
-      const { data, error: appsError } = await supabase
-        .from('applications')
-        .select('id, status, applied_at, viewed_at, status_changed_at, roles(title, employer_profiles(company_name, logo_url, company_slug))')
-        .eq('candidate_id', candidate.id)
-        .order('applied_at', { ascending: false })
+      const [{ data, error: appsError }, { data: questions }] = await Promise.all([
+        supabase
+          .from('applications')
+          .select(
+            'id, role_id, status, applied_at, viewed_at, status_changed_at, roles(title, employer_profiles(company_name, logo_url, company_slug))',
+          )
+          .eq('candidate_id', candidate.id)
+          .order('applied_at', { ascending: false }),
+        supabase
+          .from('video_questions')
+          .select('id, role_id, question_text, asked_at, answered_at, expired_at, status, answer_token')
+          .eq('candidate_id', candidate.id),
+      ])
 
       if (appsError) {
         setError(appsError.message)
         setLoading(false)
         return
       }
+
+      const questionsByRoleId = {}
+      ;(questions || []).forEach((q) => {
+        if (!questionsByRoleId[q.role_id]) questionsByRoleId[q.role_id] = []
+        questionsByRoleId[q.role_id].push(q)
+      })
+
       setApplications(data)
+      setQuestionsByRole(questionsByRoleId)
       setLoading(false)
 
-      if (cacheKey) setCachedPage(cacheKey, { applications: data })
+      if (cacheKey) setCachedPage(cacheKey, { applications: data, questionsByRole: questionsByRoleId })
     }
 
     load()
@@ -204,7 +268,7 @@ export default function Applications() {
                     </button>
                   </div>
                 </div>
-                {expanded && <Timeline application={a} />}
+                {expanded && <Timeline application={a} questions={questionsByRole[a.role_id] || []} />}
               </div>
             )
           })}
