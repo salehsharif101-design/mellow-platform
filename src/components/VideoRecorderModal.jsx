@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Modal from './Modal.jsx'
+import { attachRecordedVideoDurationFix } from '../lib/fixVideoPlaybackDuration.js'
 
 const MAX_SECONDS = 60
 
@@ -21,6 +22,7 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
   const [recordedUrl, setRecordedUrl] = useState(null)
 
   const liveVideoRef = useRef(null)
+  const recordedVideoRef = useRef(null)
   const mediaRecorderRef = useRef(null)
   const chunksRef = useRef([])
   const timerRef = useRef(null)
@@ -66,6 +68,12 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
       liveVideoRef.current.srcObject = stream
     }
   }, [stream])
+
+  // See fixVideoPlaybackDuration.js — without this, mobile Safari/Chrome
+  // stall the recorded preview's video track partway through playback
+  // while the audio keeps going, since a MediaRecorder blob has no
+  // duration/seek index in its container.
+  useEffect(() => attachRecordedVideoDurationFix(recordedVideoRef.current, recordedUrl), [recordedUrl])
 
   useEffect(() => {
     return () => {
@@ -234,8 +242,10 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
       {recordedUrl && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <video
+            ref={recordedVideoRef}
             src={recordedUrl}
             controls
+            playsInline
             style={{ width: '100%', maxHeight: '60vh', borderRadius: 12, background: '#000', display: 'block' }}
           />
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>

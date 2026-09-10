@@ -7,6 +7,7 @@ import VideoRecorderModal from '../../components/VideoRecorderModal.jsx'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
 import SkillsTagInput from '../../components/SkillsTagInput.jsx'
 import { deleteAccount } from '../../lib/deleteAccount.js'
+import { attachRecordedVideoDurationFix } from '../../lib/fixVideoPlaybackDuration.js'
 
 const PROFICIENCIES = ['basic', 'conversational', 'fluent', 'native']
 const EDUCATION_LEVELS = ['High School', 'Diploma', "Bachelor's", "Master's", 'PhD', 'Self-taught', 'Other']
@@ -856,6 +857,13 @@ function VideoSection({ userId, introVideoUrl, setIntroVideoUrl, originalIntroVi
     }
   }, [])
 
+  // See fixVideoPlaybackDuration.js — without this, mobile Safari/Chrome
+  // stall this preview's video track partway through playback (while
+  // audio keeps going) for a freshly recorded/uploaded blob: URL, since a
+  // MediaRecorder blob has no duration/seek index in its container.
+  const previewVideoRef = useRef(null)
+  useEffect(() => attachRecordedVideoDurationFix(previewVideoRef.current, previewUrl), [previewUrl])
+
   function processFile(selected) {
     setError('')
     // MediaRecorder's own output carries a codec-suffixed type (e.g.
@@ -954,8 +962,10 @@ function VideoSection({ userId, introVideoUrl, setIntroVideoUrl, originalIntroVi
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 260 }}>
         {previewUrl && (
           <video
+            ref={previewVideoRef}
             src={previewUrl}
             controls
+            playsInline
             style={{
               width: '100%',
               height: 'auto',

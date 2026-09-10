@@ -3,6 +3,7 @@ import { supabase } from '../../../../lib/supabase.js'
 import { useHideChrome } from '../../../../components/Layout.jsx'
 import VideoRecorderModal from '../../../../components/VideoRecorderModal.jsx'
 import { usePersistedState } from '../../../../lib/usePersistedState.js'
+import { attachRecordedVideoDurationFix } from '../../../../lib/fixVideoPlaybackDuration.js'
 
 const MAX_DURATION_SECONDS = 60
 const MAX_FILE_BYTES = 100 * 1024 * 1024 // matches the candidate-videos bucket limit
@@ -88,6 +89,13 @@ export default function Step5Video({ initial, userId, onFinish, onBack, onSaveFo
       if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current)
     }
   }, [])
+
+  // See fixVideoPlaybackDuration.js — without this, mobile Safari/Chrome
+  // stall this preview's video track partway through playback (while
+  // audio keeps going) for a freshly recorded/uploaded blob: URL, since a
+  // MediaRecorder blob has no duration/seek index in its container.
+  const previewVideoRef = useRef(null)
+  useEffect(() => attachRecordedVideoDurationFix(previewVideoRef.current, previewUrl), [previewUrl])
 
   if (showTips) {
     return <TipsScreen onContinue={() => setShowTips(false)} />
@@ -197,8 +205,10 @@ export default function Step5Video({ initial, userId, onFinish, onBack, onSaveFo
 
       {previewUrl && (
         <video
+          ref={previewVideoRef}
           src={previewUrl}
           controls
+          playsInline
           style={{
             width: '100%',
             maxWidth: 400,
