@@ -14,7 +14,10 @@
 // the standard, documented workaround for this well-known MediaRecorder-
 // blob playback bug (the same technique Step5Video.jsx's own upload probe
 // already used to compute a real duration — just never applied to the
-// visible playback element itself).
+// visible playback element itself). A trailing video.load() forces iOS
+// Safari in particular to fully re-evaluate the resource now that the
+// browser has scanned it once, rather than continuing to play from
+// whatever partial understanding it had before the seek.
 //
 // Only worth doing for a blob: URL — a normal http(s) source (an
 // already-submitted, properly-indexed video) doesn't have this problem,
@@ -22,14 +25,31 @@
 export function attachRecordedVideoDurationFix(videoEl, src) {
   if (!videoEl || !src?.startsWith('blob:')) return undefined
 
+  let fixed = false
   function fixDuration() {
+    if (fixed) return
+    fixed = true
     videoEl.currentTime = 1e101
     videoEl.ontimeupdate = () => {
       videoEl.ontimeupdate = null
       videoEl.currentTime = 0
+      videoEl.load()
     }
   }
 
-  videoEl.addEventListener('loadedmetadata', fixDuration)
-  return () => videoEl.removeEventListener('loadedmetadata', fixDuration)
+  // React effects run strictly after commit/paint — but loadedmetadata for
+  // an in-memory blob: URL can fire essentially synchronously, sometimes
+  // before this effect gets a chance to attach a listener for it. An event
+  // that already fired never replays, so relying on the listener alone
+  // silently does nothing in that case. readyState >= 1 (HAVE_METADATA)
+  // means it's already happened; run the fix immediately instead.
+  if (videoEl.readyState >= 1) {
+    fixDuration()
+  } else {
+    videoEl.addEventListener('loadedmetadata', fixDuration, { once: true })
+  }
+
+  return () => {
+    videoEl.removeEventListener('loadedmetadata', fixDuration)
+  }
 }

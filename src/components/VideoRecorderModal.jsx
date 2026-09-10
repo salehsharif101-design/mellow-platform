@@ -9,9 +9,27 @@ const MAX_SECONDS = 60
 // available.
 const MIME_CANDIDATES = ['video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
 
+// iOS Safari (both the browser itself and any other browser on iOS, which
+// is required by Apple to use the same WebKit engine under the hood) has
+// no webm playback support at all — a webm recording there wouldn't just
+// risk the mobile duration/stall bug, it flatly wouldn't play back. This
+// is a belt-and-suspenders check on top of MIME_CANDIDATES already
+// listing mp4 first and isTypeSupported already gating each candidate: if
+// isTypeSupported ever misreports webm as usable on iOS (a real
+// inconsistency in some WebKit versions), refuse it explicitly rather
+// than silently record something that can never be played back.
+function isIOS() {
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
+  // iPadOS 13+ reports as "Macintosh" with touch support — the classic
+  // iPhone/iPod UA check alone misses it.
+  return /iPad|iPhone|iPod/.test(ua) || (ua.includes('Macintosh') && typeof navigator !== 'undefined' && navigator.maxTouchPoints > 1)
+}
+
 function pickMimeType() {
   if (typeof MediaRecorder === 'undefined') return null
-  return MIME_CANDIDATES.find((type) => MediaRecorder.isTypeSupported?.(type)) || null
+  const picked = MIME_CANDIDATES.find((type) => MediaRecorder.isTypeSupported?.(type)) || null
+  if (picked?.startsWith('video/webm') && isIOS()) return null
+  return picked
 }
 
 export default function VideoRecorderModal({ onClose, onConfirm }) {
@@ -103,6 +121,18 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
       recordedBlobRef.current = blob
       setRecordedUrl(URL.createObjectURL(blob))
       setRecording(false)
+
+      // The camera used to keep running (light stays on, still actively
+      // capturing/encoding) for the entire review screen, only released on
+      // retake/use/close — on mobile, that ongoing capture pipeline
+      // competing with the recorded video's own decode+render pipeline is
+      // exactly the kind of resource contention that can make playback
+      // stall partway through while audio (much cheaper to decode) keeps
+      // going. Nothing on the review screen still needs the live stream —
+      // release it the moment there's a recording to show instead.
+      streamRef.current?.getTracks().forEach((t) => t.stop())
+      streamRef.current = null
+      setStream(null)
     }
     mediaRecorderRef.current = recorder
     recorder.start()
