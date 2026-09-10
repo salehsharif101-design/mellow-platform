@@ -53,7 +53,7 @@ export default async function handler(req, res) {
         // not get overwritten to 'expired' out from under them.
         const { data: updated } = await supabase
           .from('video_questions')
-          .update({ status: 'expired' })
+          .update({ status: 'expired', expired_at: new Date().toISOString() })
           .eq('id', question.id)
           .eq('status', 'pending')
           .select('id')

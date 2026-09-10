@@ -185,7 +185,17 @@ export default function EmployerDashboard() {
       // all goes out in one batch instead of one round trip at a time.
       // Applications are filtered by employer via the embedded roles join
       // rather than a separate "get my role ids first" query.
-      const [rolesResult, applicationsResult, shortlistResult, companyViewsResult, senderProfilesResult, activityResult, teamMembersResult, answeredQuestionsResult] = await Promise.all([
+      const [
+        rolesResult,
+        applicationsResult,
+        shortlistResult,
+        companyViewsResult,
+        senderProfilesResult,
+        activityResult,
+        teamMembersResult,
+        answeredQuestionsResult,
+        expiredQuestionsResult,
+      ] = await Promise.all([
         supabase.from('roles').select('id, title, is_active, created_at, view_count').eq('employer_id', emp.id).order('created_at', { ascending: false }),
         supabase
           .from('applications')
@@ -224,6 +234,16 @@ export default function EmployerDashboard() {
           .eq('employer_id', emp.id)
           .eq('status', 'answered')
           .gt('answered_at', sinceIso),
+        // expired_at (set by the expiry cron alongside status) rather than
+        // asked_at — asked_at is always ~3 days stale by the time a
+        // question expires, so filtering on it would either miss every
+        // expiry or require a much wider sinceIso just for this one source.
+        supabase
+          .from('video_questions')
+          .select('id, role_id, expired_at, candidate_profiles(full_name), roles(title)')
+          .eq('employer_id', emp.id)
+          .eq('status', 'expired')
+          .gt('expired_at', sinceIso),
       ])
 
       const myRoles = rolesResult.data || []
@@ -311,6 +331,16 @@ export default function EmployerDashboard() {
           text: `${candidateName} answered your video question for ${q.roles?.title || 'a role'}`,
           link: `/employer/roles/${q.role_id}/applicants`,
           timestamp: q.answered_at,
+        })
+      })
+
+      ;(expiredQuestionsResult.data || []).forEach((q) => {
+        const candidateName = q.candidate_profiles?.full_name || 'A candidate'
+        items.push({
+          id: `question-expired-${q.id}`,
+          text: `${candidateName}'s answer to your question for ${q.roles?.title || 'a role'} has expired`,
+          link: `/employer/roles/${q.role_id}/applicants`,
+          timestamp: q.expired_at,
         })
       })
 
