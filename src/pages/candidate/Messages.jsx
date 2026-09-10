@@ -157,7 +157,12 @@ export default function CandidateMessages() {
         />
       ) : (
         <div className="messages-layout" style={{ display: 'flex', gap: 32, marginTop: 28, alignItems: 'flex-start' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220 }}>
+          {/* Fixed width + flexShrink: 0 so this column can never grow to
+              fit an unbroken long message preview (white-space: nowrap
+              text has no wrap points, so without a hard width cap here a
+              flex item sizes to its content's full unbroken width) or
+              shrink away when the thread panel needs room. */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: 280, flexShrink: 0 }}>
             {conversations.map((c) => {
               // Marking read happens inside MessageThread once opened, but
               // that's an async DB write — selecting the conversation is
@@ -223,7 +228,7 @@ export default function CandidateMessages() {
             })}
           </div>
 
-          <div className="card" style={{ flex: 1, padding: 24, maxWidth: 480 }}>
+          <div className="card" style={{ flex: 1, minWidth: 0, padding: 24, maxWidth: 480 }}>
             {selectedConvo ? (
               <MessageThread
                 otherUserId={selectedConvo.sendToUserId}
