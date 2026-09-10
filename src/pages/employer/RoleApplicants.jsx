@@ -24,7 +24,7 @@ import {
   reviewingStageId,
   shortlistedStageId,
 } from '../../lib/pipelineStages.js'
-import { QUESTION_LIMIT, daysLeftToAnswer, isPastDeadline } from '../../lib/videoQuestions.js'
+import { daysLeftToAnswer, isPastDeadline, getAskQuestionAvailability } from '../../lib/videoQuestions.js'
 
 const QUESTION_STATUS_LABELS = { pending: 'Pending', answered: 'Answered', expired: 'Expired' }
 const QUESTION_STATUS_COLORS = {
@@ -568,23 +568,24 @@ export default function RoleApplicants() {
                         >
                           Message
                         </button>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <button
-                            type="button"
-                            className="btn btn-ghost"
-                            style={{ padding: '8px 12px' }}
-                            disabled={(questionsByCandidate[c.id] || []).length >= QUESTION_LIMIT}
-                            title="Send a video question to this candidate and receive their recorded answer. Limit 2 questions per candidate."
-                            onClick={() => setAskingQuestionForApp(a)}
-                          >
-                            Ask a question
-                          </button>
-                          {(questionsByCandidate[c.id] || []).length >= QUESTION_LIMIT && (
-                            <span style={{ fontSize: 11, color: 'var(--color-text-muted)', maxWidth: 140 }}>
-                              You have used both questions for this candidate.
-                            </span>
-                          )}
-                        </div>
+                        {(() => {
+                          const { canAsk, reason } = getAskQuestionAvailability(questionsByCandidate[c.id] || [])
+                          return (
+                            <button
+                              type="button"
+                              className="btn btn-ghost"
+                              style={{ padding: '8px 12px' }}
+                              disabled={!canAsk}
+                              title={
+                                reason ||
+                                'Send a video question to this candidate and receive their recorded answer. Limit 2 questions per candidate.'
+                              }
+                              onClick={() => setAskingQuestionForApp(a)}
+                            >
+                              Ask a question
+                            </button>
+                          )
+                        })()}
                         {addingStageId === a.id ? (
                           <input
                             autoFocus

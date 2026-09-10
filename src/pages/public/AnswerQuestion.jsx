@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase.js'
 import { useHideChrome } from '../../components/Layout.jsx'
 import CompanyAvatar from '../../components/CompanyAvatar.jsx'
+import Logo from '../../components/Logo.jsx'
 import VideoRecorderModal from '../../components/VideoRecorderModal.jsx'
 
 const MAX_FILE_BYTES = 100 * 1024 * 1024
@@ -128,7 +129,8 @@ export default function AnswerQuestion() {
   if (loadError || !question) {
     return (
       <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
-        <h1 style={{ fontSize: 26 }}>This link isn't valid</h1>
+        <Logo />
+        <h1 style={{ fontSize: 26, marginTop: 28 }}>This link isn't valid</h1>
         <p style={{ marginTop: 12, color: 'var(--color-text-muted)' }}>
           {loadError || 'Something went wrong loading this question.'}
         </p>
@@ -139,7 +141,8 @@ export default function AnswerQuestion() {
   if (submitted || question.status === 'answered') {
     return (
       <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
-        <h1 style={{ fontSize: 26 }}>You have already answered this question</h1>
+        <Logo />
+        <h1 style={{ fontSize: 26, marginTop: 28 }}>You have already answered this question</h1>
         <p style={{ marginTop: 12, color: 'var(--color-text-muted)' }}>
           Thanks — {question.companyName} has been notified and can now watch your answer.
         </p>
@@ -150,7 +153,8 @@ export default function AnswerQuestion() {
   if (question.status === 'expired') {
     return (
       <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
-        <h1 style={{ fontSize: 26 }}>This question has expired</h1>
+        <Logo />
+        <h1 style={{ fontSize: 26, marginTop: 28 }}>This question has expired</h1>
         <p style={{ marginTop: 12, color: 'var(--color-text-muted)' }}>
           The {question.answerWindowDays}-day window to answer this question from {question.companyName} has passed.
         </p>
@@ -160,7 +164,8 @@ export default function AnswerQuestion() {
 
   return (
     <div className="section" style={{ maxWidth: 480, margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <Logo />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 28 }}>
         <CompanyAvatar logoUrl={question.companyLogoUrl} companyName={question.companyName} size={44} />
         <div>
           <p style={{ fontWeight: 700, fontSize: 16 }}>{question.companyName}</p>
@@ -168,7 +173,7 @@ export default function AnswerQuestion() {
         </div>
       </div>
 
-      <img src="/thinking2.png" alt="" style={{ width: '100%', maxWidth: 220, margin: '32px auto', display: 'block' }} />
+      <img src="/Easy_stuff.png" alt="" style={{ width: '100%', maxWidth: 220, margin: '32px auto', display: 'block' }} />
 
       <div className="card" style={{ padding: 20 }}>
         <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: 8 }}>
