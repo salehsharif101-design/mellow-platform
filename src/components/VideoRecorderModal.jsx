@@ -132,11 +132,68 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
     [recordedUrl],
   )
 
+  // Temporary diagnostics + a recovery attempt for the mobile
+  // playback-stall investigation — real-device testing confirmed the
+  // blob/duration/mimeType are all correct, with no error event, so
+  // whatever is happening is a genuine mid-playback stall rather than a
+  // decode failure. 'waiting'/'stalled' firing (and what currentTime they
+  // fire at) is exactly the missing piece of that picture. On either,
+  // nudge forward a fraction of a second and retry play() — a documented
+  // recovery for a decoder that's gotten stuck waiting for data it
+  // considers itself blocked on even though more of the file exists — with
+  // a cooldown so a decoder that's still genuinely stuck can't turn this
+  // into a tight retry loop.
+  useEffect(() => {
+    const videoEl = recordedVideoRef.current
+    if (!videoEl || !recordedUrl) return undefined
+
+    let lastResumeAttempt = 0
+    function logEvent(e) {
+      // eslint-disable-next-line no-console
+      console.log('[VideoRecorderModal] video event:', e.type, 'at currentTime:', videoEl.currentTime, 'readyState:', videoEl.readyState)
+    }
+    function handleError() {
+      logEvent({ type: 'error' })
+      // eslint-disable-next-line no-console
+      console.log('[VideoRecorderModal] video error:', videoEl.error)
+    }
+    function attemptResume(e) {
+      logEvent(e)
+      const now = Date.now()
+      if (now - lastResumeAttempt < 1500) return
+      lastResumeAttempt = now
+      const target = videoEl.duration ? Math.min(videoEl.currentTime + 0.1, videoEl.duration - 0.05) : videoEl.currentTime + 0.1
+      // eslint-disable-next-line no-console
+      console.log('[VideoRecorderModal] attempting resume: nudging currentTime to', target)
+      videoEl.currentTime = target
+      videoEl.play().catch((err) => {
+        // eslint-disable-next-line no-console
+        console.log('[VideoRecorderModal] resume play() failed:', err?.message)
+      })
+    }
+
+    videoEl.addEventListener('stalled', attemptResume)
+    videoEl.addEventListener('waiting', attemptResume)
+    videoEl.addEventListener('suspend', logEvent)
+    videoEl.addEventListener('error', handleError)
+
+    return () => {
+      videoEl.removeEventListener('stalled', attemptResume)
+      videoEl.removeEventListener('waiting', attemptResume)
+      videoEl.removeEventListener('suspend', logEvent)
+      videoEl.removeEventListener('error', handleError)
+    }
+  }, [recordedUrl])
+
   useEffect(() => {
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop())
       if (timerRef.current) clearInterval(timerRef.current)
       if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current)
+      // A no-op if recordedUrl is a data: URL (the current default) rather
+      // than a blob: URL (the fallback) — revokeObjectURL only ever does
+      // anything for an actual blob: URL, per spec, so this is safe either
+      // way without needing to branch on which one it is.
       if (recordedUrl) URL.revokeObjectURL(recordedUrl)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -194,8 +251,32 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
       // tries to claim decoder resources of its own.
       previewTimeoutRef.current = setTimeout(() => {
         previewTimeoutRef.current = null
-        setRecordedUrl(URL.createObjectURL(blob))
-      }, 150)
+
+        // A data: URL instead of a blob: URL for the preview — real-device
+        // testing ruled out the duration/mimeType/blob-integrity
+        // explanations (all confirmed correct), leaving iOS Safari's own
+        // blob: URL buffering as the remaining suspect for a multi-second
+        // recording. A data: URL is the whole file inline in the
+        // document rather than a separate in-memory resource the media
+        // pipeline streams from, which some real-world reports say iOS
+        // Safari handles more reliably for this exact kind of stall — at
+        // the cost of a ~33% larger in-memory string (FileReader's
+        // base64 encoding overhead) and a decode pass to build it, which
+        // is why this still falls back to the plain blob: URL if
+        // FileReader itself fails for any reason.
+        const reader = new FileReader()
+        reader.onload = () => {
+          // eslint-disable-next-line no-console
+          console.log('[VideoRecorderModal] Using data: URL for preview, length:', reader.result?.length)
+          setRecordedUrl(reader.result)
+        }
+        reader.onerror = () => {
+          // eslint-disable-next-line no-console
+          console.log('[VideoRecorderModal] FileReader failed, falling back to blob: URL:', reader.error)
+          setRecordedUrl(URL.createObjectURL(blob))
+        }
+        reader.readAsDataURL(blob)
+      }, 200)
     }
     mediaRecorderRef.current = recorder
     recorder.start()

@@ -19,9 +19,13 @@
 // browser has scanned it once, rather than continuing to play from
 // whatever partial understanding it had before the seek.
 //
-// Only worth doing for a blob: URL — a normal http(s) source (an
+// Only worth doing for a blob: or data: URL — a normal http(s) source (an
 // already-submitted, properly-indexed video) doesn't have this problem,
-// and seeking it to the end and back would just waste bandwidth.
+// and seeking it to the end and back would just waste bandwidth. data:
+// covers the same freshly-recorded content encoded as a data URL instead
+// of a blob: URL (see VideoRecorderModal.jsx) — same underlying container
+// bytes either way, so the same fix applies regardless of which URL
+// scheme wraps them.
 //
 // onFixed, if given, is called with the duration the browser reports once
 // it's finished scanning the blob — read right after the seek, before
@@ -30,7 +34,7 @@
 // own metadata. Purely a diagnostic hook for the current mobile
 // playback-stall investigation.
 export function attachRecordedVideoDurationFix(videoEl, src, onFixed) {
-  if (!videoEl || !src?.startsWith('blob:')) return undefined
+  if (!videoEl || !(src?.startsWith('blob:') || src?.startsWith('data:'))) return undefined
 
   let fixed = false
   function fixDuration() {
