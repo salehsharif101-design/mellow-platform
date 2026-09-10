@@ -209,6 +209,7 @@ export default function Step5Video({ initial, userId, onFinish, onBack, onSaveFo
           src={previewUrl}
           controls
           playsInline
+          preload="auto"
           style={{
             width: '100%',
             maxWidth: 400,

@@ -966,6 +966,7 @@ function VideoSection({ userId, introVideoUrl, setIntroVideoUrl, originalIntroVi
             src={previewUrl}
             controls
             playsInline
+            preload="auto"
             style={{
               width: '100%',
               height: 'auto',

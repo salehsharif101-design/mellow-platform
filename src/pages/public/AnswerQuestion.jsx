@@ -223,6 +223,7 @@ export default function AnswerQuestion() {
           src={previewUrl}
           controls
           playsInline
+          preload="auto"
           style={{ width: '100%', maxWidth: 400, borderRadius: 12, background: '#000', margin: '20px auto 0', display: 'block' }}
         />
       )}

@@ -47,6 +47,7 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
   const mimeTypeRef = useRef(null)
   const recordedBlobRef = useRef(null)
   const streamRef = useRef(null)
+  const previewTimeoutRef = useRef(null)
 
   function startCamera() {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -56,7 +57,26 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
     setError('')
     let cancelled = false
     navigator.mediaDevices
-      .getUserMedia({ video: { facingMode: 'user' }, audio: true })
+      .getUserMedia({
+        // Unconstrained video here means "whatever the camera defaults
+        // to" — often 1080p+ at the device's max frame rate. Sustained
+        // real-time encoding at that load, especially where the browser
+        // falls back to a software encoder (common for webm/VP8 on
+        // Android, less universal than H.264 hardware encoding), is a
+        // real candidate for exactly a mid-recording stall on mobile: CPU
+        // or thermal pressure building up over several seconds rather
+        // than failing immediately. Capping to 720p and a modest frame
+        // rate keeps this comfortably within what a phone's encoder can
+        // sustain for the full 60 seconds, at a resolution that's already
+        // more than enough for a talking-head video.
+        video: {
+          facingMode: 'user',
+          width: { ideal: 1280, max: 1280 },
+          height: { ideal: 720, max: 720 },
+          frameRate: { ideal: 24, max: 30 },
+        },
+        audio: true,
+      })
       .then((s) => {
         if (cancelled) {
           s.getTracks().forEach((t) => t.stop())
@@ -97,6 +117,7 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop())
       if (timerRef.current) clearInterval(timerRef.current)
+      if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current)
       if (recordedUrl) URL.revokeObjectURL(recordedUrl)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -112,14 +133,17 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
     mimeTypeRef.current = mimeType
     chunksRef.current = []
 
-    const recorder = new MediaRecorder(stream, { mimeType })
+    // Caps sustained encoder load alongside the resolution/frame-rate
+    // constraints on the stream itself above — an unconstrained default
+    // bitrate for a 720p capture can run well past what's needed for a
+    // talking-head video, adding to the same mid-recording stall risk.
+    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 1_500_000 })
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data)
     }
     recorder.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: mimeTypeRef.current })
       recordedBlobRef.current = blob
-      setRecordedUrl(URL.createObjectURL(blob))
       setRecording(false)
 
       // The camera used to keep running (light stays on, still actively
@@ -133,6 +157,16 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
       streamRef.current?.getTracks().forEach((t) => t.stop())
       streamRef.current = null
       setStream(null)
+
+      // track.stop() returns immediately, but the underlying camera/
+      // encoder hardware teardown on some mobile devices isn't
+      // necessarily synchronous with that call returning — give it a
+      // brief moment to actually release before the preview video element
+      // tries to claim decoder resources of its own.
+      previewTimeoutRef.current = setTimeout(() => {
+        previewTimeoutRef.current = null
+        setRecordedUrl(URL.createObjectURL(blob))
+      }, 150)
     }
     mediaRecorderRef.current = recorder
     recorder.start()
@@ -276,6 +310,7 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
             src={recordedUrl}
             controls
             playsInline
+            preload="auto"
             style={{ width: '100%', maxHeight: '60vh', borderRadius: 12, background: '#000', display: 'block' }}
           />
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
