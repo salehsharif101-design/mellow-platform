@@ -5,7 +5,6 @@ import { useHideChrome } from '../../components/Layout.jsx'
 import CompanyAvatar from '../../components/CompanyAvatar.jsx'
 import Logo from '../../components/Logo.jsx'
 import VideoRecorderModal from '../../components/VideoRecorderModal.jsx'
-import { attachRecordedVideoDurationFix } from '../../lib/fixVideoPlaybackDuration.js'
 
 const MAX_FILE_BYTES = 100 * 1024 * 1024
 const ACCEPTED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm']
@@ -64,12 +63,7 @@ export default function AnswerQuestion() {
     }
   }, [previewUrl])
 
-  // See fixVideoPlaybackDuration.js — without this, mobile Safari/Chrome
-  // stall this preview's video track partway through playback (while
-  // audio keeps going) for a freshly recorded/uploaded blob: URL, since a
-  // MediaRecorder blob has no duration/seek index in its container.
   const previewVideoRef = useRef(null)
-  useEffect(() => attachRecordedVideoDurationFix(previewVideoRef.current, previewUrl), [previewUrl])
 
   function processFile(selected) {
     setFileError('')

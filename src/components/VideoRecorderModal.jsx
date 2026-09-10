@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import Modal from './Modal.jsx'
-import { attachRecordedVideoDurationFix } from '../lib/fixVideoPlaybackDuration.js'
 
 const MAX_SECONDS = 60
 
@@ -212,20 +211,20 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
     }
   }, [stream])
 
-  // See fixVideoPlaybackDuration.js — without this, mobile Safari/Chrome
-  // stall the recorded preview's video track partway through playback
-  // while the audio keeps going, since a MediaRecorder blob has no
-  // duration/seek index in its container. The onFixed callback is a
-  // temporary diagnostic for the mobile playback-stall investigation —
-  // safe to strip once that's confirmed resolved on real devices.
-  useEffect(
-    () =>
-      attachRecordedVideoDurationFix(recordedVideoRef.current, recordedUrl, (duration) => {
-        // eslint-disable-next-line no-console
-        console.log('[VideoRecorderModal] Video duration after fix:', duration)
-      }),
-    [recordedUrl],
-  )
+  // Deliberately no seek-based duration fix here anymore (one used to
+  // seek to 1e101 and back to force the browser to compute a real
+  // duration for a MediaRecorder blob, which normally reports Infinity
+  // until enough of the container has been scanned). Real-device data
+  // showed it backfiring on iOS: 'pause' fired at exactly the duration
+  // that seek had computed (e.g. 42.17s) while audio kept playing well
+  // past that point — meaning the seek itself computed a duration
+  // shorter than the recording's real length (most likely landing where
+  // the video track's own sample table ran out, not the full,
+  // audio-inclusive extent of the file), and forcing that shorter number
+  // onto video.duration is what then made iOS treat the video track as
+  // finished early. video.duration is now left as whatever iOS (or any
+  // other browser) naturally reports for the blob: URL on its own, even
+  // if that's briefly Infinity or NaN before enough of it has loaded.
 
   // Explicit reload right after the src changes — redundant with what
   // changing the src attribute is already supposed to trigger per spec,
@@ -352,6 +351,13 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
       console.log('[VideoRecorderModal] video error:', videoEl.error)
     }
 
+    // Logs video.duration as soon as it's known, directly comparable in
+    // the console against the "Audio-only duration via Web Audio API"
+    // line logged from onstop above.
+    function handleLoadedMetadata() {
+      logEvent('loadedmetadata')
+    }
+
     // A resume attempted directly from the 'pause' handler isn't running
     // inside a real user gesture — WebKit fired 'pause' on its own, this
     // handler runs from that, not from a tap. It may still work if this
@@ -406,6 +412,7 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
     videoEl.addEventListener('suspend', handleSuspend)
     videoEl.addEventListener('error', handleError)
     videoEl.addEventListener('pause', handlePause)
+    videoEl.addEventListener('loadedmetadata', handleLoadedMetadata)
     videoEl.addEventListener('touchstart', markGesture)
     videoEl.addEventListener('touchend', markGesture)
     videoEl.addEventListener('click', markGesture)
@@ -416,6 +423,7 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
       videoEl.removeEventListener('suspend', handleSuspend)
       videoEl.removeEventListener('error', handleError)
       videoEl.removeEventListener('pause', handlePause)
+      videoEl.removeEventListener('loadedmetadata', handleLoadedMetadata)
       videoEl.removeEventListener('touchstart', markGesture)
       videoEl.removeEventListener('touchend', markGesture)
       videoEl.removeEventListener('click', markGesture)
@@ -451,14 +459,19 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
     // eslint-disable-next-line no-console
     console.log('[VideoRecorderModal] MIME type used:', mimeTypeRef.current)
 
-    // Caps sustained encoder load alongside the resolution/frame-rate
-    // constraints on the stream itself above — an unconstrained default
-    // bitrate for a 720p capture can run well past what's needed for a
-    // talking-head video, adding to the same mid-recording stall risk.
-    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 1_500_000 })
+    // Lowered from 1.5Mbps — real-device testing shows the video track
+    // freezing on its last decoded frame partway through longer
+    // recordings while audio keeps playing, consistent with iOS Safari's
+    // decoder falling behind and giving up on the video track rather than
+    // any container/duration-metadata problem. A lower target bitrate is
+    // less encoding (and, since these are CBR-ish targets a decoder has
+    // to keep pace with, less decoding) work per second of video.
+    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 500_000 })
     // eslint-disable-next-line no-console
     console.log('[VideoRecorderModal] recorder.mimeType (what the browser actually selected):', recorder.mimeType)
     recorder.ondataavailable = (e) => {
+      // eslint-disable-next-line no-console
+      console.log('[VideoRecorderModal] chunk', chunksRef.current.length, 'size:', e.data.size)
       if (e.data.size > 0) chunksRef.current.push(e.data)
     }
     recorder.onstop = () => {
@@ -467,7 +480,32 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
       setRecording(false)
 
       // eslint-disable-next-line no-console
-      console.log('[VideoRecorderModal] Blob size:', blob.size, 'Blob type:', blob.type)
+      console.log(
+        '[VideoRecorderModal] Blob size:', blob.size,
+        'Blob type:', blob.type,
+        'chunk count:', chunksRef.current.length,
+      )
+
+      // Diagnostic only: decodes just the audio track independently of
+      // the <video> element's own (video-track-gated) playback, to check
+      // whether the audio actually runs the full recorded length even
+      // when the video track freezes partway through — narrows this down
+      // to a video-decoder-specific problem rather than something wrong
+      // with the container or blob as a whole.
+      ;(async () => {
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext
+          if (!AudioCtx) return
+          const audioCtx = new AudioCtx()
+          const audioBuffer = await audioCtx.decodeAudioData(await blob.arrayBuffer())
+          // eslint-disable-next-line no-console
+          console.log('[VideoRecorderModal] Audio-only duration via Web Audio API:', audioBuffer.duration)
+          audioCtx.close()
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.log('[VideoRecorderModal] Could not decode audio track via Web Audio API:', err?.message)
+        }
+      })()
 
       // The camera used to keep running (light stays on, still actively
       // capturing/encoding) for the entire review screen, only released on
@@ -508,7 +546,16 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
       }, 200)
     }
     mediaRecorderRef.current = recorder
-    recorder.start()
+    // A 100ms timeslice makes ondataavailable fire periodically during
+    // recording instead of producing one single blob only at stop() —
+    // Safari's MediaRecorder muxes a timesliced recording as fragmented
+    // mp4 (periodic moof/mdat boxes aligned to those chunks) rather than
+    // one non-fragmented file, which iOS's own decoder/demuxer is built
+    // to buffer and seek through more reliably for longer clips. The
+    // final blob assembly (onstop, above) is unchanged — Blob(chunks)
+    // concatenates however many pieces come in into the same byte stream
+    // either way.
+    recorder.start(100)
     setRecording(true)
     setSecondsLeft(MAX_SECONDS)
 
