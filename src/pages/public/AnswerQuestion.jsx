@@ -164,7 +164,7 @@ export default function AnswerQuestion() {
       <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
         <Logo />
         <img src="/Collaborate2.png" alt="" style={{ width: '100%', maxWidth: 220, margin: '28px auto 0', display: 'block' }} />
-        <h1 style={{ fontSize: 26, marginTop: 20 }}>You have already answered this question</h1>
+        <h1 style={{ fontSize: 26, marginTop: 20 }}>You have answered this question</h1>
         <p style={{ marginTop: 12, color: 'var(--color-text-muted)' }}>
           Thanks — {question.companyName} has been notified and can now watch your answer.
         </p>

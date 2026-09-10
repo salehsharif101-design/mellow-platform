@@ -514,13 +514,13 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
 
       {!error && !recordedUrl && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', background: '#000', minHeight: 240 }}>
+          <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', background: '#000', height: '60vh' }}>
             <video
               ref={liveVideoRef}
               autoPlay
               muted
               playsInline
-              style={{ width: '100%', maxHeight: '60vh', display: 'block' }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
             {!stream && (
               <p
@@ -580,14 +580,16 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
 
       {recordedUrl && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <video
-            ref={recordedVideoRef}
-            src={recordedUrl}
-            controls
-            playsInline
-            preload="auto"
-            style={{ width: '100%', maxHeight: '60vh', borderRadius: 12, background: '#000', display: 'block' }}
-          />
+          <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', background: '#000', height: '60vh' }}>
+            <video
+              ref={recordedVideoRef}
+              src={recordedUrl}
+              controls
+              playsInline
+              preload="auto"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          </div>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
             <button type="button" className="btn btn-ghost" onClick={handleRetake}>
               Retake
