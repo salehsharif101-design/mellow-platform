@@ -138,6 +138,14 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
   const [recording, setRecording] = useState(false)
   const [secondsLeft, setSecondsLeft] = useState(MAX_SECONDS)
   const [recordedUrl, setRecordedUrl] = useState(null)
+  // Distinguishes "camera hasn't started yet" (stream is null because
+  // startCamera/retake is still acquiring it — 'Starting camera…' is
+  // correct) from "camera was just deliberately released after stop()"
+  // (stream is also null here, but only because recording just ended and
+  // the preview blob/URL isn't ready yet — showing the same startup
+  // message here reads as the camera restarting rather than a recording
+  // that just finished).
+  const [closingCamera, setClosingCamera] = useState(false)
 
   const liveVideoRef = useRef(null)
   const recordedVideoRef = useRef(null)
@@ -405,6 +413,7 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
       const blob = new Blob(chunksRef.current, { type: mimeTypeRef.current })
       recordedBlobRef.current = blob
       setRecording(false)
+      setClosingCamera(true)
 
       // The camera used to keep running (light stays on, still actively
       // capturing/encoding) for the entire review screen, only released on
@@ -433,6 +442,7 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
         // if that isn't supported or fails.
         buildMediaSourceUrl(blob, mimeTypeRef.current).then((mediaSourceUrl) => {
           setRecordedUrl(mediaSourceUrl || URL.createObjectURL(blob))
+          setClosingCamera(false)
         })
       }, 200)
     }
@@ -485,6 +495,7 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
     streamRef.current?.getTracks().forEach((t) => t.stop())
     streamRef.current = null
     setStream(null)
+    setClosingCamera(false)
 
     if (recordedUrl) URL.revokeObjectURL(recordedUrl)
     recordedBlobRef.current = null
@@ -525,7 +536,7 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
               playsInline
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
-            {!stream && (
+            {!stream && !closingCamera && (
               <p
                 style={{
                   position: 'absolute',
