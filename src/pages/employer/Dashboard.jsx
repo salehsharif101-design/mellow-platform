@@ -185,7 +185,7 @@ export default function EmployerDashboard() {
       // all goes out in one batch instead of one round trip at a time.
       // Applications are filtered by employer via the embedded roles join
       // rather than a separate "get my role ids first" query.
-      const [rolesResult, applicationsResult, shortlistResult, companyViewsResult, senderProfilesResult, activityResult, teamMembersResult] = await Promise.all([
+      const [rolesResult, applicationsResult, shortlistResult, companyViewsResult, senderProfilesResult, activityResult, teamMembersResult, answeredQuestionsResult] = await Promise.all([
         supabase.from('roles').select('id, title, is_active, created_at, view_count').eq('employer_id', emp.id).order('created_at', { ascending: false }),
         supabase
           .from('applications')
@@ -218,6 +218,12 @@ export default function EmployerDashboard() {
         // e.g. a removed teammate), no attribution at all. See
         // resolveActorLabel below.
         supabase.from('employer_team_members').select('user_id, invited_email').eq('employer_id', emp.id).eq('status', 'active'),
+        supabase
+          .from('video_questions')
+          .select('id, role_id, answered_at, candidate_profiles(full_name), roles(title)')
+          .eq('employer_id', emp.id)
+          .eq('status', 'answered')
+          .gt('answered_at', sinceIso),
       ])
 
       const myRoles = rolesResult.data || []
@@ -296,6 +302,16 @@ export default function EmployerDashboard() {
           text = `${candidateName}'s status was changed to ${e.detail || 'a new stage'}${actorLabel ? ` by ${actorLabel}` : ''}`
         }
         items.push({ id: `activity-${e.id}`, text, link: profileLink, timestamp: e.created_at })
+      })
+
+      ;(answeredQuestionsResult.data || []).forEach((q) => {
+        const candidateName = q.candidate_profiles?.full_name || 'A candidate'
+        items.push({
+          id: `question-answered-${q.id}`,
+          text: `${candidateName} answered your video question for ${q.roles?.title || 'a role'}`,
+          link: `/employer/roles/${q.role_id}/applicants`,
+          timestamp: q.answered_at,
+        })
       })
 
       items.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))

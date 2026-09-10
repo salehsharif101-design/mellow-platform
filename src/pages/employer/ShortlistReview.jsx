@@ -12,7 +12,10 @@ import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
 import MessageIconButton from '../../components/MessageIconButton.jsx'
 import BookMeetingButton from '../../components/BookMeetingButton.jsx'
 import ShareButton from '../../components/ShareButton.jsx'
+import IconButton from '../../components/IconButton.jsx'
+import AskQuestionModal from '../../components/AskQuestionModal.jsx'
 import { ensureBuiltinStages, statusForStage } from '../../lib/pipelineStages.js'
+import { QUESTION_LIMIT } from '../../lib/videoQuestions.js'
 
 const STATUSES = ['reviewing', 'shortlisted', 'rejected']
 const STATUS_LABELS = { reviewing: 'Reviewing', shortlisted: 'Shortlisted', rejected: 'Rejected' }
@@ -59,6 +62,8 @@ export default function ShortlistReview() {
   const [messageSent, setMessageSent] = useState(false)
   const [showCalendly, setShowCalendly] = useState(false)
   const [pendingRejection, setPendingRejection] = useState(false)
+  const [questionCountByCandidate, setQuestionCountByCandidate] = useState({})
+  const [showAskQuestion, setShowAskQuestion] = useState(false)
 
   useEffect(() => {
     if (!user || !roleParam) return
@@ -92,14 +97,16 @@ export default function ShortlistReview() {
       // Feed, not tied to a role) has no pipeline stages to speak of.
       let stages = []
       let entriesWithStage = data || []
+      let questionCounts = {}
       if (roleParam !== 'general' && candidateIds.length > 0) {
-        const [{ data: stagesData }, { data: apps }] = await Promise.all([
+        const [{ data: stagesData }, { data: apps }, { data: questions }] = await Promise.all([
           supabase
             .from('role_pipeline_stages')
             .select('id, name, position')
             .eq('role_id', roleParam)
             .order('position', { ascending: true }),
           supabase.from('applications').select('candidate_id, custom_stage_id').eq('role_id', roleParam).in('candidate_id', candidateIds),
+          supabase.from('video_questions').select('candidate_id').eq('role_id', roleParam),
         ])
         stages = await ensureBuiltinStages(supabase, roleParam, stagesData || [])
         const stageByCandidate = {}
@@ -107,9 +114,13 @@ export default function ShortlistReview() {
           stageByCandidate[a.candidate_id] = a.custom_stage_id
         })
         entriesWithStage = (data || []).map((e) => ({ ...e, custom_stage_id: stageByCandidate[e.candidate_id] ?? null }))
+        ;(questions || []).forEach((q) => {
+          questionCounts[q.candidate_id] = (questionCounts[q.candidate_id] || 0) + 1
+        })
       }
       setPipelineStages(stages)
       setEntries(entriesWithStage)
+      setQuestionCountByCandidate(questionCounts)
       setRoleTitle(roleParam === 'general' ? null : data?.[0]?.roles?.title || null)
 
       if (candidateIds.length > 0) {
@@ -145,6 +156,7 @@ export default function ShortlistReview() {
   useEffect(() => {
     setShowMessage(false)
     setShowCalendly(false)
+    setShowAskQuestion(false)
     setMessageSent(false)
   }, [index])
 
@@ -289,6 +301,25 @@ export default function ShortlistReview() {
                         <h1 style={{ fontSize: 28 }}>{c.full_name}</h1>
                         <CompanyLinkIcons linkedinUrl={c.linkedin_url} websiteUrl={c.website_url} label={c.full_name} size={19} />
                         <MessageIconButton onMessage={() => setShowMessage(true)} label={c.full_name} size={19} />
+                        {entry.role_id && (
+                          <IconButton
+                            icon={
+                              <>
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                              </>
+                            }
+                            label={
+                              (questionCountByCandidate[entry.candidate_id] || 0) >= QUESTION_LIMIT
+                                ? 'You have used both questions for this candidate.'
+                                : 'Ask a question — send a video question to this candidate and receive their recorded answer. Limit 2 questions per candidate.'
+                            }
+                            disabled={(questionCountByCandidate[entry.candidate_id] || 0) >= QUESTION_LIMIT}
+                            onClick={() => setShowAskQuestion(true)}
+                            size={19}
+                          />
+                        )}
                         <ShareButton url={`${window.location.origin}/profile/${c.username || c.id}`} label="Share profile" size={19} />
                       </div>
                       {c.calendly_url && <BookMeetingButton onClick={() => setShowCalendly(true)} />}
@@ -526,6 +557,23 @@ export default function ShortlistReview() {
           onSent={() => {
             setMessageSent(true)
             setTimeout(() => setMessageSent(false), 3000)
+          }}
+        />
+      )}
+
+      {showAskQuestion && entry.role_id && (
+        <AskQuestionModal
+          employerId={employerId}
+          candidateId={entry.candidate_id}
+          roleId={entry.role_id}
+          candidateLabel={c.full_name}
+          questionNumber={(questionCountByCandidate[entry.candidate_id] || 0) + 1}
+          onClose={() => setShowAskQuestion(false)}
+          onSent={(question) => {
+            setQuestionCountByCandidate((prev) => ({
+              ...prev,
+              [question.candidate_id]: (prev[question.candidate_id] || 0) + 1,
+            }))
           }}
         />
       )}

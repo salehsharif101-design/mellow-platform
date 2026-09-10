@@ -31,6 +31,8 @@ const { default: welcomeEmailNudgeHandler } = await import('../api/cron/welcome-
 const { default: videoReminderHandler } = await import('../api/cron/video-reminder.js')
 const { default: meetingOutcomeHandler } = await import('../api/meeting-outcome.js')
 const { default: meetingFollowUpHandler } = await import('../api/cron/meeting-follow-up.js')
+const { default: videoQuestionHandler } = await import('../api/video-question.js')
+const { default: videoQuestionReminderHandler } = await import('../api/cron/video-question-reminder.js')
 const { default: sitemapHandler } = await import('../api/sitemap.js')
 const { default: ogRoleHandler } = await import('../api/og-role.js')
 const { default: ogCompanyHandler } = await import('../api/og-company.js')
@@ -55,6 +57,8 @@ const ROUTES = {
   '/api/cron/video-reminder': videoReminderHandler,
   '/api/meeting-outcome': meetingOutcomeHandler,
   '/api/cron/meeting-follow-up': meetingFollowUpHandler,
+  '/api/video-question': videoQuestionHandler,
+  '/api/cron/video-question-reminder': videoQuestionReminderHandler,
   '/sitemap.xml': sitemapHandler,
   '/api/og-role': ogRoleHandler,
   '/api/og-company': ogCompanyHandler,

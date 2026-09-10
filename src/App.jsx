@@ -22,6 +22,7 @@ import HireLocationRole from './pages/public/HireLocationRole.jsx'
 import JobsIndex from './pages/public/JobsIndex.jsx'
 import JobsLocation from './pages/public/JobsLocation.jsx'
 import NotFound from './pages/public/NotFound.jsx'
+import AnswerQuestion from './pages/public/AnswerQuestion.jsx'
 
 import CandidateDashboard from './pages/candidate/Dashboard.jsx'
 import ProfileEdit from './pages/candidate/ProfileEdit.jsx'
@@ -84,6 +85,11 @@ export default function App() {
 
         {/* Company profile pages are publicly shareable */}
         <Route path="/company/:slug" element={<CompanyProfile />} />
+
+        {/* Public — the answer_token itself is the credential, same idea as
+            /employer/team/accept below. Works for a logged-out candidate
+            too. */}
+        <Route path="/answer-question/:token" element={<AnswerQuestion />} />
 
         {/* Post-meeting follow-up loop — reached from email links, no
             session required. */}

@@ -12,6 +12,8 @@ import CandidateNotesThread from '../../components/CandidateNotesThread.jsx'
 import CandidateActivityTimeline from '../../components/CandidateActivityTimeline.jsx'
 import RoleAnalyticsPanel from '../../components/RoleAnalyticsPanel.jsx'
 import ManageStagesModal from '../../components/ManageStagesModal.jsx'
+import AskQuestionModal from '../../components/AskQuestionModal.jsx'
+import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import {
   STATUS_LABELS,
   STATUS_COLORS,
@@ -22,6 +24,14 @@ import {
   reviewingStageId,
   shortlistedStageId,
 } from '../../lib/pipelineStages.js'
+import { QUESTION_LIMIT, daysLeftToAnswer, isPastDeadline } from '../../lib/videoQuestions.js'
+
+const QUESTION_STATUS_LABELS = { pending: 'Pending', answered: 'Answered', expired: 'Expired' }
+const QUESTION_STATUS_COLORS = {
+  pending: { background: '#fff6e0', color: '#8a6100' },
+  answered: { background: '#e3f9e9', color: '#0f7a3d' },
+  expired: { background: 'var(--color-bg-soft)', color: 'var(--color-text-muted)' },
+}
 
 // True only for a genuine employer-added custom stage — never New, Rejected
 // (neither is ever a row), or the builtin Reviewing/Shortlisted rows.
@@ -61,6 +71,8 @@ export default function RoleApplicants() {
   const [pipelineStages, setPipelineStages] = useState([])
   const [notesByCandidate, setNotesByCandidate] = useState({})
   const [activityByCandidate, setActivityByCandidate] = useState({})
+  const [questionsByCandidate, setQuestionsByCandidate] = useState({})
+  const [askingQuestionForApp, setAskingQuestionForApp] = useState(null)
   const [hires, setHires] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -114,7 +126,7 @@ export default function RoleApplicants() {
 
       const candidateIds = (apps || []).map((a) => a.candidate_profiles?.id).filter(Boolean)
 
-      const [{ data: stagesData }, { data: notes }, { data: activity }, { data: hireRows }] = await Promise.all([
+      const [{ data: stagesData }, { data: notes }, { data: activity }, { data: hireRows }, { data: questions }] = await Promise.all([
         supabase.from('role_pipeline_stages').select('id, name, position').eq('role_id', roleId).order('position', { ascending: true }),
         candidateIds.length > 0
           ? supabase
@@ -133,6 +145,7 @@ export default function RoleApplicants() {
               .order('created_at', { ascending: false })
           : Promise.resolve({ data: [] }),
         supabase.from('hires').select('candidate_id, confirmed_at').eq('role_id', roleId),
+        supabase.from('video_questions').select('*').eq('role_id', roleId).order('asked_at', { ascending: false }),
       ])
 
       const seededStages = await ensureBuiltinStages(supabase, roleId, stagesData || [])
@@ -153,6 +166,13 @@ export default function RoleApplicants() {
         activityMap[e.candidate_id].push(e)
       })
       setActivityByCandidate(activityMap)
+
+      const questionMap = {}
+      ;(questions || []).forEach((q) => {
+        if (!questionMap[q.candidate_id]) questionMap[q.candidate_id] = []
+        questionMap[q.candidate_id].push(q)
+      })
+      setQuestionsByCandidate(questionMap)
 
       setHires(hireRows || [])
       setLoading(false)
@@ -476,6 +496,7 @@ export default function RoleApplicants() {
                 const badgeColors = customStage ? stageBadgeColor(customStage, role.id) : STATUS_COLORS[a.status]
                 const candidateNotes = notesByCandidate[c.id] || []
                 const events = activityByCandidate[c.id] || []
+                const candidateQuestions = questionsByCandidate[c.id] || []
                 const notesOpen = notesOpenIds.has(a.id)
                 const activityOpen = activityOpenIds.has(a.id)
                 return (
@@ -547,6 +568,23 @@ export default function RoleApplicants() {
                         >
                           Message
                         </button>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <button
+                            type="button"
+                            className="btn btn-ghost"
+                            style={{ padding: '8px 12px' }}
+                            disabled={(questionsByCandidate[c.id] || []).length >= QUESTION_LIMIT}
+                            title="Send a video question to this candidate and receive their recorded answer. Limit 2 questions per candidate."
+                            onClick={() => setAskingQuestionForApp(a)}
+                          >
+                            Ask a question
+                          </button>
+                          {(questionsByCandidate[c.id] || []).length >= QUESTION_LIMIT && (
+                            <span style={{ fontSize: 11, color: 'var(--color-text-muted)', maxWidth: 140 }}>
+                              You have used both questions for this candidate.
+                            </span>
+                          )}
+                        </div>
                         {addingStageId === a.id ? (
                           <input
                             autoFocus
@@ -650,6 +688,39 @@ export default function RoleApplicants() {
                       </div>
                     )}
 
+                    {candidateQuestions.length > 0 && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: 10 }}
+                      >
+                        <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)' }}>Video questions</p>
+                        {candidateQuestions.map((q) => {
+                          const displayStatus = q.status === 'pending' && isPastDeadline(q.asked_at) ? 'expired' : q.status
+                          const remaining = daysLeftToAnswer(q.asked_at)
+                          return (
+                            <div key={q.id} className="card" style={{ padding: 12, background: 'var(--color-bg-soft)', border: 'none' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
+                                <p style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>{q.question_text}</p>
+                                <span className="tag" style={{ fontSize: 10, flexShrink: 0, ...QUESTION_STATUS_COLORS[displayStatus] }}>
+                                  {QUESTION_STATUS_LABELS[displayStatus]}
+                                </span>
+                              </div>
+                              <p style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 6 }}>
+                                Asked {formatRelativeTime(q.asked_at)}
+                                {q.answered_at && ` · Answered ${formatRelativeTime(q.answered_at)}`}
+                                {displayStatus === 'pending' && ` · ${remaining} day${remaining === 1 ? '' : 's'} left to respond`}
+                              </p>
+                              {displayStatus === 'answered' && q.answer_video_url && (
+                                <div style={{ marginTop: 8, maxWidth: 220 }}>
+                                  <VideoPlayCard url={q.answer_video_url} format="horizontal" />
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+
                     {pendingRejectionId === a.id && (
                       <div
                         className="card"
@@ -712,6 +783,23 @@ export default function RoleApplicants() {
           onClose={() => setShowManageStages(false)}
           onStagesUpdated={setPipelineStages}
           onStageDeleted={handleStageDeleted}
+        />
+      )}
+
+      {askingQuestionForApp && (
+        <AskQuestionModal
+          employerId={role.employer_id}
+          candidateId={askingQuestionForApp.candidate_profiles.id}
+          roleId={role.id}
+          candidateLabel={askingQuestionForApp.candidate_profiles.full_name}
+          questionNumber={(questionsByCandidate[askingQuestionForApp.candidate_profiles.id] || []).length + 1}
+          onClose={() => setAskingQuestionForApp(null)}
+          onSent={(question) => {
+            setQuestionsByCandidate((prev) => ({
+              ...prev,
+              [question.candidate_id]: [question, ...(prev[question.candidate_id] || [])],
+            }))
+          }}
         />
       )}
     </div>

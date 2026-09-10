@@ -439,6 +439,35 @@ async function sendVideoLibraryNotification(supabase, candidateId) {
   })
 }
 
+// Fires once, right after an employer (owner or any team member) sends a
+// candidate a video question — the client calls notify() exactly once
+// immediately after the insert succeeds, so unlike the reminder emails
+// below (which a daily cron could otherwise re-trigger on every run) this
+// has no separate "already sent" column to guard against a repeat send.
+async function sendQuestionAskedNotification(supabase, questionId) {
+  const question = unwrap(
+    await supabase.from('video_questions').select('answer_token, role_id, employer_id, candidate_id').eq('id', questionId).single(),
+  )
+  const role = unwrap(await supabase.from('roles').select('title').eq('id', question.role_id).single())
+  const employer = unwrap(
+    await supabase.from('employer_profiles').select('company_name').eq('id', question.employer_id).single(),
+  )
+  const { email } = await getCandidateContact(supabase, question.candidate_id)
+  const companyName = employer.company_name || 'A company'
+
+  return sendEmail({
+    to: email,
+    subject: `${companyName} has a question for you`,
+    html: renderEmailHtml({
+      heading: 'You have been asked a question',
+      bodyText: `${escapeHtml(companyName)} would like to know more about you. They have sent you a question as part of your application for ${escapeHtml(role.title)}. You have 3 days to record your answer.`,
+      ctaLabel: 'Answer the question',
+      ctaUrl: `${SITE_URL}/answer-question/${question.answer_token}`,
+      illustration: 'Client_to_creative.png',
+    }),
+  })
+}
+
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json')
 
@@ -504,6 +533,9 @@ export default async function handler(req, res) {
         break
       case 'video-library-notification':
         await sendVideoLibraryNotification(supabase, body.candidateId)
+        break
+      case 'question-asked':
+        await sendQuestionAskedNotification(supabase, body.questionId)
         break
       default:
         res.statusCode = 400

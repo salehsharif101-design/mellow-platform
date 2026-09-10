@@ -158,7 +158,7 @@ export default function CandidateDashboard() {
       // of one round trip at a time. The shortlist query fetches every row
       // (rather than a separate head-count query) since the total count and
       // the "since last visit" feed items both come out of the same set.
-      const [appsResult, viewsResult, videoCountResult, shortlistRowsResult, recentRolesResult, savedRowsResult] = await Promise.all([
+      const [appsResult, viewsResult, videoCountResult, shortlistRowsResult, recentRolesResult, savedRowsResult, newQuestionsResult] = await Promise.all([
         supabase
           .from('applications')
           .select(
@@ -180,6 +180,11 @@ export default function CandidateDashboard() {
           .gt('created_at', sinceIso)
           .order('created_at', { ascending: false }),
         supabase.from('saved_roles').select('id, roles(id, slug, title, deadline, is_active)').eq('candidate_id', candidate.id),
+        supabase
+          .from('video_questions')
+          .select('id, answer_token, asked_at, roles(title), employer_profiles(company_name)')
+          .eq('candidate_id', candidate.id)
+          .gt('asked_at', sinceIso),
       ])
 
       const apps = appsResult.data || []
@@ -327,6 +332,17 @@ export default function CandidateDashboard() {
             timestamp: role.created_at,
           })
         }
+      })
+
+      // Video questions received since last visit.
+      ;(newQuestionsResult.data || []).forEach((q) => {
+        const companyName = q.employer_profiles?.company_name || 'An employer'
+        items.push({
+          id: `question-${q.id}`,
+          text: `${companyName} sent you a question about ${q.roles?.title || 'your application'}`,
+          link: `/answer-question/${q.answer_token}`,
+          timestamp: q.asked_at,
+        })
       })
 
       // Standing reminders — a forward-looking alert and a profile-
