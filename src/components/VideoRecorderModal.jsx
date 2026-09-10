@@ -173,7 +173,7 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
           facingMode: 'user',
           width: { ideal: 1280, max: 1280 },
           height: { ideal: 720, max: 720 },
-          frameRate: { ideal: 24, max: 30 },
+          frameRate: { ideal: 30, max: 30 },
         },
         audio: true,
       })
