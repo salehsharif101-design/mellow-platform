@@ -21,6 +21,7 @@ import { escapeHtml } from './_lib/html.js'
 // import here unlike src/lib/employerAccess.js (see getCandidateContact's
 // own comment in db.js for why that one specifically can't be).
 import { reviewingStageId, shortlistedStageId, STATUS_LABELS } from '../src/lib/pipelineStages.js'
+import { ANSWER_WINDOW_DAYS } from '../src/lib/videoQuestions.js'
 
 function getAnonClient() {
   return createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY, {
@@ -460,7 +461,7 @@ async function sendQuestionAskedNotification(supabase, questionId) {
     subject: `${companyName} has a question for you`,
     html: renderEmailHtml({
       heading: 'You have been asked a question',
-      bodyText: `${escapeHtml(companyName)} would like to know more about you. They have sent you a question as part of your application for ${escapeHtml(role.title)}. You have 3 days to record your answer.`,
+      bodyText: `${escapeHtml(companyName)} would like to know more about you. They have sent you a question as part of your application for ${escapeHtml(role.title)}. You have ${ANSWER_WINDOW_DAYS} days to record your answer.`,
       ctaLabel: 'Answer the question',
       ctaUrl: `${SITE_URL}/answer-question/${question.answer_token}`,
       illustration: 'Client_to_creative.png',

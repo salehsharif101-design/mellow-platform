@@ -2,8 +2,8 @@
 // Two jobs for the async video interviewing feature's 3-day answer window:
 // expire any pending question whose window has fully passed, and send the
 // single "1 day left" reminder to anyone entering their last day who
-// hasn't been reminded yet. Same runtime shape as the other cron handlers
-// (GET-only, no request body) since Vercel Cron issues a plain GET.
+// hasn't been reminded yet. Vercel Cron issues a plain GET, and only GET
+// is accepted below — enforced, not just assumed.
 
 import { sendEmail } from '../_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from '../_lib/email-template.js'
@@ -19,7 +19,22 @@ const EXPIRE_AT_MS = ANSWER_WINDOW_DAYS * DAY_MS
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json')
 
-  if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (req.method !== 'GET') {
+    res.statusCode = 405
+    res.end(JSON.stringify({ error: 'Method not allowed' }))
+    return
+  }
+
+  // Fails closed rather than silently skipping the check — a missing
+  // CRON_SECRET in the deployment environment is a misconfiguration, not
+  // a reason to let this endpoint (which expires and reminds real
+  // candidates) run open to anyone who finds the URL.
+  if (!process.env.CRON_SECRET) {
+    res.statusCode = 500
+    res.end(JSON.stringify({ error: 'CRON_SECRET is not configured on the server' }))
+    return
+  }
+  if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
     res.statusCode = 401
     res.end(JSON.stringify({ error: 'Unauthorized' }))
     return

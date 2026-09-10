@@ -16,9 +16,9 @@
 import { createClient } from '@supabase/supabase-js'
 import { sendEmail } from './_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from './_lib/email-template.js'
-import { getServiceClient } from './_lib/db.js'
+import { getServiceClient, getEmployerUserIds, getEmployerEmails } from './_lib/db.js'
 import { escapeHtml } from './_lib/html.js'
-import { isPastDeadline, daysLeftToAnswer, ANSWER_WINDOW_DAYS } from '../src/lib/videoQuestions.js'
+import { isPastDeadline, daysLeftToAnswer, ANSWER_WINDOW_DAYS, QUESTION_LIMIT } from '../src/lib/videoQuestions.js'
 
 const BUCKET = 'candidate-videos'
 // Server-side allowlist, independent of the client's own file-type check —
@@ -27,6 +27,17 @@ const EXT_BY_CONTENT_TYPE = {
   'video/mp4': 'mp4',
   'video/quicktime': 'mov',
   'video/webm': 'webm',
+}
+
+// Same idea as api/email.js's getAnonClient — verifies a bearer token
+// against Supabase Auth without the service role key, so 'ask-question'
+// (the one action here that performs a privileged write rather than
+// reading via the answer_token) can require proof the caller is actually
+// signed in.
+function getAnonClient() {
+  return createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
 }
 
 function readJsonBody(req) {
@@ -92,13 +103,83 @@ export default async function handler(req, res) {
   }
 
   const { action, token } = body
+  const supabase = getServiceClient()
+
+  // Unlike every other action here, asking a question isn't reached via an
+  // answer_token at all — it's the employer-side write that CREATES one —
+  // so it's handled up front, before the token requirement below (which
+  // every read/answer action still needs) even applies.
+  if (action === 'ask-question') {
+    try {
+      const authToken = (req.headers.authorization || '').replace(/^Bearer\s+/i, '')
+      if (!authToken) {
+        res.statusCode = 401
+        res.end(JSON.stringify({ error: 'Missing authorization token' }))
+        return
+      }
+      const { data: userData, error: userError } = await getAnonClient().auth.getUser(authToken)
+      if (userError || !userData?.user) {
+        res.statusCode = 401
+        res.end(JSON.stringify({ error: 'Invalid or expired session' }))
+        return
+      }
+
+      const { employerId, candidateId, roleId, questionText } = body
+      const trimmed = (questionText || '').trim()
+      if (!employerId || !candidateId || !roleId || !trimmed) {
+        res.statusCode = 400
+        res.end(JSON.stringify({ error: 'Missing required fields' }))
+        return
+      }
+
+      const employerUserIds = await getEmployerUserIds(supabase, employerId)
+      if (!employerUserIds.includes(userData.user.id)) {
+        res.statusCode = 403
+        res.end(JSON.stringify({ error: 'Not authorized for this employer' }))
+        return
+      }
+
+      // The actual race-condition fix: count and insert both happen here,
+      // server-side, in one request — a UI-only disabled button (or an
+      // RLS policy that only checks employer ownership, not how many rows
+      // already exist) can't stop two nearly-simultaneous requests from
+      // both passing a client-side check and both inserting. This can
+      // still race against a page that hasn't reloaded — the DB will
+      // faithfully reflect the true count either way, this just makes the
+      // limit itself impossible to exceed.
+      const { count, error: countError } = await supabase
+        .from('video_questions')
+        .select('id', { count: 'exact', head: true })
+        .eq('candidate_id', candidateId)
+        .eq('role_id', roleId)
+      if (countError) throw new Error(countError.message)
+      if ((count || 0) >= QUESTION_LIMIT) {
+        res.statusCode = 400
+        res.end(JSON.stringify({ error: 'You have already asked the maximum number of questions for this candidate.' }))
+        return
+      }
+
+      const { data: inserted, error: insertError } = await supabase
+        .from('video_questions')
+        .insert({ employer_id: employerId, candidate_id: candidateId, role_id: roleId, question_text: trimmed, asked_by: userData.user.id })
+        .select()
+        .single()
+      if (insertError) throw new Error(insertError.message)
+
+      res.statusCode = 200
+      res.end(JSON.stringify({ question: inserted }))
+    } catch (err) {
+      res.statusCode = 500
+      res.end(JSON.stringify({ error: err.message }))
+    }
+    return
+  }
+
   if (!token) {
     res.statusCode = 400
     res.end(JSON.stringify({ error: 'Missing token' }))
     return
   }
-
-  const supabase = getServiceClient()
 
   try {
     const question = await loadQuestion(supabase, token)
@@ -134,7 +215,12 @@ export default async function handler(req, res) {
         res.end(JSON.stringify({ error: 'This question can no longer be answered.', status }))
         return
       }
-      const ext = EXT_BY_CONTENT_TYPE[body.contentType] || 'webm'
+      // Recorded video (as opposed to an uploaded file) arrives with codec
+      // parameters attached, e.g. "video/webm;codecs=vp9,opus" — stripped
+      // here so the lookup below matches on the base type rather than
+      // silently missing and falling through to the 'webm' default.
+      const baseContentType = (body.contentType || '').split(';')[0].trim().toLowerCase()
+      const ext = EXT_BY_CONTENT_TYPE[baseContentType] || 'webm'
       const path = `${question.candidate_profiles?.user_id || question.candidate_id}/answer-${question.id}-${Date.now()}.${ext}`
       const { data, error } = await supabase.storage.from(BUCKET).createSignedUploadUrl(path)
       if (error) throw new Error(error.message)
@@ -153,6 +239,21 @@ export default async function handler(req, res) {
       if (!path) {
         res.statusCode = 400
         res.end(JSON.stringify({ error: 'Missing uploaded file path' }))
+        return
+      }
+      // Never trust the client-supplied path as-is — without this, any
+      // holder of a valid, still-pending answer_token could point this
+      // question's answer_video_url at an arbitrary object already sitting
+      // in the bucket (someone else's video, unrelated content) rather
+      // than whatever create-upload-url actually issued them. The expected
+      // shape is re-derived from the question row itself, the same way
+      // create-upload-url built it, rather than trusting a value stored
+      // client-side between the two calls.
+      const expectedUserId = question.candidate_profiles?.user_id || question.candidate_id
+      const pathPattern = new RegExp(`^${expectedUserId}/answer-${question.id}-\\d+\\.(mp4|mov|webm)$`)
+      if (!pathPattern.test(path)) {
+        res.statusCode = 400
+        res.end(JSON.stringify({ error: 'Invalid upload path for this question.' }))
         return
       }
       const { data: publicData } = supabase.storage.from(BUCKET).getPublicUrl(path)
@@ -177,33 +278,19 @@ export default async function handler(req, res) {
       // session token that endpoint requires. Matches how the daily cron
       // jobs already send email directly rather than through that path.
       const candidateName = question.candidate_profiles?.full_name || 'A candidate'
-      const { data: teamMembers } = await supabase
-        .from('employer_team_members')
-        .select('user_id')
-        .eq('employer_id', question.employer_id)
-        .eq('status', 'active')
-      const { data: owner } = await supabase
-        .from('employer_profiles')
-        .select('user_id')
-        .eq('id', question.employer_id)
-        .maybeSingle()
-      const recipientUserIds = [owner?.user_id, ...(teamMembers || []).map((m) => m.user_id)].filter(Boolean)
-      if (recipientUserIds.length > 0) {
-        const { data: users } = await supabase.from('users').select('email').in('id', recipientUserIds)
-        const emails = (users || []).map((u) => u.email).filter(Boolean)
-        if (emails.length > 0) {
-          await sendEmail({
-            to: emails,
-            subject: `${candidateName} answered your question`,
-            html: renderEmailHtml({
-              heading: 'You have a new video answer',
-              bodyText: `${escapeHtml(candidateName)} has recorded their answer to your question for ${escapeHtml(question.roles?.title || 'your role')}. Watch it now on the platform.`,
-              ctaLabel: 'Watch the answer',
-              ctaUrl: `${SITE_URL}/employer/roles/${question.role_id}/applicants`,
-              illustration: 'Collaborate2.png',
-            }),
-          })
-        }
+      const emails = await getEmployerEmails(supabase, question.employer_id)
+      if (emails.length > 0) {
+        await sendEmail({
+          to: emails,
+          subject: `${candidateName} answered your question`,
+          html: renderEmailHtml({
+            heading: 'You have a new video answer',
+            bodyText: `${escapeHtml(candidateName)} has recorded their answer to your question for ${escapeHtml(question.roles?.title || 'your role')}. Watch it now on the platform.`,
+            ctaLabel: 'Watch the answer',
+            ctaUrl: `${SITE_URL}/employer/roles/${question.role_id}/applicants`,
+            illustration: 'Collaborate2.png',
+          }),
+        })
       }
 
       res.statusCode = 200

@@ -101,7 +101,19 @@ export default function AnswerQuestion() {
         body: JSON.stringify({ action: 'create-upload-url', token, contentType: file.type }),
       })
       const createData = await createRes.json()
-      if (!createRes.ok) throw new Error(createData.error || 'Could not start the upload.')
+      if (!createRes.ok) {
+        // A 409 here means the window closed (or it was answered from
+        // another tab) sometime between this page loading and Submit being
+        // clicked — re-render into the real terminal state (expired,
+        // matching create-upload-url's own default when it can't tell)
+        // rather than leaving the full question-answering form up with
+        // just an inline error underneath it.
+        if (createRes.status === 409) {
+          setQuestion((prev) => ({ ...prev, status: createData.status || 'expired' }))
+          return
+        }
+        throw new Error(createData.error || 'Could not start the upload.')
+      }
 
       const { error: uploadError } = await supabase.storage
         .from('candidate-videos')
@@ -114,7 +126,13 @@ export default function AnswerQuestion() {
         body: JSON.stringify({ action: 'submit-answer', token, path: createData.path }),
       })
       const submitData = await submitRes.json()
-      if (!submitRes.ok) throw new Error(submitData.error || 'Could not submit your answer.')
+      if (!submitRes.ok) {
+        if (submitRes.status === 409) {
+          setQuestion((prev) => ({ ...prev, status: submitData.status || 'expired' }))
+          return
+        }
+        throw new Error(submitData.error || 'Could not submit your answer.')
+      }
 
       setSubmitted(true)
     } catch (err) {
@@ -143,7 +161,7 @@ export default function AnswerQuestion() {
     return (
       <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
         <Logo />
-        <img src="/Email_Verification.png" alt="" style={{ width: '100%', maxWidth: 220, margin: '28px auto 0', display: 'block' }} />
+        <img src="/Collaborate2.png" alt="" style={{ width: '100%', maxWidth: 220, margin: '28px auto 0', display: 'block' }} />
         <h1 style={{ fontSize: 26, marginTop: 20 }}>You have already answered this question</h1>
         <p style={{ marginTop: 12, color: 'var(--color-text-muted)' }}>
           Thanks — {question.companyName} has been notified and can now watch your answer.

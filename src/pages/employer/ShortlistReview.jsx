@@ -576,7 +576,7 @@ export default function ShortlistReview() {
           onSent={(question) => {
             setQuestionsByCandidate((prev) => ({
               ...prev,
-              [question.candidate_id]: [...(prev[question.candidate_id] || []), question],
+              [question.candidate_id]: [question, ...(prev[question.candidate_id] || [])],
             }))
           }}
         />
