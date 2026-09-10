@@ -42,6 +42,101 @@ function pickMimeType() {
   return picked
 }
 
+// MediaSource.isTypeSupported() and MediaRecorder.isTypeSupported() don't
+// agree on what a "supported" mimeType string looks like — confirmed by
+// direct testing: MediaRecorder happily accepts and records the bare
+// 'video/mp4;codecs=avc1' MIME_CANDIDATES lists above, but
+// MediaSource.isTypeSupported() rejects that exact string and only accepts
+// a fully profile/level-qualified one like 'video/mp4;codecs="avc1.42E01E"'
+// (same story for webm: MediaSource wants an explicit vp8/vp9 pairing, not
+// bare 'video/webm'). The underlying container bytes MediaRecorder writes
+// don't change based on which string describes them, so trying a fixed set
+// of common codec variants here — independent of whatever string was
+// actually used to record — is what lets MediaSource engage at all for a
+// recording made via MIME_CANDIDATES above.
+function mediaSourceCandidates(recordingMimeType) {
+  if (recordingMimeType?.startsWith('video/mp4')) {
+    return ['video/mp4;codecs="avc1.42E01E"', 'video/mp4;codecs="avc1.4D401E"', 'video/mp4;codecs="avc1.64001E"']
+  }
+  if (recordingMimeType?.startsWith('video/webm')) {
+    return ['video/webm;codecs="vp9,opus"', 'video/webm;codecs="vp8,opus"']
+  }
+  return []
+}
+
+// A data: URL was tried and made things worse — a 5.7MB data: URL
+// triggered 'suspend' immediately, before playback even started, with
+// almost nothing buffered (readyState 2). Rather than a large in-memory
+// resource handed to the player all at once (which is what both a data:
+// URL and a plain Blob-backed blob: URL amount to), MediaSource gives the
+// browser a streaming append interface — the model iOS Safari's media
+// pipeline is actually built around — for the exact same bytes. Same
+// 'blob:' URL scheme either way (URL.createObjectURL produces one for a
+// MediaSource just like it does for a Blob), so nothing downstream (the
+// duration fix, the recovery listeners below) needs to know which one
+// it's dealing with.
+//
+// Feature-detected and best-effort: resolves to null on any failure —
+// unsupported MediaSource, an unsupported mimeType for it, an error at any
+// step, or a hard SAFETY_TIMEOUT_MS ceiling — so the caller always falls
+// back to a plain blob: URL. The timeout is not optional: a MediaRecorder
+// blob is a single already-complete resource, not a genuine fragmented
+// byte stream, and testing (even against a MediaSource-accepted codec
+// string) showed appendBuffer can simply never fire 'updateend' or
+// 'error' — it just sits there. Without a timeout that hangs this promise
+// forever, meaning setRecordedUrl never gets called and the preview never
+// appears at all — strictly worse than the original stall-after-10s bug
+// this whole investigation started from.
+const MEDIA_SOURCE_TIMEOUT_MS = 3000
+
+function buildMediaSourceUrl(blob, recordingMimeType) {
+  if (typeof MediaSource === 'undefined') return Promise.resolve(null)
+  const mimeType = mediaSourceCandidates(recordingMimeType).find((type) => MediaSource.isTypeSupported?.(type))
+  if (!mimeType) return Promise.resolve(null)
+
+  return new Promise((resolve) => {
+    const mediaSource = new MediaSource()
+    const objectUrl = URL.createObjectURL(mediaSource)
+    let settled = false
+
+    const safetyTimeout = setTimeout(() => fail(new Error('timed out waiting for MediaSource to accept the recording')), MEDIA_SOURCE_TIMEOUT_MS)
+
+    function fail(err) {
+      if (settled) return
+      settled = true
+      clearTimeout(safetyTimeout)
+      // eslint-disable-next-line no-console
+      console.log('[VideoRecorderModal] MediaSource setup failed, falling back to blob: URL:', err?.message || err)
+      URL.revokeObjectURL(objectUrl)
+      resolve(null)
+    }
+    function succeed() {
+      if (settled) return
+      settled = true
+      clearTimeout(safetyTimeout)
+      if (mediaSource.readyState === 'open') mediaSource.endOfStream()
+      resolve(objectUrl)
+    }
+
+    mediaSource.addEventListener(
+      'sourceopen',
+      async () => {
+        try {
+          const sourceBuffer = mediaSource.addSourceBuffer(mimeType)
+          const arrayBuffer = await blob.arrayBuffer()
+          sourceBuffer.addEventListener('updateend', succeed, { once: true })
+          sourceBuffer.addEventListener('error', fail, { once: true })
+          sourceBuffer.appendBuffer(arrayBuffer)
+        } catch (err) {
+          fail(err)
+        }
+      },
+      { once: true },
+    )
+    mediaSource.addEventListener('error', fail, { once: true })
+  })
+}
+
 export default function VideoRecorderModal({ onClose, onConfirm }) {
   const [stream, setStream] = useState(null)
   const [error, setError] = useState('')
@@ -132,55 +227,114 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
     [recordedUrl],
   )
 
+  // Explicit reload right after the src changes — redundant with what
+  // changing the src attribute is already supposed to trigger per spec,
+  // but cheap insurance given how much iOS-Safari-specific quirkiness
+  // this whole investigation has already turned up.
+  useEffect(() => {
+    const videoEl = recordedVideoRef.current
+    if (!videoEl || !recordedUrl) return
+    videoEl.load()
+  }, [recordedUrl])
+
   // Temporary diagnostics + a recovery attempt for the mobile
-  // playback-stall investigation — real-device testing confirmed the
-  // blob/duration/mimeType are all correct, with no error event, so
-  // whatever is happening is a genuine mid-playback stall rather than a
-  // decode failure. 'waiting'/'stalled' firing (and what currentTime they
-  // fire at) is exactly the missing piece of that picture. On either,
-  // nudge forward a fraction of a second and retry play() — a documented
-  // recovery for a decoder that's gotten stuck waiting for data it
-  // considers itself blocked on even though more of the file exists — with
-  // a cooldown so a decoder that's still genuinely stuck can't turn this
-  // into a tight retry loop.
+  // playback-stall investigation. Real-device testing has now shown: the
+  // blob/duration/mimeType are all correct with no error event (ruling out
+  // a decode failure), and — after switching to a data: URL — 'suspend'
+  // firing immediately at currentTime 0 with almost nothing buffered
+  // (readyState 2), meaning iOS Safari gave up loading the resource
+  // before playback even got a chance to start. Back on a blob: URL (see
+  // recorder.onstop below) two different recoveries are used depending on
+  // what the browser is actually telling us:
+  //  - 'stalled'/'waiting' during active playback: a small nudge forward
+  //    plus retrying play() — a documented recovery for a decoder that's
+  //    gotten stuck waiting on data it considers itself blocked on even
+  //    though more of the file exists, without losing playback position
+  //    the way a full reload would.
+  //  - 'suspend' while the buffered range still falls well short of the
+  //    full duration: force a fresh load() rather than accept the browser
+  //    gave up this early. A suspend that already covers (close to) the
+  //    whole file is the routine "nothing left to fetch" case and is left
+  //    alone — reloading then would just restart a file that was already
+  //    fully ready.
+  // Both share one cooldown so a decoder that's still genuinely stuck
+  // can't turn this into a tight retry loop; the cooldown only starts
+  // once an attempt is actually made, not on every event received.
   useEffect(() => {
     const videoEl = recordedVideoRef.current
     if (!videoEl || !recordedUrl) return undefined
 
-    let lastResumeAttempt = 0
-    function logEvent(e) {
-      // eslint-disable-next-line no-console
-      console.log('[VideoRecorderModal] video event:', e.type, 'at currentTime:', videoEl.currentTime, 'readyState:', videoEl.readyState)
+    const COOLDOWN_MS = 1500
+    let lastRecoveryAttempt = 0
+
+    function bufferedEnd() {
+      const { buffered } = videoEl
+      return buffered.length > 0 ? buffered.end(buffered.length - 1) : 0
     }
+    function isUnderBuffered() {
+      const duration = videoEl.duration
+      return !duration || bufferedEnd() < duration - 0.5
+    }
+    function logEvent(type) {
+      // eslint-disable-next-line no-console
+      console.log(
+        '[VideoRecorderModal] video event:', type,
+        'at currentTime:', videoEl.currentTime,
+        'readyState:', videoEl.readyState,
+        'buffered end:', bufferedEnd(),
+        'duration:', videoEl.duration,
+      )
+    }
+    function withCooldown(shouldAct, act) {
+      return (e) => {
+        logEvent(e.type)
+        if (!shouldAct()) return
+        const now = Date.now()
+        if (now - lastRecoveryAttempt < COOLDOWN_MS) return
+        lastRecoveryAttempt = now
+        act()
+      }
+    }
+
+    const handleStallOrWaiting = withCooldown(
+      () => true,
+      () => {
+        const target = videoEl.duration ? Math.min(videoEl.currentTime + 0.1, videoEl.duration - 0.05) : videoEl.currentTime + 0.1
+        // eslint-disable-next-line no-console
+        console.log('[VideoRecorderModal] nudging currentTime to', target, 'and retrying play()')
+        videoEl.currentTime = target
+        videoEl.play().catch((err) => {
+          // eslint-disable-next-line no-console
+          console.log('[VideoRecorderModal] resume play() failed:', err?.message)
+        })
+      },
+    )
+
+    const handleSuspend = withCooldown(isUnderBuffered, () => {
+      // eslint-disable-next-line no-console
+      console.log('[VideoRecorderModal] under-buffered suspend — forcing reload()')
+      videoEl.load()
+      videoEl.play().catch((err) => {
+        // eslint-disable-next-line no-console
+        console.log('[VideoRecorderModal] resume play() after reload failed:', err?.message)
+      })
+    })
+
     function handleError() {
-      logEvent({ type: 'error' })
+      logEvent('error')
       // eslint-disable-next-line no-console
       console.log('[VideoRecorderModal] video error:', videoEl.error)
     }
-    function attemptResume(e) {
-      logEvent(e)
-      const now = Date.now()
-      if (now - lastResumeAttempt < 1500) return
-      lastResumeAttempt = now
-      const target = videoEl.duration ? Math.min(videoEl.currentTime + 0.1, videoEl.duration - 0.05) : videoEl.currentTime + 0.1
-      // eslint-disable-next-line no-console
-      console.log('[VideoRecorderModal] attempting resume: nudging currentTime to', target)
-      videoEl.currentTime = target
-      videoEl.play().catch((err) => {
-        // eslint-disable-next-line no-console
-        console.log('[VideoRecorderModal] resume play() failed:', err?.message)
-      })
-    }
 
-    videoEl.addEventListener('stalled', attemptResume)
-    videoEl.addEventListener('waiting', attemptResume)
-    videoEl.addEventListener('suspend', logEvent)
+    videoEl.addEventListener('stalled', handleStallOrWaiting)
+    videoEl.addEventListener('waiting', handleStallOrWaiting)
+    videoEl.addEventListener('suspend', handleSuspend)
     videoEl.addEventListener('error', handleError)
 
     return () => {
-      videoEl.removeEventListener('stalled', attemptResume)
-      videoEl.removeEventListener('waiting', attemptResume)
-      videoEl.removeEventListener('suspend', logEvent)
+      videoEl.removeEventListener('stalled', handleStallOrWaiting)
+      videoEl.removeEventListener('waiting', handleStallOrWaiting)
+      videoEl.removeEventListener('suspend', handleSuspend)
       videoEl.removeEventListener('error', handleError)
     }
   }, [recordedUrl])
@@ -190,10 +344,9 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
       streamRef.current?.getTracks().forEach((t) => t.stop())
       if (timerRef.current) clearInterval(timerRef.current)
       if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current)
-      // A no-op if recordedUrl is a data: URL (the current default) rather
-      // than a blob: URL (the fallback) — revokeObjectURL only ever does
-      // anything for an actual blob: URL, per spec, so this is safe either
-      // way without needing to branch on which one it is.
+      // Releases either kind of blob: URL recordedUrl might be — a plain
+      // Blob-backed one or a MediaSource-backed one, both produced by
+      // URL.createObjectURL — the same call handles both.
       if (recordedUrl) URL.revokeObjectURL(recordedUrl)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -252,30 +405,22 @@ export default function VideoRecorderModal({ onClose, onConfirm }) {
       previewTimeoutRef.current = setTimeout(() => {
         previewTimeoutRef.current = null
 
-        // A data: URL instead of a blob: URL for the preview — real-device
-        // testing ruled out the duration/mimeType/blob-integrity
-        // explanations (all confirmed correct), leaving iOS Safari's own
-        // blob: URL buffering as the remaining suspect for a multi-second
-        // recording. A data: URL is the whole file inline in the
-        // document rather than a separate in-memory resource the media
-        // pipeline streams from, which some real-world reports say iOS
-        // Safari handles more reliably for this exact kind of stall — at
-        // the cost of a ~33% larger in-memory string (FileReader's
-        // base64 encoding overhead) and a decode pass to build it, which
-        // is why this still falls back to the plain blob: URL if
-        // FileReader itself fails for any reason.
-        const reader = new FileReader()
-        reader.onload = () => {
-          // eslint-disable-next-line no-console
-          console.log('[VideoRecorderModal] Using data: URL for preview, length:', reader.result?.length)
-          setRecordedUrl(reader.result)
-        }
-        reader.onerror = () => {
-          // eslint-disable-next-line no-console
-          console.log('[VideoRecorderModal] FileReader failed, falling back to blob: URL:', reader.error)
-          setRecordedUrl(URL.createObjectURL(blob))
-        }
-        reader.readAsDataURL(blob)
+        // Back to a blob: URL, not a data: URL — real-device testing
+        // showed the data: URL made things worse (see buildMediaSourceUrl
+        // above), so this now tries a MediaSource-backed variant of the
+        // same blob: URL scheme first, falling back to a plain
+        // Blob-backed one if that isn't supported or fails.
+        buildMediaSourceUrl(blob, mimeTypeRef.current).then((mediaSourceUrl) => {
+          if (mediaSourceUrl) {
+            // eslint-disable-next-line no-console
+            console.log('[VideoRecorderModal] Using MediaSource-backed URL for preview')
+            setRecordedUrl(mediaSourceUrl)
+          } else {
+            // eslint-disable-next-line no-console
+            console.log('[VideoRecorderModal] Using plain blob: URL for preview')
+            setRecordedUrl(URL.createObjectURL(blob))
+          }
+        })
       }, 200)
     }
     mediaRecorderRef.current = recorder

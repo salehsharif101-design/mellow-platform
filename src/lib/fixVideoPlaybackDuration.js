@@ -14,25 +14,33 @@
 // the standard, documented workaround for this well-known MediaRecorder-
 // blob playback bug (the same technique Step5Video.jsx's own upload probe
 // already used to compute a real duration — just never applied to the
-// visible playback element itself). A trailing video.load() forces iOS
-// Safari in particular to fully re-evaluate the resource now that the
-// browser has scanned it once, rather than continuing to play from
-// whatever partial understanding it had before the seek.
+// visible playback element itself).
+//
+// Deliberately does NOT call video.load() after the reset (an earlier
+// version of this fix did). Real-device diagnostics confirmed duration
+// was already computing correctly through this exact seek-based fix, and
+// then showed 'suspend' firing immediately afterward with almost nothing
+// buffered — i.e. right where an unconditional reload of the whole
+// resource would land the player. Resetting the media pipeline right
+// before the candidate presses play is a plausible way to *cause* that
+// thin-buffer state rather than fix anything; VideoRecorderModal.jsx now
+// handles under-buffered suspend explicitly and more conservatively
+// instead (only reloading when the buffered range genuinely doesn't
+// cover the file, with a cooldown).
 //
 // Only worth doing for a blob: or data: URL — a normal http(s) source (an
 // already-submitted, properly-indexed video) doesn't have this problem,
 // and seeking it to the end and back would just waste bandwidth. data:
 // covers the same freshly-recorded content encoded as a data URL instead
-// of a blob: URL (see VideoRecorderModal.jsx) — same underlying container
-// bytes either way, so the same fix applies regardless of which URL
-// scheme wraps them.
+// of a blob: URL, in case a caller ever needs that path again — same
+// underlying container bytes either way, so the same fix applies
+// regardless of which URL scheme wraps them.
 //
 // onFixed, if given, is called with the duration the browser reports once
 // it's finished scanning the blob — read right after the seek, before
-// currentTime is reset and load() is called, since both of those go on to
-// reset duration back to NaN until the reloaded resource re-parses its
-// own metadata. Purely a diagnostic hook for the current mobile
-// playback-stall investigation.
+// currentTime is reset, since that goes on to reset duration back to NaN
+// until enough data is buffered again at the new position. Purely a
+// diagnostic hook for the current mobile playback-stall investigation.
 export function attachRecordedVideoDurationFix(videoEl, src, onFixed) {
   if (!videoEl || !(src?.startsWith('blob:') || src?.startsWith('data:'))) return undefined
 
@@ -45,7 +53,6 @@ export function attachRecordedVideoDurationFix(videoEl, src, onFixed) {
       videoEl.ontimeupdate = null
       const scannedDuration = videoEl.duration
       videoEl.currentTime = 0
-      videoEl.load()
       onFixed?.(scannedDuration)
     }
   }
