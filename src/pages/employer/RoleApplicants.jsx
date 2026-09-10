@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
@@ -64,7 +64,6 @@ function stageValueFor(application) {
 export default function RoleApplicants() {
   const { roleId } = useParams()
   const { user } = useAuth()
-  const navigate = useNavigate()
 
   const [role, setRole] = useState(null)
   const [applications, setApplications] = useState([])
@@ -413,14 +412,16 @@ export default function RoleApplicants() {
   // Opening a candidate's profile from the applicant list is what counts as
   // "viewed" — regardless of whether they go on to watch the intro video.
   // Marked optimistically so the New badge clears instantly; the write is
-  // fire-and-forget since a failure here shouldn't block navigation.
-  function handleOpenProfile(a) {
+  // fire-and-forget since a failure here shouldn't block navigation. Actual
+  // navigation now happens via the avatar/name Link itself (only those are
+  // clickable to the profile — see the card markup below), so this is just
+  // the view-tracking side effect fired alongside that link's own click.
+  function markProfileViewed(a) {
     if (!a.viewed_at) {
       const now = new Date().toISOString()
       setApplications((prev) => prev.map((x) => (x.id === a.id ? { ...x, viewed_at: now } : x)))
       supabase.from('applications').update({ viewed_at: now }).eq('id', a.id).then(() => {})
     }
-    navigate(`/profile/${a.candidate_profiles?.username || a.candidate_profiles?.id}`)
   }
 
   if (loading) return null
@@ -503,11 +504,14 @@ export default function RoleApplicants() {
                   <div
                     key={a.id}
                     className="card"
-                    onClick={() => handleOpenProfile(a)}
-                    style={{ padding: 20, cursor: 'pointer', position: 'relative' }}
+                    style={{ padding: 20, position: 'relative' }}
                   >
                     <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <div style={{ position: 'relative', flexShrink: 0 }}>
+                      <Link
+                        to={`/profile/${c.username || c.id}`}
+                        onClick={() => markProfileViewed(a)}
+                        style={{ position: 'relative', flexShrink: 0, lineHeight: 0 }}
+                      >
                         <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={52} />
                         {unviewed && (
                           <span
@@ -524,11 +528,17 @@ export default function RoleApplicants() {
                             }}
                           />
                         )}
-                      </div>
+                      </Link>
 
                       <div style={{ flex: 1, minWidth: 200 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                          <p style={{ fontWeight: 700, fontSize: 16 }}>{c.full_name}</p>
+                          <Link
+                            to={`/profile/${c.username || c.id}`}
+                            onClick={() => markProfileViewed(a)}
+                            style={{ fontWeight: 700, fontSize: 16, color: 'inherit', textDecoration: 'none' }}
+                          >
+                            {c.full_name}
+                          </Link>
                           <span className="tag" style={{ fontSize: 11, ...badgeColors }}>
                             {badgeLabel}
                           </span>
@@ -556,10 +566,7 @@ export default function RoleApplicants() {
                         )}
                       </div>
 
-                      <div
-                        style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
                         <button
                           type="button"
                           className="btn btn-ghost"
@@ -635,10 +642,7 @@ export default function RoleApplicants() {
                       </div>
                     </div>
 
-                    <div
-                      style={{ display: 'flex', gap: 8, marginTop: 14 }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                    <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
                       <button
                         type="button"
                         className="btn btn-ghost"
@@ -658,10 +662,7 @@ export default function RoleApplicants() {
                     </div>
 
                     {notesOpen && (
-                      <div
-                        onClick={(e) => e.stopPropagation()}
-                        style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--color-border)' }}
-                      >
+                      <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--color-border)' }}>
                         <CandidateNotesThread
                           employerId={role.employer_id}
                           candidateId={c.id}
@@ -681,17 +682,13 @@ export default function RoleApplicants() {
                     )}
 
                     {activityOpen && (
-                      <div
-                        onClick={(e) => e.stopPropagation()}
-                        style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--color-border)' }}
-                      >
+                      <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--color-border)' }}>
                         <CandidateActivityTimeline events={events} />
                       </div>
                     )}
 
                     {candidateQuestions.length > 0 && (
                       <div
-                        onClick={(e) => e.stopPropagation()}
                         style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: 10 }}
                       >
                         <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)' }}>Video questions</p>
@@ -725,7 +722,6 @@ export default function RoleApplicants() {
                     {pendingRejectionId === a.id && (
                       <div
                         className="card"
-                        onClick={(e) => e.stopPropagation()}
                         style={{ marginTop: 16, padding: '14px 18px', background: 'var(--color-bg-soft)', border: 'none' }}
                       >
                         <p style={{ fontSize: 14, fontWeight: 600 }}>
