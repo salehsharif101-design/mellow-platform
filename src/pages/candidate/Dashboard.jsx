@@ -495,22 +495,39 @@ export default function CandidateDashboard() {
         </div>
       </div>
 
-      {!profile.is_live && (
-        <div
-          className="card"
-          style={{ marginTop: 24, padding: '20px 24px', background: '#FFF8E5', border: '1px solid #F5D889' }}
-        >
-          <p style={{ fontSize: 14, fontWeight: 700, color: '#8a5a00' }}>
-            Your profile is not yet live — employers can't discover you yet
-          </p>
-          <p style={{ marginTop: 6, fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
-            Your profile is almost ready. Add your video to go live and start getting discovered by employers.
-          </p>
-          <Link to="/profile/edit#video-section" className="btn btn-primary" style={{ marginTop: 14, display: 'inline-block' }}>
-            Add my video
-          </Link>
-        </div>
-      )}
+      {!profile.is_live && (() => {
+        // A candidate who dropped off before ever reaching the video step
+        // (onboarding_step < 5 — login never resumes the wizard for them,
+        // it always lands on /dashboard) has a different real blocker than
+        // one who saved for later at the video step itself: their earlier
+        // steps are incomplete, not just their video. Telling the first
+        // group to "add your video" is misleading and sends them to a
+        // section of a form that will still fail validation on fields from
+        // steps they never finished.
+        const droppedOffEarly = (profile.onboarding_step || 1) < 5
+        const banner = droppedOffEarly
+          ? {
+              body: "You started setting up your profile but didn't finish. Complete your profile to go live and start getting discovered by employers.",
+              cta: 'Complete my profile',
+              to: '/onboarding',
+            }
+          : {
+              body: 'Your profile is almost ready. Add your video to go live and start getting discovered by employers.',
+              cta: 'Add my video',
+              to: '/profile/edit#video-section',
+            }
+        return (
+          <div className="card" style={{ marginTop: 24, padding: '20px 24px', background: '#FFF8E5', border: '1px solid #F5D889' }}>
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#8a5a00' }}>
+              Your profile is not yet live — employers can't discover you yet
+            </p>
+            <p style={{ marginTop: 6, fontSize: 14, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>{banner.body}</p>
+            <Link to={banner.to} className="btn btn-primary" style={{ marginTop: 14, display: 'inline-block' }}>
+              {banner.cta}
+            </Link>
+          </div>
+        )
+      })()}
 
       <div
         className="card"

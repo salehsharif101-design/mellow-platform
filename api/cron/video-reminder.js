@@ -70,6 +70,20 @@ export default async function handler(req, res) {
       const elapsedMs = Date.now() - new Date(candidate.video_reminder_started_at).getTime()
       if (elapsedMs < reminder.delayMs) continue
 
+      // Claims this specific reminder step atomically before sending —
+      // conditioned on video_reminder_sent_count still matching what was
+      // just read, so two overlapping runs can't both send reminder N for
+      // the same candidate (one would see its own update change 0 rows,
+      // since the other already advanced the count).
+      const { data: claimed } = await supabase
+        .from('candidate_profiles')
+        .update({ video_reminder_sent_count: candidate.video_reminder_sent_count + 1 })
+        .eq('id', candidate.id)
+        .eq('video_reminder_sent_count', candidate.video_reminder_sent_count)
+        .select('id')
+        .maybeSingle()
+      if (!claimed) continue
+
       const { email } = await getCandidateContact(supabase, candidate.id)
 
       await sendEmail({
@@ -79,17 +93,11 @@ export default async function handler(req, res) {
           heading: reminder.heading,
           bodyText: reminder.bodyText,
           ctaLabel: reminder.ctaLabel,
-          ctaUrl: `${SITE_URL}/profile/edit`,
+          ctaUrl: `${SITE_URL}/profile/edit#video-section`,
           illustration: reminder.illustration,
         }),
       })
 
-      unwrap(
-        await supabase
-          .from('candidate_profiles')
-          .update({ video_reminder_sent_count: candidate.video_reminder_sent_count + 1 })
-          .eq('id', candidate.id),
-      )
       sent += 1
     }
 

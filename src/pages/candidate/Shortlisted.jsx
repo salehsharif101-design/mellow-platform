@@ -82,7 +82,7 @@ export default function Shortlisted() {
                   const logo = employer.logo_url ? (
                     <img
                       src={employer.logo_url}
-                      alt=""
+                      alt={employer.company_name}
                       style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)', flexShrink: 0 }}
                     />
                   ) : (

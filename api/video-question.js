@@ -18,7 +18,7 @@ import { sendEmail } from './_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from './_lib/email-template.js'
 import { getServiceClient, getEmployerUserIds, getEmployerEmails } from './_lib/db.js'
 import { escapeHtml } from './_lib/html.js'
-import { isPastDeadline, daysLeftToAnswer, ANSWER_WINDOW_DAYS, QUESTION_LIMIT } from '../src/lib/videoQuestions.js'
+import { isPastDeadline, daysLeftToAnswer, ANSWER_WINDOW_DAYS, QUESTION_LIMIT, QUESTION_TEXT_MAX_LENGTH } from '../src/lib/videoQuestions.js'
 
 const BUCKET = 'candidate-videos'
 // Server-side allowlist, independent of the client's own file-type check —
@@ -131,6 +131,11 @@ export default async function handler(req, res) {
         res.end(JSON.stringify({ error: 'Missing required fields' }))
         return
       }
+      if (trimmed.length > QUESTION_TEXT_MAX_LENGTH) {
+        res.statusCode = 400
+        res.end(JSON.stringify({ error: `Questions must be ${QUESTION_TEXT_MAX_LENGTH} characters or fewer.` }))
+        return
+      }
 
       const employerUserIds = await getEmployerUserIds(supabase, employerId)
       if (!employerUserIds.includes(userData.user.id)) {
@@ -139,32 +144,33 @@ export default async function handler(req, res) {
         return
       }
 
-      // The actual race-condition fix: count and insert both happen here,
-      // server-side, in one request — a UI-only disabled button (or an
-      // RLS policy that only checks employer ownership, not how many rows
-      // already exist) can't stop two nearly-simultaneous requests from
-      // both passing a client-side check and both inserting. This can
-      // still race against a page that hasn't reloaded — the DB will
-      // faithfully reflect the true count either way, this just makes the
-      // limit itself impossible to exceed.
-      const { count, error: countError } = await supabase
-        .from('video_questions')
-        .select('id', { count: 'exact', head: true })
-        .eq('candidate_id', candidateId)
-        .eq('role_id', roleId)
-      if (countError) throw new Error(countError.message)
-      if ((count || 0) >= QUESTION_LIMIT) {
-        res.statusCode = 400
-        res.end(JSON.stringify({ error: 'You have already asked the maximum number of questions for this candidate.' }))
+      // The 2-question limit, the "second question only after the first is
+      // answered or expired" gate, and the 300-character cap all used to be
+      // checked here in application code — a plain count-then-insert, which
+      // two near-simultaneous requests could both pass before either one's
+      // insert landed. All three checks now live inside ask_video_question
+      // (migration 0069), which runs them and the insert in one transaction
+      // serialized on an advisory lock, so the limit and the gate are both
+      // real database invariants rather than something only this endpoint
+      // happens to enforce correctly.
+      const { data: inserted, error: rpcError } = await supabase.rpc('ask_video_question', {
+        p_employer_id: employerId,
+        p_candidate_id: candidateId,
+        p_role_id: roleId,
+        p_question_text: trimmed,
+        p_asked_by: userData.user.id,
+      })
+      if (rpcError) {
+        const FRIENDLY_ERRORS = {
+          question_limit_reached: `You have already asked the maximum of ${QUESTION_LIMIT} questions for this candidate.`,
+          first_question_open: 'Wait for the candidate to answer — or the window to expire on — your first question before asking another.',
+          question_too_long: `Questions must be ${QUESTION_TEXT_MAX_LENGTH} characters or fewer.`,
+        }
+        const friendly = FRIENDLY_ERRORS[rpcError.message]
+        res.statusCode = friendly ? 400 : 500
+        res.end(JSON.stringify({ error: friendly || rpcError.message }))
         return
       }
-
-      const { data: inserted, error: insertError } = await supabase
-        .from('video_questions')
-        .insert({ employer_id: employerId, candidate_id: candidateId, role_id: roleId, question_text: trimmed, asked_by: userData.user.id })
-        .select()
-        .single()
-      if (insertError) throw new Error(insertError.message)
 
       res.statusCode = 200
       res.end(JSON.stringify({ question: inserted }))

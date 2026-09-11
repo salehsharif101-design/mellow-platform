@@ -54,6 +54,21 @@ export default async function handler(req, res) {
       // "sent" for an email that was never actually sent.
       if (shortlistCount > 0 || messageCount > 0) continue
 
+      // Claims the send atomically before sending, rather than sending
+      // first and writing work_video_nudge_sent afterward — two
+      // overlapping runs of this cron would otherwise both see
+      // work_video_nudge_sent = false above and both send. Only the
+      // request whose update actually matches a row (still false at that
+      // instant) proceeds.
+      const { data: claimed } = await supabase
+        .from('employer_profiles')
+        .update({ work_video_nudge_sent: true })
+        .eq('id', employer.id)
+        .eq('work_video_nudge_sent', false)
+        .select('id')
+        .maybeSingle()
+      if (!claimed) continue
+
       const employerUser = unwrap(await supabase.from('users').select('email').eq('id', employer.user_id).single())
 
       await sendEmail({
@@ -69,7 +84,6 @@ export default async function handler(req, res) {
         }),
       })
 
-      unwrap(await supabase.from('employer_profiles').update({ work_video_nudge_sent: true }).eq('id', employer.id))
       sent += 1
     }
 

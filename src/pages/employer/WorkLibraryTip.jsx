@@ -44,7 +44,7 @@ export default function WorkLibraryTip({ destination = 'talent' }) {
           ) : (
             <>
               <button
-                className="btn btn-ghost"
+                className="btn btn-primary"
                 type="button"
                 onClick={() => navigate('/employer/talent')}
                 style={{ padding: '14px 28px', fontSize: 15 }}

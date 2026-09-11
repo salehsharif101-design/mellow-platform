@@ -78,6 +78,18 @@ export default async function handler(req, res) {
       }
 
       if (!question.reminder_sent && elapsedMs >= REMINDER_AT_MS) {
+        // Claims the reminder atomically before sending — conditioned on
+        // reminder_sent still being false, so two overlapping runs of this
+        // cron can't both send the same "1 day left" email.
+        const { data: claimed } = await supabase
+          .from('video_questions')
+          .update({ reminder_sent: true })
+          .eq('id', question.id)
+          .eq('reminder_sent', false)
+          .select('id')
+          .maybeSingle()
+        if (!claimed) continue
+
         const { email } = await getCandidateContact(supabase, question.candidate_id)
         const companyName = question.employer_profiles?.company_name || 'A company'
         const roleTitle = question.roles?.title || 'a role'
@@ -94,9 +106,6 @@ export default async function handler(req, res) {
           }),
         })
 
-        unwrap(
-          await supabase.from('video_questions').update({ reminder_sent: true }).eq('id', question.id),
-        )
         remindersSent += 1
       }
     }

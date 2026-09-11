@@ -144,7 +144,13 @@ export default function AnswerQuestion() {
     }
   }
 
-  if (loading) return null
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <div className="spinner" role="status" aria-label="Loading" />
+      </div>
+    )
+  }
 
   if (loadError || !question) {
     return (

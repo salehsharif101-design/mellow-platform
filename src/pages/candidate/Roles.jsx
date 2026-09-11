@@ -77,7 +77,7 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
               >
                 <img
                   src={employer.logo_url}
-                  alt=""
+                  alt={employer.company_name}
                   className="role-card-logo"
                   style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
                 />
@@ -85,7 +85,7 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
             ) : (
               <img
                 src={employer.logo_url}
-                alt=""
+                alt={employer.company_name}
                 className="role-card-logo role-card-logo-area"
                 style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
               />
@@ -410,6 +410,14 @@ export default function BrowseRoles() {
       .map((entry) => entry.role)
   }, [searchedRoles, candidateId, candidateInfo, appliedRoleIds])
 
+  // Excludes whatever's already shown in "Recommended for you" so a role
+  // can't appear twice on the same page.
+  const remainingRoles = useMemo(() => {
+    if (recommended.length === 0) return searchedRoles
+    const recommendedIds = new Set(recommended.map((role) => role.id))
+    return searchedRoles.filter((role) => !recommendedIds.has(role.id))
+  }, [searchedRoles, recommended])
+
   async function toggleSave(role) {
     setActionError('')
     const existing = savedEntries.find((s) => s.role_id === role.id)
@@ -531,7 +539,7 @@ export default function BrowseRoles() {
             {employer?.logo_url ? (
               <img
                 src={employer.logo_url}
-                alt=""
+                alt={employer.company_name}
                 style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 7, background: 'var(--color-bg-soft)', flexShrink: 0 }}
               />
             ) : (
@@ -657,7 +665,7 @@ export default function BrowseRoles() {
               >
                 <img
                   src={employer.logo_url}
-                  alt=""
+                  alt={employer.company_name}
                   className="role-card-logo"
                   style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
                 />
@@ -665,7 +673,7 @@ export default function BrowseRoles() {
             ) : (
               <img
                 src={employer.logo_url}
-                alt=""
+                alt={employer.company_name}
                 className="role-card-logo role-card-logo-area"
                 style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
               />
@@ -739,6 +747,15 @@ export default function BrowseRoles() {
         </div>
       )}
 
+      {/* Saved roles used to always render as a list regardless of viewMode
+          — the toggle wasn't even shown here, so there was no way to switch
+          while on this tab either. */}
+      {tab === 'saved' && (
+        <div style={{ marginTop: 20, maxWidth: 720, display: 'flex', justifyContent: 'flex-end' }}>
+          <ViewToggle mode={viewMode} onChange={setViewMode} />
+        </div>
+      )}
+
       {tab === 'saved' ? (
         savedEntries.length === 0 ? (
           <EmptyState
@@ -746,6 +763,12 @@ export default function BrowseRoles() {
             body="Tap the bookmark icon on any role to save it here for later."
             illustration="/Collaborate2.png"
           />
+        ) : viewMode === 'grid' ? (
+          <div className="compact-grid" style={{ marginTop: 28 }}>
+            {savedEntries.map((entry) =>
+              entry.roles && entry.roles.is_active ? renderCompactRoleCard(entry.roles) : renderSavedEntry(entry),
+            )}
+          </div>
         ) : (
           <div className="role-list" style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 28, maxWidth: 720 }}>
             {savedEntries.map(renderSavedEntry)}
@@ -812,10 +835,10 @@ export default function BrowseRoles() {
           <div>
             <h3 style={{ fontSize: 18, marginBottom: 14 }}>All open roles</h3>
             {viewMode === 'grid' ? (
-              <div className="compact-grid">{searchedRoles.map((role) => renderCompactRoleCard(role))}</div>
+              <div className="compact-grid">{remainingRoles.map((role) => renderCompactRoleCard(role))}</div>
             ) : (
               <div className="role-list" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {searchedRoles.map((role) => (
+                {remainingRoles.map((role) => (
                   <RoleCard
                     key={role.id}
                     role={role}
@@ -850,7 +873,7 @@ export default function BrowseRoles() {
               {videoModalEmployer.logo_url && (
                 <img
                   src={videoModalEmployer.logo_url}
-                  alt=""
+                  alt={videoModalEmployer.company_name}
                   style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 6, background: 'var(--color-bg-soft)' }}
                 />
               )}

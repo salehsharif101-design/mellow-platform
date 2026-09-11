@@ -34,6 +34,18 @@ async function sendMeetingFollowUps(supabase) {
 
   let sent = 0
   for (const meeting of meetings) {
+    // Claims the send atomically before sending — conditioned on
+    // follow_up_sent still being false, so two overlapping runs of this
+    // cron can't both send the same "did you connect" email.
+    const { data: claimed } = await supabase
+      .from('meetings')
+      .update({ follow_up_sent: true })
+      .eq('id', meeting.id)
+      .eq('follow_up_sent', false)
+      .select('id')
+      .maybeSingle()
+    if (!claimed) continue
+
     const [{ email: employerEmail }, { fullName: candidateName }] = await Promise.all([
       getEmployerContact(supabase, meeting.employer_id),
       getCandidateContact(supabase, meeting.candidate_id),
@@ -62,7 +74,6 @@ async function sendMeetingFollowUps(supabase) {
       }),
     })
 
-    unwrap(await supabase.from('meetings').update({ follow_up_sent: true }).eq('id', meeting.id))
     sent += 1
   }
   return sent
@@ -95,6 +106,18 @@ async function sendSecondFollowUps(supabase) {
       continue
     }
 
+    // Claims the send atomically before sending — conditioned on
+    // second_followup_sent still being false, so two overlapping runs of
+    // this cron can't both send the same follow-up.
+    const { data: claimed } = await supabase
+      .from('meetings')
+      .update({ second_followup_sent: true })
+      .eq('id', meeting.id)
+      .eq('second_followup_sent', false)
+      .select('id')
+      .maybeSingle()
+    if (!claimed) continue
+
     const [{ email: employerEmail }, { fullName: candidateName }] = await Promise.all([
       getEmployerContact(supabase, meeting.employer_id),
       getCandidateContact(supabase, meeting.candidate_id),
@@ -114,7 +137,6 @@ async function sendSecondFollowUps(supabase) {
       }),
     })
 
-    unwrap(await supabase.from('meetings').update({ second_followup_sent: true }).eq('id', meeting.id))
     sent += 1
   }
   return sent
@@ -147,6 +169,18 @@ async function sendTalentNudges(supabase) {
       continue
     }
 
+    // Claims the send atomically before sending — conditioned on
+    // talent_nudge_sent still being false, so two overlapping runs of this
+    // cron can't both send the same nudge.
+    const { data: claimed } = await supabase
+      .from('meetings')
+      .update({ talent_nudge_sent: true })
+      .eq('id', meeting.id)
+      .eq('talent_nudge_sent', false)
+      .select('id')
+      .maybeSingle()
+    if (!claimed) continue
+
     const { email } = await getCandidateContact(supabase, meeting.candidate_id)
 
     await sendEmail({
@@ -161,7 +195,6 @@ async function sendTalentNudges(supabase) {
       }),
     })
 
-    unwrap(await supabase.from('meetings').update({ talent_nudge_sent: true }).eq('id', meeting.id))
     sent += 1
   }
   return sent

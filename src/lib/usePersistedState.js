@@ -48,6 +48,7 @@ export function usePersistedState(key, initialValue) {
 // know about the others.
 export const ONBOARDING_PERSISTED_KEYS = [
   'mellow_onboarding_candidate_just_completed',
+  'mellow_onboarding_candidate_show_welcome',
   'mellow_onboarding_candidate_show_video_tips',
   'mellow_onboarding_candidate_celebration_tip_shown',
   'mellow_onboarding_candidate_add_video_modal_open',

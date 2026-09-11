@@ -338,7 +338,7 @@ export default function EmployerDashboard() {
         const candidateName = q.candidate_profiles?.full_name || 'A candidate'
         items.push({
           id: `question-expired-${q.id}`,
-          text: `${candidateName}'s answer to your question for ${q.roles?.title || 'a role'} has expired`,
+          text: `${candidateName} did not answer your question for ${q.roles?.title || 'a role'} in time`,
           link: `/employer/roles/${q.role_id}/applicants`,
           timestamp: q.expired_at,
         })

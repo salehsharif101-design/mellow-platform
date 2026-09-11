@@ -7,6 +7,14 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useNotifications } from '../context/NotificationContext.jsx'
 
 const NAV_LINK_STYLE = { textDecoration: 'none', fontWeight: 600, fontSize: 14 }
+// Merged onto NAV_LINK_STYLE for whichever nav link matches the current
+// route — a color change plus an underline, subtle enough to sit alongside
+// the existing nav styling rather than compete with it.
+const NAV_LINK_ACTIVE_STYLE = { color: 'var(--color-primary)', borderBottom: '2px solid var(--color-primary)', paddingBottom: 2 }
+
+function navLinkStyle(isActive) {
+  return isActive ? { ...NAV_LINK_STYLE, ...NAV_LINK_ACTIVE_STYLE } : NAV_LINK_STYLE
+}
 
 const HideChromeContext = createContext(null)
 
@@ -40,6 +48,13 @@ export default function Layout() {
   const dashboardPath = userType === 'employer' ? '/employer/dashboard' : '/dashboard'
   const messagesPath = userType === 'employer' ? '/employer/messages' : '/messages'
   const closeMobileMenu = () => setMobileMenuOpen(false)
+
+  const pathname = location.pathname
+  // "Manage roles" (/employer/roles) and "Post a Role" (/employer/roles/new)
+  // share a prefix, so a plain startsWith would mark both active at once —
+  // Post a Role's own exact match is checked and excluded first.
+  const isPostRoleActive = pathname === '/employer/roles/new'
+  const isManageRolesActive = !isPostRoleActive && (pathname === '/employer/roles' || pathname.startsWith('/employer/roles/'))
 
   useEffect(() => {
     if (!mobileMenuOpen) return
@@ -94,7 +109,7 @@ export default function Layout() {
             {session ? (
               <>
                 <div id="app-nav-links" className={`app-nav-links${mobileMenuOpen ? ' mobile-open' : ''}`}>
-                  <Link to={dashboardPath} style={NAV_LINK_STYLE} onClick={closeMobileMenu}>
+                  <Link to={dashboardPath} style={navLinkStyle(pathname === dashboardPath)} onClick={closeMobileMenu}>
                     Dashboard
                   </Link>
                   {profileLoading ? null : userType === 'employer' ? (
@@ -102,18 +117,18 @@ export default function Layout() {
                       <NavHighlight
                         to="/employer/talent"
                         storageKey={NEW_USER_HINT_KEYS.employer}
-                        style={NAV_LINK_STYLE}
+                        style={navLinkStyle(pathname.startsWith('/employer/talent'))}
                         onClick={closeMobileMenu}
                       >
                         Talent Feed
                       </NavHighlight>
-                      <Link to="/employer/roles/new" style={NAV_LINK_STYLE} onClick={closeMobileMenu}>
+                      <Link to="/employer/roles/new" style={navLinkStyle(isPostRoleActive)} onClick={closeMobileMenu}>
                         Post a Role
                       </Link>
-                      <Link to="/employer/roles" style={NAV_LINK_STYLE} onClick={closeMobileMenu}>
+                      <Link to="/employer/roles" style={navLinkStyle(isManageRolesActive)} onClick={closeMobileMenu}>
                         Manage roles
                       </Link>
-                      <Link to="/employer/team" style={NAV_LINK_STYLE} onClick={closeMobileMenu}>
+                      <Link to="/employer/team" style={navLinkStyle(pathname === '/employer/team')} onClick={closeMobileMenu}>
                         Team
                       </Link>
                     </>
@@ -121,7 +136,7 @@ export default function Layout() {
                     <NavHighlight
                       to="/roles"
                       storageKey={NEW_USER_HINT_KEYS.candidate}
-                      style={NAV_LINK_STYLE}
+                      style={navLinkStyle(pathname.startsWith('/roles'))}
                       onClick={closeMobileMenu}
                     >
                       Browse Roles
@@ -129,7 +144,7 @@ export default function Layout() {
                   )}
                   <Link
                     to={messagesPath}
-                    style={{ ...NAV_LINK_STYLE, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    style={{ ...navLinkStyle(pathname === messagesPath), display: 'inline-flex', alignItems: 'center', gap: 6 }}
                     onClick={closeMobileMenu}
                   >
                     Messages

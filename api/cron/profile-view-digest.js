@@ -50,14 +50,27 @@ export default async function handler(req, res) {
       viewersByCandidate.get(v.candidate_id).add(v.viewer_id)
     }
 
+    // Real UTC instant at which "today" (Bahrain time) began — a timestamp
+    // cutoff, not a derived string, so it can be used directly as an atomic
+    // database-level guard below rather than a read-then-compare in JS.
+    const todayStartBahrainIso = new Date(Date.parse(`${today}T00:00:00.000Z`) - BAHRAIN_OFFSET_MS).toISOString()
+
     let sent = 0
     for (const [candidateId, viewers] of viewersByCandidate) {
-      const candidate = unwrap(
-        await supabase.from('candidate_profiles').select('last_digest_sent_at').eq('id', candidateId).single(),
-      )
-      // Guards against a double-send if the cron fires more than once in a
-      // day — the views themselves are the source of "new since last digest".
-      if (candidate.last_digest_sent_at && bahrainDateString(new Date(candidate.last_digest_sent_at)) === today) continue
+      // Claims today's digest atomically before sending — conditioned on
+      // last_digest_sent_at not already falling within today (Bahrain
+      // time), so two overlapping runs of this cron can't both pass the
+      // guard and both send. The first claim's own write (last_digest_sent_at
+      // = now) is what makes the second one's .lt(todayStartBahrainIso) stop
+      // matching, rather than both reading the same stale value first.
+      const { data: claimed } = await supabase
+        .from('candidate_profiles')
+        .update({ last_digest_sent_at: new Date().toISOString() })
+        .eq('id', candidateId)
+        .or(`last_digest_sent_at.is.null,last_digest_sent_at.lt.${todayStartBahrainIso}`)
+        .select('id')
+        .maybeSingle()
+      if (!claimed) continue
 
       const { email, username } = await getCandidateContact(supabase, candidateId)
       const count = viewers.size
@@ -74,12 +87,6 @@ export default async function handler(req, res) {
         }),
       })
 
-      unwrap(
-        await supabase
-          .from('candidate_profiles')
-          .update({ last_digest_sent_at: new Date().toISOString() })
-          .eq('id', candidateId),
-      )
       sent += 1
     }
 

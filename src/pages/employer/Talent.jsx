@@ -133,6 +133,15 @@ export default function TalentFeed() {
             )
             .eq('is_live', true)
             .eq('is_open_to_opportunities', true)
+            // Belt-and-suspenders alongside is_live: a hired candidate is
+            // set availability: 'Not available' (api/meeting-outcome.js)
+            // and shouldn't resurface here even in the window before that
+            // is_live flip is guaranteed correct everywhere it's set. A
+            // plain .neq() would also silently exclude every candidate who
+            // has never set an availability at all (SQL's <> is NULL, not
+            // true, against a NULL column) — the .is.null half of this
+            // keeps those included.
+            .or('availability.neq.Not available,availability.is.null')
             .order('created_at', { ascending: false }),
           supabase.from('shortlists').select('candidate_id').eq('employer_id', resolvedId),
           supabase

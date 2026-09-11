@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { formatRelativeTime } from '../../lib/roleFormat.js'
+import { CUSTOM_STAGE_COLOR } from '../../lib/pipelineStages.js'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
 
@@ -49,12 +50,28 @@ export default function AllApplicants() {
 
       const { data: apps, error: appsError } = await supabase
         .from('applications')
-        .select('id, status, applied_at, role_id, candidate_profiles(id, username, full_name, avatar_url, job_title)')
+        .select('id, status, custom_stage_id, applied_at, role_id, candidate_profiles(id, username, full_name, avatar_url, job_title)')
         .in('role_id', roleIds)
         .order('applied_at', { ascending: false })
 
-      if (appsError) setError(appsError.message)
-      else setApplications((apps || []).map((a) => ({ ...a, roleTitle: roleTitleById[a.role_id] })))
+      if (appsError) {
+        setError(appsError.message)
+      } else {
+        // Custom stage names live on a per-role table, not on the
+        // application row itself — without this join, an applicant sitting
+        // in a renamed/custom stage showed the generic "Reviewing" label
+        // here even though RoleApplicants.jsx (the per-role view) already
+        // resolves and shows their real stage name.
+        const { data: stages } = await supabase.from('role_pipeline_stages').select('id, name').in('role_id', roleIds)
+        const stageNameById = new Map((stages || []).map((s) => [s.id, s.name]))
+        setApplications(
+          (apps || []).map((a) => ({
+            ...a,
+            roleTitle: roleTitleById[a.role_id],
+            customStageName: a.custom_stage_id ? stageNameById.get(a.custom_stage_id) : null,
+          })),
+        )
+      }
 
       setLoading(false)
     }
@@ -104,8 +121,11 @@ export default function AllApplicants() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <p style={{ fontWeight: 700, fontSize: 15 }}>{c.full_name}</p>
-                    <span className="tag" style={{ fontSize: 11, ...STATUS_COLORS[a.status] }}>
-                      {STATUS_LABELS[a.status]}
+                    <span
+                      className="tag"
+                      style={{ fontSize: 11, ...(a.customStageName ? CUSTOM_STAGE_COLOR : STATUS_COLORS[a.status]) }}
+                    >
+                      {a.customStageName || STATUS_LABELS[a.status]}
                     </span>
                   </div>
                   <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>

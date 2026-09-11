@@ -2,6 +2,26 @@
   "rewrites": [
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     {
+      "source": "/jobs",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|Slackbot|Discordbot|redditbot|Googlebot|Applebot|Pinterest|vkShare|SkypeUriPreview|Iframely).*" }],
+      "destination": "/api/og-jobs-index"
+    },
+    {
+      "source": "/jobs/:location(bahrain|uae|saudi-arabia)",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|Slackbot|Discordbot|redditbot|Googlebot|Applebot|Pinterest|vkShare|SkypeUriPreview|Iframely).*" }],
+      "destination": "/api/og-jobs-location?location=:location"
+    },
+    {
+      "source": "/hire",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|Slackbot|Discordbot|redditbot|Googlebot|Applebot|Pinterest|vkShare|SkypeUriPreview|Iframely).*" }],
+      "destination": "/api/og-hire-index"
+    },
+    {
+      "source": "/hire/:location/:role",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|Slackbot|Discordbot|redditbot|Googlebot|Applebot|Pinterest|vkShare|SkypeUriPreview|Iframely).*" }],
+      "destination": "/api/og-hire-role?location=:location&role=:role"
+    },
+    {
       "source": "/jobs/:slug",
       "has": [{ "type": "header", "key": "user-agent", "value": ".*(facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|Slackbot|Discordbot|redditbot|Googlebot|Applebot|Pinterest|vkShare|SkypeUriPreview|Iframely).*" }],
       "destination": "/api/og-role?slug=:slug"

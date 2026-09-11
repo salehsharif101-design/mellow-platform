@@ -53,6 +53,8 @@ async function sendTalentDigests(supabase, since) {
 
   const roles = (recentRoles || []).map((r) => ({ title: r.title, typical_roles: r.employer_profiles?.typical_roles }))
 
+  const dedupCutoffIso = new Date(Date.now() - DEDUP_GUARD_MS).toISOString()
+
   let sent = 0
   for (const candidate of candidates) {
     if (candidate.last_weekly_digest_sent_at && Date.now() - new Date(candidate.last_weekly_digest_sent_at).getTime() < DEDUP_GUARD_MS) {
@@ -64,6 +66,21 @@ async function sendTalentDigests(supabase, since) {
     const matchingRoles = roles.filter((r) => roleMatches(r, candidate.skills, candidate.job_title)).length
 
     if (profileViews === 0 && statusUpdateCount === 0 && matchingRoles === 0) continue
+
+    // Claims this week's digest atomically before sending — re-checked
+    // against the same dedup cutoff used above, but as a database-level
+    // conditional update rather than the in-memory read above, which two
+    // overlapping runs of this cron could both have passed before either
+    // one's write lands. This is the exact race the DEDUP_GUARD_MS comment
+    // above describes already happening once in production.
+    const { data: claimed } = await supabase
+      .from('candidate_profiles')
+      .update({ last_weekly_digest_sent_at: new Date().toISOString() })
+      .eq('id', candidate.id)
+      .or(`last_weekly_digest_sent_at.is.null,last_weekly_digest_sent_at.lt.${dedupCutoffIso}`)
+      .select('id')
+      .maybeSingle()
+    if (!claimed) continue
 
     const parts = []
     if (profileViews > 0) parts.push(`${profileViews} employer${profileViews === 1 ? '' : 's'} viewed your profile`)
@@ -85,12 +102,6 @@ async function sendTalentDigests(supabase, since) {
       }),
     })
 
-    unwrap(
-      await supabase
-        .from('candidate_profiles')
-        .update({ last_weekly_digest_sent_at: new Date().toISOString() })
-        .eq('id', candidate.id),
-    )
     sent += 1
   }
   return sent
@@ -101,6 +112,8 @@ async function sendEmployerDigests(supabase, since) {
     await supabase.from('employer_profiles').select('id, user_id, last_weekly_digest_sent_at'),
   )
   if (employers.length === 0) return 0
+
+  const dedupCutoffIso = new Date(Date.now() - DEDUP_GUARD_MS).toISOString()
 
   let sent = 0
   for (const employer of employers) {
@@ -143,6 +156,18 @@ async function sendEmployerDigests(supabase, since) {
     const emails = await getEmployerEmails(supabase, employer.id)
     if (emails.length === 0) continue
 
+    // Claims this week's digest atomically before sending — see the
+    // matching comment in sendTalentDigests above for why this needs a
+    // database-level conditional update, not just the in-memory read above.
+    const { data: claimed } = await supabase
+      .from('employer_profiles')
+      .update({ last_weekly_digest_sent_at: new Date().toISOString() })
+      .eq('id', employer.id)
+      .or(`last_weekly_digest_sent_at.is.null,last_weekly_digest_sent_at.lt.${dedupCutoffIso}`)
+      .select('id')
+      .maybeSingle()
+    if (!claimed) continue
+
     await sendEmail({
       to: emails,
       subject: 'Your Mellow hiring update',
@@ -155,12 +180,6 @@ async function sendEmployerDigests(supabase, since) {
       }),
     })
 
-    unwrap(
-      await supabase
-        .from('employer_profiles')
-        .update({ last_weekly_digest_sent_at: new Date().toISOString() })
-        .eq('id', employer.id),
-    )
     sent += 1
   }
   return sent

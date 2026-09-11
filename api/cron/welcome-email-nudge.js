@@ -59,6 +59,21 @@ export default async function handler(req, res) {
 
     let sent = 0
     for (const candidate of candidates) {
+      // Claims the send atomically before sending, rather than sending
+      // first and writing welcome_email_sent afterward — two overlapping
+      // runs of this same cron (a slow run plus a retry, or a manual
+      // re-trigger) would otherwise both see welcome_email_sent = false in
+      // the query above and both send. Only the request whose update
+      // actually matches a row (still false at that instant) proceeds.
+      const { data: claimed } = await supabase
+        .from('candidate_profiles')
+        .update({ welcome_email_sent: true })
+        .eq('id', candidate.id)
+        .eq('welcome_email_sent', false)
+        .select('id')
+        .maybeSingle()
+      if (!claimed) continue
+
       const candidateUser = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
 
       await sendEmail({
@@ -74,7 +89,6 @@ export default async function handler(req, res) {
         }),
       })
 
-      unwrap(await supabase.from('candidate_profiles').update({ welcome_email_sent: true }).eq('id', candidate.id))
       sent += 1
     }
 

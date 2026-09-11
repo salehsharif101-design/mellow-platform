@@ -15,11 +15,15 @@ import { useEffect, useRef } from 'react'
 export function useDraftAutosave(save, deps, { delay = 1200, enabled = true } = {}) {
   const saveRef = useRef(save)
   saveRef.current = save
+  const enabledRef = useRef(enabled)
+  enabledRef.current = enabled
   const initialSnapshotRef = useRef(null)
   if (initialSnapshotRef.current === null) {
     initialSnapshotRef.current = JSON.stringify(deps)
   }
   const hasChanged = JSON.stringify(deps) !== initialSnapshotRef.current
+  const hasChangedRef = useRef(hasChanged)
+  hasChangedRef.current = hasChanged
 
   useEffect(() => {
     if (!enabled || !hasChanged) return undefined
@@ -44,4 +48,23 @@ export function useDraftAutosave(save, deps, { delay = 1200, enabled = true } = 
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, hasChanged])
+
+  // Flushes a pending save when this component actually unmounts — e.g. the
+  // wizard swapping which step is rendered when "Back" is clicked, which is
+  // neither a visibilitychange nor a pagehide, so the effect above never
+  // caught it and up to `delay`'s worth of typing was silently dropped. An
+  // empty dependency array means this effect's own cleanup runs exactly
+  // once, at true unmount — unlike the debounce effect above, whose
+  // cleanup also fires on every dependency change and must NOT flush there
+  // (that would defeat the debounce, saving on every keystroke instead of
+  // once after `delay`). Reads enabled/hasChanged via refs, kept current
+  // every render, rather than the values captured when this effect was set
+  // up, since those would otherwise be frozen at whatever they were on the
+  // very first render.
+  useEffect(() => {
+    return () => {
+      if (enabledRef.current && hasChangedRef.current) saveRef.current()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 }

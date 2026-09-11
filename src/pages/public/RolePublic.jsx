@@ -267,14 +267,14 @@ export default function RolePublic() {
                   <Link to={`/company/${employer.company_slug}`} style={{ flexShrink: 0 }}>
                     <img
                       src={employer.logo_url}
-                      alt=""
+                      alt={employer.company_name}
                       style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
                     />
                   </Link>
                 ) : (
                   <img
                     src={employer.logo_url}
-                    alt=""
+                    alt={employer.company_name}
                     style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)', flexShrink: 0 }}
                   />
                 )

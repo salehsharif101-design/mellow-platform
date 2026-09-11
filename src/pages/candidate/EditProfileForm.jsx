@@ -103,9 +103,30 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
     setErrorField(null)
     setSaveError('')
     setSaving(true)
-    // is_live always tracks whether an intro video is actually present —
-    // set here exactly like Step5Video's onFinish does for the onboarding
-    // wizard — so uploading a video from Edit Profile clears the
+
+    // A candidate confirmed hired (api/meeting-outcome.js's 'hire_accepted'
+    // action) is deliberately set availability: 'Not available',
+    // is_live: false — and off the market from then on. Without this
+    // check, is_live below would silently flip back to true the next time
+    // this same candidate saved any unrelated field, since it used to be
+    // recomputed from video presence alone; a hires row is checked here
+    // (rather than trusting the availability field, which the form below
+    // lets the candidate edit) because it's the durable signal, immune to
+    // the candidate touching an unrelated dropdown.
+    const { count: hireCount, error: hireCheckError } = await supabase
+      .from('hires')
+      .select('id', { count: 'exact', head: true })
+      .eq('candidate_id', profile.id)
+    if (hireCheckError) {
+      setSaveError(hireCheckError.message)
+      setSaving(false)
+      return
+    }
+    const wasHired = (hireCount || 0) > 0
+
+    // is_live otherwise always tracks whether an intro video is actually
+    // present — set here exactly like Step5Video's onFinish does for the
+    // onboarding wizard — so uploading a video from Edit Profile clears the
     // dashboard's "not yet live" banner immediately, and removing one
     // (without a replacement) doesn't leave a candidate marked "live" with
     // an empty video slot, which the apply flow elsewhere blocks anyway.
@@ -133,7 +154,7 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
         calendly_url: calendlyUrl.trim() || null,
         website_url: websiteUrl.trim() || null,
         intro_video_url: introVideoUrl || null,
-        is_live: Boolean(introVideoUrl),
+        is_live: wasHired ? false : Boolean(introVideoUrl),
       })
       .eq('id', profile.id)
       .select()

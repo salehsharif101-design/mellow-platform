@@ -23,6 +23,7 @@ export default function CompanyProfile() {
   useSeoMeta({
     title: company ? `${company.company_name} | Mellow` : undefined,
     description: company ? (company.headline || company.about || `${company.company_name} on Mellow.`).slice(0, 200) : undefined,
+    canonicalUrl: company ? `${window.location.origin}/company/${slug}` : undefined,
   })
 
   useEffect(() => {
@@ -101,7 +102,7 @@ export default function CompanyProfile() {
             {company.logo_url && (
               <img
                 src={company.logo_url}
-                alt=""
+                alt={company.company_name}
                 style={{ width: 96, height: 96, objectFit: 'contain', borderRadius: 12, background: 'var(--color-bg-soft)', flexShrink: 0 }}
               />
             )}

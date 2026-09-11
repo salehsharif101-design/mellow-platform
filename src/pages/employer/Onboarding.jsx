@@ -411,7 +411,7 @@ export default function EmployerOnboarding() {
               {logoPreviewUrl && (
                 <img
                   src={logoPreviewUrl}
-                  alt=""
+                  alt={companyName.trim() ? `${companyName.trim()} logo` : 'Company logo preview'}
                   style={{ width: 64, height: 64, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)', marginBottom: 8 }}
                 />
               )}

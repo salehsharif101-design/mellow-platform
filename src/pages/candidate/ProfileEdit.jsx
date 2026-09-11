@@ -26,7 +26,11 @@ export default function ProfileEdit({ forceWizard = false }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [loadError, setLoadError] = useState('')
-  const [showWelcome, setShowWelcome] = useState(true)
+  // Persisted like justCompleted below it (and Step5Video's own showTips) —
+  // a plain useState here meant a tab reload right after dismissing this
+  // screen brought it back in front of Step 1, even though the candidate's
+  // typed data (via draft autosave) was already intact.
+  const [showWelcome, setShowWelcome] = usePersistedState('mellow_onboarding_candidate_show_welcome', true)
   // Persisted (not plain useState) so a same-tab reload right after
   // finishing — the browser discarding this tab under the memory pressure
   // of a link just opened in a new one is the common real-world trigger —
