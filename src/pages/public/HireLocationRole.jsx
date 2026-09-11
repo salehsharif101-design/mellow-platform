@@ -64,7 +64,8 @@ export default function HireLocationRole() {
   if (!page && !loc) {
     return (
       <div className="section" style={{ textAlign: 'center' }}>
-        <h1 style={{ fontSize: 28 }}>Page not found</h1>
+        <img src="/Collaborate.PNG" alt="" style={{ width: '100%', maxWidth: 220, margin: '0 auto', display: 'block' }} />
+        <h1 style={{ fontSize: 28, marginTop: 28 }}>Page not found</h1>
         <p style={{ marginTop: 10, color: 'var(--color-text-muted)' }}>
           We don't have a page for that combination yet. <Link to="/hire">See all hiring locations →</Link>
         </p>
@@ -147,7 +148,8 @@ export default function HireLocationRole() {
     return (
       <div className="section" style={{ textAlign: 'center' }}>
         <div style={{ maxWidth: 520, margin: '0 auto' }}>
-          <p className="eyebrow" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--color-primary)' }}>
+          <img src="/Collaborate.PNG" alt="" style={{ width: '100%', maxWidth: 220, margin: '0 auto', display: 'block' }} />
+          <p className="eyebrow" style={{ marginTop: 28, fontSize: 12, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--color-primary)' }}>
             Hiring {loc.locationLabel}
           </p>
           <h1 style={{ marginTop: 10, fontSize: 30 }}>

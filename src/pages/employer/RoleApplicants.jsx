@@ -428,8 +428,9 @@ export default function RoleApplicants() {
 
   if (error) {
     return (
-      <div className="section">
-        <p className="form-error">{error}</p>
+      <div className="section" style={{ textAlign: 'center' }}>
+        <img src="/Collaborate.PNG" alt="" style={{ width: '100%', maxWidth: 220, margin: '0 auto', display: 'block' }} />
+        <p className="form-error" style={{ marginTop: 28 }}>{error}</p>
       </div>
     )
   }

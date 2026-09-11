@@ -146,7 +146,8 @@ export default function TeamAccept() {
   if (autoAcceptError) {
     return (
       <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
-        <h1 style={{ fontSize: 26 }}>Couldn't accept invitation</h1>
+        <img src="/Collaborate.PNG" alt="" style={{ width: '100%', maxWidth: 220, margin: '0 auto', display: 'block' }} />
+        <h1 style={{ fontSize: 26, marginTop: 28 }}>Couldn't accept invitation</h1>
         <p className="form-error" style={{ marginTop: 12 }}>{autoAcceptError}</p>
         <button type="button" className="btn btn-primary" style={{ marginTop: 20 }} onClick={() => setAutoAcceptError('')}>
           Try again
@@ -158,7 +159,8 @@ export default function TeamAccept() {
   if (error && !invite) {
     return (
       <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
-        <h1 style={{ fontSize: 26 }}>Invitation not found</h1>
+        <img src="/Collaborate.PNG" alt="" style={{ width: '100%', maxWidth: 220, margin: '0 auto', display: 'block' }} />
+        <h1 style={{ fontSize: 26, marginTop: 28 }}>Invitation not found</h1>
         <p className="form-error" style={{ marginTop: 12 }}>{error}</p>
       </div>
     )
@@ -180,7 +182,8 @@ export default function TeamAccept() {
   if (invite?.status === 'active') {
     return (
       <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
-        <h1 style={{ fontSize: 26 }}>This invitation has already been accepted</h1>
+        <img src="/Collaborate.PNG" alt="" style={{ width: '100%', maxWidth: 220, margin: '0 auto', display: 'block' }} />
+        <h1 style={{ fontSize: 26, marginTop: 28 }}>This invitation has already been accepted</h1>
         <p style={{ marginTop: 12, color: 'var(--color-text-muted)' }}>
           Log in to access {invite.companyName}'s dashboard.
         </p>

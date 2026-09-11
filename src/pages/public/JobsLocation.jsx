@@ -83,13 +83,16 @@ export default function JobsLocation({ location }) {
           {loading ? (
             <p style={{ marginTop: 12, fontSize: 14, color: 'var(--color-text-muted)' }}>Loading open roles…</p>
           ) : roles.length === 0 ? (
-            <p style={{ marginTop: 12, fontSize: 14, color: 'var(--color-text-muted)' }}>
-              No open roles in {loc.name} right now, check back soon, or{' '}
-              <a href="https://beta.joinmellow.xyz" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
-                sign up
-              </a>{' '}
-              to be notified when new ones are posted.
-            </p>
+            <>
+              <img src="/Collaborate.PNG" alt="" style={{ width: '100%', maxWidth: 220, margin: '20px auto 0', display: 'block' }} />
+              <p style={{ marginTop: 12, fontSize: 14, color: 'var(--color-text-muted)' }}>
+                No open roles in {loc.name} right now, check back soon, or{' '}
+                <a href="https://beta.joinmellow.xyz" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+                  sign up
+                </a>{' '}
+                to be notified when new ones are posted.
+              </p>
+            </>
           ) : (
             <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
               {roles.map((role) => (

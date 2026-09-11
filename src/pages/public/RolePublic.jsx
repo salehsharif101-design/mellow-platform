@@ -216,7 +216,8 @@ export default function RolePublic() {
   if (notFound) {
     return (
       <div className="section" style={{ textAlign: 'center' }}>
-        <h1 style={{ fontSize: 32 }}>Role not found</h1>
+        <img src="/Collaborate.PNG" alt="" style={{ width: '100%', maxWidth: 220, margin: '0 auto', display: 'block' }} />
+        <h1 style={{ fontSize: 32, marginTop: 28 }}>Role not found</h1>
         <p style={{ marginTop: 10, color: 'var(--color-text-muted)' }}>
           This role may have closed or the link may be incorrect.
         </p>

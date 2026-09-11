@@ -119,7 +119,8 @@ export default function ResetPassword() {
   if (linkInvalid) {
     return (
       <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
-        <h1 style={{ fontSize: 28 }}>Link expired</h1>
+        <img src="/Collaborate.PNG" alt="" style={{ width: '100%', maxWidth: 220, margin: '0 auto', display: 'block' }} />
+        <h1 style={{ fontSize: 28, marginTop: 28 }}>Link expired</h1>
         <p style={{ marginTop: 12, color: 'var(--color-text-muted)' }}>
           This password reset link is invalid or has expired. Request a new one from the login page.
         </p>

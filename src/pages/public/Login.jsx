@@ -220,7 +220,8 @@ export default function Login() {
         <Link to="/" style={{ display: 'inline-block', marginBottom: 32 }}>
           <Logo size={28} />
         </Link>
-        <h1 style={{ fontSize: 28 }}>Confirmation link expired</h1>
+        <img src="/Collaborate.PNG" alt="" style={{ width: '100%', maxWidth: 220, margin: '0 auto', display: 'block' }} />
+        <h1 style={{ fontSize: 28, marginTop: 28 }}>Confirmation link expired</h1>
         <p style={{ marginTop: 12, color: 'var(--color-text-muted)' }}>
           This confirmation link has expired or already been used. Enter your email to resend a new one.
         </p>
