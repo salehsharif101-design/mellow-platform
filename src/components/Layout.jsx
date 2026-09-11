@@ -8,9 +8,8 @@ import { useNotifications } from '../context/NotificationContext.jsx'
 
 const NAV_LINK_STYLE = { textDecoration: 'none', fontWeight: 600, fontSize: 14 }
 // Merged onto NAV_LINK_STYLE for whichever nav link matches the current
-// route — a color change plus an underline, subtle enough to sit alongside
-// the existing nav styling rather than compete with it.
-const NAV_LINK_ACTIVE_STYLE = { color: 'var(--color-primary)', borderBottom: '2px solid var(--color-primary)', paddingBottom: 2 }
+// route — just the color change, no underline.
+const NAV_LINK_ACTIVE_STYLE = { color: 'var(--color-primary)' }
 
 function navLinkStyle(isActive) {
   return isActive ? { ...NAV_LINK_STYLE, ...NAV_LINK_ACTIVE_STYLE } : NAV_LINK_STYLE
