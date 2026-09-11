@@ -41,10 +41,16 @@ if (hamburger && mobileMenu) {
   });
 }
 
-// Active nav link
-var path = window.location.pathname.split('/').pop() || 'index.html';
+// Active nav link — Vercel serves this site with clean URLs (/talent, not
+// /talent.html), so location.pathname never literally matches a
+// href="talent.html". Stripping a trailing .html from both sides before
+// comparing makes it match either way (a direct .html file open still
+// works too, e.g. testing locally without a server).
+var path = window.location.pathname.split('/').pop() || 'index';
+path = path.replace(/\.html$/, '');
 document.querySelectorAll('.nav-links a:not(.nav-cta)').forEach(function(a) {
-  if (a.getAttribute('href') === path) a.classList.add('active');
+  var href = (a.getAttribute('href') || '').replace(/\.html$/, '');
+  if (href === path) a.classList.add('active');
 });
 
 // Waitlist form
