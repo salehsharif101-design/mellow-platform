@@ -86,6 +86,8 @@ export default function RoleApplicants() {
   const [addingStageId, setAddingStageId] = useState(null)
   const [newStageDraft, setNewStageDraft] = useState('')
   const [showManageStages, setShowManageStages] = useState(false)
+  const [reopening, setReopening] = useState(false)
+  const [reopenError, setReopenError] = useState('')
 
   useEffect(() => {
     if (!user) return
@@ -95,7 +97,7 @@ export default function RoleApplicants() {
       const { data: roleRow, error: roleError } = employerId
         ? await supabase
             .from('roles')
-            .select('id, title, employer_id, view_count')
+            .select('id, title, employer_id, view_count, status')
             .eq('id', roleId)
             .eq('employer_id', employerId)
             .maybeSingle()
@@ -424,6 +426,23 @@ export default function RoleApplicants() {
     }
   }
 
+  async function handleReopenRole() {
+    setReopenError('')
+    setReopening(true)
+    const { data, error: reopenErr } = await supabase
+      .from('roles')
+      .update({ status: 'open' })
+      .eq('id', role.id)
+      .select()
+      .single()
+    if (reopenErr) {
+      setReopenError('Could not reopen this role — please try again.')
+    } else {
+      setRole((prev) => ({ ...prev, ...data }))
+    }
+    setReopening(false)
+  }
+
   if (loading) return null
 
   if (error) {
@@ -446,6 +465,39 @@ export default function RoleApplicants() {
           Manage stages
         </button>
       </div>
+
+      {role.status === 'paused' && (
+        <div
+          className="card"
+          style={{
+            marginTop: 16,
+            padding: '14px 20px',
+            background: '#fff6e0',
+            border: '1px solid #f5d889',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 16,
+            flexWrap: 'wrap',
+          }}
+        >
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#8a6100' }}>
+              This role is currently paused. Candidates cannot apply until you reopen it.
+            </p>
+            {reopenError && <p className="form-error" style={{ marginTop: 8 }}>{reopenError}</p>}
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ flexShrink: 0 }}
+            onClick={handleReopenRole}
+            disabled={reopening}
+          >
+            {reopening ? 'Reopening…' : 'Reopen role'}
+          </button>
+        </div>
+      )}
 
       <RoleAnalyticsPanel role={role} applications={applications} hires={hires} />
 
