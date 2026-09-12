@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { getCachedPage, setCachedPage } from '../../lib/dashboardCache.js'
+import { notify } from '../../lib/notify.js'
 import EditRoleModal from '../../components/EditRoleModal.jsx'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
@@ -106,6 +107,15 @@ export default function EmployerRoles() {
       .single()
     if (!updateError) {
       setRoles((prev) => prev.map((r) => (r.id === role.id ? data : r)))
+      // Only pause/close is worth telling the rest of the team about —
+      // reopening isn't routed through here at all (RoleApplicants.jsx's
+      // own reopen button sets status back to 'open' directly), and the
+      // recipient list itself (everyone but whoever made this change) is
+      // resolved server-side in api/email.js from roles.status_changed_by,
+      // set by the same trigger that stamps status_changed_at.
+      if (status === 'paused' || status === 'closed') {
+        notify('role-status-changed', { roleId: role.id })
+      }
     } else {
       setActionError(`Could not update "${role.title}"'s status — please try again.`)
     }

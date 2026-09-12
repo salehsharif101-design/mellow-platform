@@ -196,7 +196,11 @@ export default function EmployerDashboard() {
         answeredQuestionsResult,
         expiredQuestionsResult,
       ] = await Promise.all([
-        supabase.from('roles').select('id, title, is_active, status, created_at, view_count').eq('employer_id', emp.id).order('created_at', { ascending: false }),
+        supabase
+          .from('roles')
+          .select('id, title, is_active, status, status_changed_at, status_changed_by, status_changed_by_email, created_at, view_count')
+          .eq('employer_id', emp.id)
+          .order('created_at', { ascending: false }),
         supabase
           .from('applications')
           .select('id, status, role_id, applied_at, viewed_at, candidate_profiles(id, username, full_name, avatar_url, job_title), roles!inner(employer_id)')
@@ -286,6 +290,30 @@ export default function EmployerDashboard() {
           timestamp: entry.latest,
         })
       })
+      // A teammate pausing or closing a role since last visit — status_changed_by_email
+      // is denormalized onto the role row itself (migration 0075, same reason
+      // candidate_notes.author_email exists: RLS on public.users only ever lets
+      // someone read their own row, so there's no other way to resolve who did
+      // this). Excludes the actor's own change via status_changed_by, not a
+      // fixed "owner vs teammate" distinction, so this fires for whoever
+      // *didn't* make the change, whether that's the owner or another teammate.
+      myRoles
+        .filter(
+          (r) =>
+            r.status_changed_at &&
+            new Date(r.status_changed_at).getTime() > sinceMs &&
+            (r.status === 'paused' || r.status === 'closed') &&
+            r.status_changed_by !== user.id,
+        )
+        .forEach((r) => {
+          items.push({
+            id: `role-status-${r.id}-${r.status}`,
+            text: `${r.status_changed_by_email || 'A team member'} ${r.status} the role ${r.title}`,
+            link: '/employer/roles',
+            timestamp: r.status_changed_at,
+          })
+        })
+
       unreadBySender.forEach((entry, senderId) => {
         const name = namesBySenderId[senderId] || 'Talent'
         items.push({

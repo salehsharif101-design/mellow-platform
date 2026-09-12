@@ -15,7 +15,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { sendEmail } from './_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from './_lib/email-template.js'
-import { getServiceClient, unwrap, getCandidateContact, getEmployerEmails } from './_lib/db.js'
+import { getServiceClient, unwrap, getCandidateContact, getEmployerEmails, getEmployerUserIds } from './_lib/db.js'
 import { escapeHtml } from './_lib/html.js'
 // Pure functions only (no supabase import, no env var reads) — safe to
 // import here unlike src/lib/employerAccess.js (see getCandidateContact's
@@ -417,6 +417,49 @@ async function sendTeamInvite(supabase, teamMemberId) {
   })
 }
 
+// Fires right after a client-side pause/close successfully lands (see
+// employer/Roles.jsx's changeStatus) — status_changed_by/_email were
+// already stamped by the same database trigger that sets
+// status_changed_at (migration 0075), so this doesn't need the caller to
+// tell it (or trust it about) who actually made the change. Every other
+// active team member gets one, the person who made the change does not
+// — they already know.
+async function sendRoleStatusChangeNotification(supabase, roleId) {
+  const role = unwrap(
+    await supabase
+      .from('roles')
+      .select('title, status, employer_id, status_changed_by, status_changed_by_email')
+      .eq('id', roleId)
+      .single(),
+  )
+  // Already reopened (or edited again) by the time this ran — nothing
+  // left to tell anyone about.
+  if (role.status !== 'paused' && role.status !== 'closed') return { skipped: true }
+
+  const teamUserIds = await getEmployerUserIds(supabase, role.employer_id)
+  const recipientUserIds = teamUserIds.filter((id) => id !== role.status_changed_by)
+  if (recipientUserIds.length === 0) return { skipped: true }
+
+  const { data: recipients } = await supabase.from('users').select('email').in('id', recipientUserIds)
+  const emails = (recipients || []).map((u) => u.email).filter(Boolean)
+  if (emails.length === 0) return { skipped: true }
+
+  const actorLabel = role.status_changed_by_email || 'A team member'
+  const verb = role.status === 'paused' ? 'paused' : 'closed'
+
+  return sendEmail({
+    to: emails,
+    subject: `${role.title} was ${verb}`,
+    html: renderEmailHtml({
+      heading: `A role was ${verb}`,
+      bodyText: `${escapeHtml(actorLabel)} ${verb} the role ${escapeHtml(role.title)}.`,
+      ctaLabel: 'View role',
+      ctaUrl: `${SITE_URL}/employer/roles`,
+      illustration: 'Collaborate2.png',
+    }),
+  })
+}
+
 async function sendVideoLibraryNotification(supabase, candidateId) {
   const { email } = await getCandidateContact(supabase, candidateId)
 
@@ -537,6 +580,9 @@ export default async function handler(req, res) {
         break
       case 'question-asked':
         await sendQuestionAskedNotification(supabase, body.questionId)
+        break
+      case 'role-status-changed':
+        await sendRoleStatusChangeNotification(supabase, body.roleId)
         break
       default:
         res.statusCode = 400

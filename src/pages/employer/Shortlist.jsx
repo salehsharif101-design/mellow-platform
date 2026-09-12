@@ -60,7 +60,7 @@ export default function Shortlist() {
       const { data, error: shortlistError } = await supabase
         .from('shortlists')
         .select(
-          `id, candidate_id, role_id, status, roles(id, title, required_skills, role_type, work_style), candidate_profiles(${CANDIDATE_SELECT})`,
+          `id, candidate_id, role_id, status, roles(id, title, status, required_skills, role_type, work_style), candidate_profiles(${CANDIDATE_SELECT})`,
         )
         .eq('employer_id', resolvedId)
         .order('created_at', { ascending: false })
@@ -135,7 +135,7 @@ export default function Shortlist() {
     const key = entry.role_id || 'general'
     let group = groupByKey.get(key)
     if (!group) {
-      group = { key, title: entry.roles?.title || null, count: 0 }
+      group = { key, title: entry.roles?.title || null, status: entry.roles?.status, count: 0 }
       groupByKey.set(key, group)
       groups.push(group)
     }
@@ -149,9 +149,22 @@ export default function Shortlist() {
           key={g.key}
           to={`/employer/shortlist/review?role=${g.key}`}
           className="btn btn-ghost"
-          style={{ fontSize: 13, padding: '8px 14px', whiteSpace: 'nowrap' }}
+          style={{ fontSize: 13, padding: '8px 14px', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}
         >
           Review {g.title || 'general'} ({g.count})
+          {(g.status === 'paused' || g.status === 'closed') && (
+            <span
+              className="tag"
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                background: g.status === 'paused' ? '#fff6e0' : 'var(--color-bg-soft)',
+                color: g.status === 'paused' ? '#8a6100' : 'var(--color-text-muted)',
+              }}
+            >
+              {g.status === 'paused' ? 'Paused' : 'Closed'}
+            </span>
+          )}
         </Link>
       ))}
     </div>

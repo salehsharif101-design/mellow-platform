@@ -26,7 +26,7 @@ export default function RejectedTalent() {
       const { data, error: appsError } = await supabase
         .from('applications')
         .select(
-          'id, role_id, status_changed_at, applied_at, roles!inner(id, title, slug, employer_id), candidate_profiles(id, username, full_name, avatar_url, job_title, current_company, location, skills)',
+          'id, role_id, status_changed_at, applied_at, roles!inner(id, title, slug, status, employer_id), candidate_profiles(id, username, full_name, avatar_url, job_title, current_company, location, skills)',
         )
         .eq('roles.employer_id', employerId)
         .eq('status', 'rejected')
@@ -79,7 +79,22 @@ export default function RejectedTalent() {
         groups.map((group) => (
           <div key={group.key} style={{ marginTop: 32 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-              <h2 style={{ fontSize: 19 }}>{group.role?.title || 'Untitled role'}</h2>
+              <h2 style={{ fontSize: 19, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                {group.role?.title || 'Untitled role'}
+                {(group.role?.status === 'paused' || group.role?.status === 'closed') && (
+                  <span
+                    className="tag"
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      background: group.role.status === 'paused' ? '#fff6e0' : 'var(--color-bg-soft)',
+                      color: group.role.status === 'paused' ? '#8a6100' : 'var(--color-text-muted)',
+                    }}
+                  >
+                    {group.role.status === 'paused' ? 'Paused' : 'Closed'}
+                  </span>
+                )}
+              </h2>
               <Link to={`/employer/roles/${group.key}/applicants`} className="btn btn-primary">
                 View applicants
               </Link>
