@@ -157,7 +157,7 @@ export default function Applications() {
         supabase
           .from('applications')
           .select(
-            'id, role_id, status, applied_at, viewed_at, status_changed_at, roles(title, employer_profiles(company_name, logo_url, company_slug))',
+            'id, role_id, status, applied_at, viewed_at, status_changed_at, roles(title, is_active, employer_profiles(company_name, logo_url, company_slug))',
           )
           .eq('candidate_id', candidate.id)
           .order('applied_at', { ascending: false }),
@@ -244,7 +244,14 @@ export default function Applications() {
                       avatar
                     )}
                     <div>
-                      <p style={{ fontWeight: 700, fontSize: 15 }}>{a.roles?.title}</p>
+                      <p style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        {a.roles?.title}
+                        {a.roles?.is_active === false && (
+                          <span className="tag" style={{ fontSize: 11, background: 'var(--color-bg-soft)', color: 'var(--color-text-muted)' }}>
+                            Role closed
+                          </span>
+                        )}
+                      </p>
                       <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
                         {employer?.company_slug ? (
                           <Link to={`/company/${employer.company_slug}`} style={{ color: 'inherit', fontWeight: 600 }}>

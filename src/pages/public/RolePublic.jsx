@@ -47,11 +47,15 @@ export default function RolePublic() {
 
   useEffect(() => {
     async function load() {
+      // No .eq('is_active', true) here — a closed role should still load
+      // (see the isClosed banner below) rather than read as not found. RLS
+      // is what actually decides visibility now (see migration 0073), same
+      // split as always: this query expresses what the page wants, RLS
+      // enforces what's actually allowed.
       const { data, error: roleError } = await supabase
         .from('roles')
         .select(ROLE_SELECT)
         .eq('slug', slug)
-        .eq('is_active', true)
         .maybeSingle()
 
       if (data && data.employer_profiles?.is_visible !== false) {
@@ -226,6 +230,7 @@ export default function RolePublic() {
   }
 
   const employer = role.employer_profiles
+  const isClosed = role.status !== 'open'
   const roleTypeLabel = role.role_type ? role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ') : null
   const deadlineLabel = formatDeadline(role.deadline)
   const salaryLabel = formatSalary(role)
@@ -256,6 +261,17 @@ export default function RolePublic() {
           {userType === 'candidate' && candidateId && (
             <div className="profile-hero-actions">
               <SaveRoleButton saved={Boolean(savedEntryId)} onToggle={toggleSave} size={19} />
+            </div>
+          )}
+
+          {isClosed && (
+            <div
+              className="card"
+              style={{ padding: '14px 20px', background: '#FFF8E5', border: '1px solid #F5D889', marginBottom: 20 }}
+            >
+              <p style={{ fontSize: 14, fontWeight: 700, color: '#8a5a00' }}>
+                This position is no longer accepting applications
+              </p>
             </div>
           )}
 
@@ -362,7 +378,7 @@ export default function RolePublic() {
             </p>
           )}
 
-          {needsVideo && (
+          {!isClosed && needsVideo && (
             <div
               className="card"
               style={{ marginTop: 20, padding: '16px 20px', background: '#fff4e5', border: 'none' }}
@@ -376,9 +392,9 @@ export default function RolePublic() {
             </div>
           )}
 
-          {error && <p className="form-error" style={{ marginTop: 16 }}>{error}</p>}
+          {!isClosed && error && <p className="form-error" style={{ marginTop: 16 }}>{error}</p>}
 
-          <div style={{ marginTop: 28, display: 'flex', justifyContent: 'center' }}>{applyButton}</div>
+          {!isClosed && <div style={{ marginTop: 28, display: 'flex', justifyContent: 'center' }}>{applyButton}</div>}
         </div>
       </div>
     </div>
