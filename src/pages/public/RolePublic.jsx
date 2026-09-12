@@ -47,11 +47,11 @@ export default function RolePublic() {
 
   useEffect(() => {
     async function load() {
-      // No .eq('is_active', true) here — a closed role should still load
-      // (see the isClosed banner below) rather than read as not found. RLS
-      // is what actually decides visibility now (see migration 0073), same
-      // split as always: this query expresses what the page wants, RLS
-      // enforces what's actually allowed.
+      // No .eq('is_active', true) here — a paused or closed role should
+      // still load (see the isUnavailable banner below) rather than read
+      // as not found. RLS is what actually decides visibility now (see
+      // migrations 0073/0074), same split as always: this query expresses
+      // what the page wants, RLS enforces what's actually allowed.
       const { data, error: roleError } = await supabase
         .from('roles')
         .select(ROLE_SELECT)
@@ -230,7 +230,9 @@ export default function RolePublic() {
   }
 
   const employer = role.employer_profiles
-  const isClosed = role.status !== 'open'
+  const isPaused = role.status === 'paused'
+  const isClosed = role.status === 'closed'
+  const isUnavailable = isPaused || isClosed
   const roleTypeLabel = role.role_type ? role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ') : null
   const deadlineLabel = formatDeadline(role.deadline)
   const salaryLabel = formatSalary(role)
@@ -264,13 +266,15 @@ export default function RolePublic() {
             </div>
           )}
 
-          {isClosed && (
+          {isUnavailable && (
             <div
               className="card"
               style={{ padding: '14px 20px', background: '#FFF8E5', border: '1px solid #F5D889', marginBottom: 20 }}
             >
               <p style={{ fontSize: 14, fontWeight: 700, color: '#8a5a00' }}>
-                This position is no longer accepting applications
+                {isPaused
+                  ? 'This position is temporarily paused. Check back soon.'
+                  : 'This position is no longer accepting applications.'}
               </p>
             </div>
           )}
@@ -378,7 +382,7 @@ export default function RolePublic() {
             </p>
           )}
 
-          {!isClosed && needsVideo && (
+          {!isUnavailable && needsVideo && (
             <div
               className="card"
               style={{ marginTop: 20, padding: '16px 20px', background: '#fff4e5', border: 'none' }}
@@ -392,9 +396,9 @@ export default function RolePublic() {
             </div>
           )}
 
-          {!isClosed && error && <p className="form-error" style={{ marginTop: 16 }}>{error}</p>}
+          {!isUnavailable && error && <p className="form-error" style={{ marginTop: 16 }}>{error}</p>}
 
-          {!isClosed && <div style={{ marginTop: 28, display: 'flex', justifyContent: 'center' }}>{applyButton}</div>}
+          {!isUnavailable && <div style={{ marginTop: 28, display: 'flex', justifyContent: 'center' }}>{applyButton}</div>}
         </div>
       </div>
     </div>

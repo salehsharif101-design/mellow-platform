@@ -332,7 +332,7 @@ export default function BrowseRoles() {
           supabase
             .from('saved_roles')
             .select(
-              'id, role_id, role_title, company_name, created_at, roles(id, slug, title, location, role_type, deadline, salary_min, salary_max, salary_currency, is_active, employer_profiles(company_name, logo_url, company_slug))',
+              'id, role_id, role_title, company_name, created_at, roles(id, slug, title, location, role_type, deadline, salary_min, salary_max, salary_currency, is_active, status, employer_profiles(company_name, logo_url, company_slug))',
             )
             .eq('candidate_id', candidate.id)
             .order('created_at', { ascending: false }),
@@ -435,7 +435,7 @@ export default function BrowseRoles() {
         role_title: role.title,
         company_name: role.employer_profiles?.company_name || null,
       })
-      .select('id, role_id, role_title, company_name, created_at, roles(id, slug, title, location, role_type, deadline, salary_min, salary_max, salary_currency, is_active, employer_profiles(company_name, logo_url, company_slug))')
+      .select('id, role_id, role_title, company_name, created_at, roles(id, slug, title, location, role_type, deadline, salary_min, salary_max, salary_currency, is_active, status, employer_profiles(company_name, logo_url, company_slug))')
       .single()
     if (!insertError) setSavedEntries((prev) => [data, ...prev])
     else setActionError('Could not save that role — please try again.')
@@ -622,8 +622,11 @@ export default function BrowseRoles() {
 
   function renderSavedEntry(entry) {
     const role = entry.roles
-    const expired = !role || !role.is_active
-    if (expired) {
+    // Genuinely deleted (saved_roles.role_id is `on delete set null`, so
+    // the title/company snapshotted at save time is all that's left) —
+    // distinct from paused/closed below, where the role row itself is
+    // still there and still worth clicking through to.
+    if (!role) {
       return (
         <div key={entry.id} className="card role-card" style={{ padding: 20, opacity: 0.75 }}>
           <div className="role-card-actions">
@@ -641,6 +644,39 @@ export default function BrowseRoles() {
               <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 6 }}>
                 This role is no longer accepting applications.
               </p>
+            </div>
+          </div>
+        </div>
+      )
+    }
+    if (role.status === 'paused' || role.status === 'closed') {
+      const isPaused = role.status === 'paused'
+      return (
+        <div
+          key={entry.id}
+          className="card role-card"
+          style={{ padding: 20, opacity: 0.75, cursor: 'pointer' }}
+          onClick={() => navigate(`/jobs/${role.slug}`)}
+        >
+          <div className="role-card-actions">
+            <SaveRoleButton saved onToggle={() => removeSaved(entry.id)} />
+          </div>
+          <div className="role-card-header no-logo">
+            <h3 className="role-card-title" style={{ fontSize: 17 }}>{entry.role_title}</h3>
+            <p className="role-card-company" style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>{entry.company_name}</p>
+            <div className="role-card-rest">
+              <span
+                className="tag"
+                style={{
+                  marginTop: 8,
+                  display: 'inline-block',
+                  fontSize: 12,
+                  background: isPaused ? '#fff6e0' : 'var(--color-bg-soft)',
+                  color: isPaused ? '#8a6100' : 'var(--color-text-muted)',
+                }}
+              >
+                {isPaused ? 'Role paused' : 'Role closed'}
+              </span>
             </div>
           </div>
         </div>

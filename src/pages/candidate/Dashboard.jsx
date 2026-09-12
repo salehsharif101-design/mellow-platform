@@ -162,7 +162,7 @@ export default function CandidateDashboard() {
         supabase
           .from('applications')
           .select(
-            'id, status, status_changed_at, applied_at, viewed_at, role_id, roles(id, slug, title, employer_id, employer_profiles(company_name, user_id, logo_url, company_slug))',
+            'id, status, status_changed_at, applied_at, viewed_at, role_id, roles(id, slug, title, status, status_changed_at, employer_id, employer_profiles(company_name, user_id, logo_url, company_slug))',
           )
           .eq('candidate_id', candidate.id)
           .order('applied_at', { ascending: false }),
@@ -221,6 +221,27 @@ export default function CandidateDashboard() {
             text: `Your application for ${a.roles?.title} at ${a.roles?.employer_profiles?.company_name} is now ${getCandidateStatusLabel(a.status)}`,
             link: '/applications',
             timestamp: a.status_changed_at,
+          })
+        })
+
+      // A role the candidate applied to getting paused or closed since
+      // last visit — keeps them from having to notice this on their own,
+      // e.g. by re-visiting the role page and seeing the new banner
+      // there. roles.status_changed_at (migration 0074) mirrors
+      // applications.status_changed_at's own trigger-maintained pattern.
+      apps
+        .filter(
+          (a) =>
+            a.roles?.status_changed_at &&
+            new Date(a.roles.status_changed_at).getTime() > sinceMs &&
+            ['paused', 'closed'].includes(a.roles?.status),
+        )
+        .forEach((a) => {
+          items.push({
+            id: `role-status-${a.id}`,
+            text: `The role you applied to at ${a.roles?.employer_profiles?.company_name} has been ${a.roles.status}`,
+            link: '/applications',
+            timestamp: a.roles.status_changed_at,
           })
         })
 

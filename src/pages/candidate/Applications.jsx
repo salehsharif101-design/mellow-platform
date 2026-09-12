@@ -157,7 +157,7 @@ export default function Applications() {
         supabase
           .from('applications')
           .select(
-            'id, role_id, status, applied_at, viewed_at, status_changed_at, roles(title, is_active, employer_profiles(company_name, logo_url, company_slug))',
+            'id, role_id, status, applied_at, viewed_at, status_changed_at, roles(title, slug, status, employer_profiles(company_name, logo_url, company_slug))',
           )
           .eq('candidate_id', candidate.id)
           .order('applied_at', { ascending: false }),
@@ -245,8 +245,19 @@ export default function Applications() {
                     )}
                     <div>
                       <p style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        {a.roles?.title}
-                        {a.roles?.is_active === false && (
+                        {a.roles?.slug ? (
+                          <Link to={`/jobs/${a.roles.slug}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                            {a.roles?.title}
+                          </Link>
+                        ) : (
+                          a.roles?.title
+                        )}
+                        {a.roles?.status === 'paused' && (
+                          <span className="tag" style={{ fontSize: 11, background: '#fff6e0', color: '#8a6100' }}>
+                            Role paused
+                          </span>
+                        )}
+                        {a.roles?.status === 'closed' && (
                           <span className="tag" style={{ fontSize: 11, background: 'var(--color-bg-soft)', color: 'var(--color-text-muted)' }}>
                             Role closed
                           </span>
