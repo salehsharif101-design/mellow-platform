@@ -651,6 +651,12 @@ export default function BrowseRoles() {
     }
     if (role.status === 'paused' || role.status === 'closed') {
       const isPaused = role.status === 'paused'
+      // Unlike the genuinely-deleted case above, the role row (and its
+      // employer_profiles) is still fully here for paused/closed — the
+      // real logo/company data should render exactly like the open case
+      // below does, not the snapshot-only, no-logo layout that's only
+      // correct when there's no live role left to read from at all.
+      const pausedClosedEmployer = role.employer_profiles
       return (
         <div
           key={entry.id}
@@ -661,9 +667,44 @@ export default function BrowseRoles() {
           <div className="role-card-actions">
             <SaveRoleButton saved onToggle={() => removeSaved(entry.id)} />
           </div>
-          <div className="role-card-header no-logo">
-            <h3 className="role-card-title" style={{ fontSize: 17 }}>{entry.role_title}</h3>
-            <p className="role-card-company" style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>{entry.company_name}</p>
+          <div className={`role-card-header${pausedClosedEmployer?.logo_url ? '' : ' no-logo'}`}>
+            <h3 className="role-card-title" style={{ fontSize: 17 }}>{role.title}</h3>
+            {pausedClosedEmployer?.logo_url && (
+              pausedClosedEmployer.company_slug ? (
+                <Link
+                  to={`/company/${pausedClosedEmployer.company_slug}`}
+                  className="role-card-logo-area"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <img
+                    src={pausedClosedEmployer.logo_url}
+                    alt={pausedClosedEmployer.company_name}
+                    className="role-card-logo"
+                    style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
+                  />
+                </Link>
+              ) : (
+                <img
+                  src={pausedClosedEmployer.logo_url}
+                  alt={pausedClosedEmployer.company_name}
+                  className="role-card-logo role-card-logo-area"
+                  style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
+                />
+              )
+            )}
+            <p className="role-card-company" style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
+              {pausedClosedEmployer?.company_slug ? (
+                <Link
+                  to={`/company/${pausedClosedEmployer.company_slug}`}
+                  style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {pausedClosedEmployer?.company_name}
+                </Link>
+              ) : (
+                pausedClosedEmployer?.company_name || entry.company_name
+              )}
+            </p>
             <div className="role-card-rest">
               <span
                 className="tag"

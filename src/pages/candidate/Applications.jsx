@@ -265,7 +265,7 @@ export default function Applications() {
                       </p>
                       <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
                         {employer?.company_slug ? (
-                          <Link to={`/company/${employer.company_slug}`} style={{ color: 'inherit', fontWeight: 600 }}>
+                          <Link to={`/company/${employer.company_slug}`} style={{ color: 'inherit', fontWeight: 600, textDecoration: 'none' }}>
                             {employer.company_name}
                           </Link>
                         ) : (

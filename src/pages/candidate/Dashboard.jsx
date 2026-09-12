@@ -179,7 +179,10 @@ export default function CandidateDashboard() {
           .eq('is_active', true)
           .gt('created_at', sinceIso)
           .order('created_at', { ascending: false }),
-        supabase.from('saved_roles').select('id, roles(id, slug, title, deadline, is_active)').eq('candidate_id', candidate.id),
+        supabase
+          .from('saved_roles')
+          .select('id, roles(id, slug, title, deadline, is_active, status, status_changed_at, employer_profiles(company_name))')
+          .eq('candidate_id', candidate.id),
         supabase
           .from('video_questions')
           .select('id, answer_token, asked_at, roles(title), employer_profiles(company_name)')
@@ -242,6 +245,51 @@ export default function CandidateDashboard() {
             text: `The role you applied to at ${a.roles?.employer_profiles?.company_name} has been ${a.roles.status}`,
             link: '/applications',
             timestamp: a.roles.status_changed_at,
+          })
+        })
+
+      // A role reopening (paused/closed -> open) since last visit, for a
+      // candidate who applied to it. status_changed_at only ever gets set
+      // by an actual status change (never on insert), so a role that's
+      // simply always been open never matches here — this only fires for
+      // a genuine reopen event, not every already-open role a candidate
+      // happens to have applied to.
+      const reopenedRoleIdsNotifiedViaApplication = new Set()
+      apps
+        .filter(
+          (a) =>
+            a.roles?.status === 'open' &&
+            a.roles?.status_changed_at &&
+            new Date(a.roles.status_changed_at).getTime() > sinceMs,
+        )
+        .forEach((a) => {
+          reopenedRoleIdsNotifiedViaApplication.add(a.role_id)
+          items.push({
+            id: `role-reopened-applied-${a.id}`,
+            text: `A role you applied to at ${a.roles?.employer_profiles?.company_name} is open again`,
+            link: `/jobs/${a.roles?.slug}`,
+            timestamp: a.roles.status_changed_at,
+          })
+        })
+
+      // Same reopen signal, for a candidate who only saved the role
+      // (never applied) — skipped when the applied-role case above
+      // already covers the same role, so reopening once doesn't produce
+      // two feed cards for one candidate who both saved and applied.
+      savedRows
+        .filter(
+          (s) =>
+            s.roles?.status === 'open' &&
+            s.roles?.status_changed_at &&
+            new Date(s.roles.status_changed_at).getTime() > sinceMs &&
+            !reopenedRoleIdsNotifiedViaApplication.has(s.roles.id),
+        )
+        .forEach((s) => {
+          items.push({
+            id: `role-reopened-saved-${s.id}`,
+            text: `A role you saved at ${s.roles?.employer_profiles?.company_name} is open again`,
+            link: `/jobs/${s.roles?.slug}`,
+            timestamp: s.roles.status_changed_at,
           })
         })
 
@@ -816,7 +864,7 @@ export default function CandidateDashboard() {
                           {employer?.company_slug ? (
                             <Link
                               to={`/company/${employer.company_slug}`}
-                              style={{ color: 'inherit' }}
+                              style={{ color: 'inherit', textDecoration: 'none' }}
                               onClick={(e) => e.stopPropagation()}
                             >
                               {employer.company_name}
