@@ -196,7 +196,7 @@ export default function EmployerDashboard() {
         answeredQuestionsResult,
         expiredQuestionsResult,
       ] = await Promise.all([
-        supabase.from('roles').select('id, title, is_active, created_at, view_count').eq('employer_id', emp.id).order('created_at', { ascending: false }),
+        supabase.from('roles').select('id, title, is_active, status, created_at, view_count').eq('employer_id', emp.id).order('created_at', { ascending: false }),
         supabase
           .from('applications')
           .select('id, status, role_id, applied_at, viewed_at, candidate_profiles(id, username, full_name, avatar_url, job_title), roles!inner(employer_id)')
@@ -449,9 +449,16 @@ export default function EmployerDashboard() {
   // is hidden entirely once the profile is complete.
   const strengthMessage = `Your profile is ${strengthPct}% complete. ${firstIncompleteStrengthCheck?.tip}`
 
+  // Feeds the "Active roles" stat tile specifically — is_active (open
+  // only), unrelated to which roles the pipeline below shows.
   const activeRoles = roles.filter((r) => r.is_active)
 
-  const pipeline = activeRoles.map((role) => {
+  // The pipeline itself shows open AND paused roles — a paused role is
+  // still something the employer needs to review applicants for, just
+  // temporarily not accepting new ones — only closed roles drop out.
+  const pipelineRoles = roles.filter((r) => r.status === 'open' || r.status === 'paused')
+
+  const pipeline = pipelineRoles.map((role) => {
     const roleApps = applications.filter((a) => a.role_id === role.id)
     const total = roleApps.length
     const unviewed = roleApps.filter((a) => !a.viewed_at).length
@@ -467,7 +474,7 @@ export default function EmployerDashboard() {
     // still isn't converting.
     const lowViews = daysOpen > 14 && views < 10
     const lowConversion = daysOpen > 14 && views >= 10 && total < 5
-    return { role, total, unviewed, shortlistedCount, rejectedCount, views, conversion, daysOpen, lowViews, lowConversion }
+    return { role, total, unviewed, shortlistedCount, rejectedCount, views, conversion, daysOpen, lowViews, lowConversion, isPaused: role.status === 'paused' }
   })
 
   const rejectedApplications = applications.filter((a) => a.status === 'rejected')
@@ -599,7 +606,7 @@ export default function EmployerDashboard() {
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {pipeline.map(({ role, total, unviewed, shortlistedCount, rejectedCount, views, conversion, daysOpen, lowViews, lowConversion }) => (
+            {pipeline.map(({ role, total, unviewed, shortlistedCount, rejectedCount, views, conversion, daysOpen, lowViews, lowConversion, isPaused }) => (
               <div
                 key={role.id}
                 className="card"
@@ -608,7 +615,14 @@ export default function EmployerDashboard() {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                   <div>
-                    <p style={{ fontWeight: 700, fontSize: 16 }}>{role.title}</p>
+                    <p style={{ fontWeight: 700, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      {role.title}
+                      {isPaused && (
+                        <span className="tag" style={{ fontWeight: 700, background: '#fff6e0', color: '#8a6100' }}>
+                          Paused
+                        </span>
+                      )}
+                    </p>
                     <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
                       Posted {formatRelativeTime(role.created_at)} · Open {daysOpen} day{daysOpen === 1 ? '' : 's'}
                     </p>
