@@ -466,24 +466,20 @@ export default function RoleApplicants() {
         </button>
       </div>
 
-      {role.status === 'paused' && (
+      {(role.status === 'paused' || role.status === 'closed') && (
         <div
           className="card"
-          style={{
-            marginTop: 16,
-            padding: '14px 20px',
-            background: '#fff6e0',
-            border: '1px solid #f5d889',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 16,
-            flexWrap: 'wrap',
-          }}
+          style={
+            role.status === 'paused'
+              ? { marginTop: 16, padding: '14px 20px', background: '#fff6e0', border: '1px solid #f5d889', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }
+              : { marginTop: 16, padding: '14px 20px', background: 'var(--color-bg-soft)', border: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }
+          }
         >
           <div>
-            <p style={{ fontSize: 14, fontWeight: 700, color: '#8a6100' }}>
-              This role is currently paused. Candidates cannot apply until you reopen it.
+            <p style={{ fontSize: 14, fontWeight: 700, color: role.status === 'paused' ? '#8a6100' : 'var(--color-text-muted)' }}>
+              {role.status === 'paused'
+                ? 'This role is currently paused. Candidates cannot apply until you reopen it.'
+                : 'This role is closed. No further applications are being accepted.'}
             </p>
             {reopenError && <p className="form-error" style={{ marginTop: 8 }}>{reopenError}</p>}
           </div>
