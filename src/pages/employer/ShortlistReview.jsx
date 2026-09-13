@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { notify } from '../../lib/notify.js'
+import { formatRelativeTime } from '../../lib/roleFormat.js'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import QuickMessageModal from '../../components/QuickMessageModal.jsx'
@@ -15,11 +16,18 @@ import ShareButton from '../../components/ShareButton.jsx'
 import IconButton from '../../components/IconButton.jsx'
 import AskQuestionModal from '../../components/AskQuestionModal.jsx'
 import { ensureBuiltinStages, statusForStage } from '../../lib/pipelineStages.js'
-import { getAskQuestionAvailability } from '../../lib/videoQuestions.js'
+import { getAskQuestionAvailability, daysLeftToAnswer, isPastDeadline } from '../../lib/videoQuestions.js'
 
 const STATUSES = ['reviewing', 'shortlisted', 'rejected']
 const STATUS_LABELS = { reviewing: 'Reviewing', shortlisted: 'Shortlisted', rejected: 'Rejected' }
 const SECTION_TITLE_STYLE = { fontSize: 20, marginBottom: 16 }
+
+const QUESTION_STATUS_LABELS = { pending: 'Pending', answered: 'Answered', expired: 'Expired' }
+const QUESTION_STATUS_COLORS = {
+  pending: { background: '#fff6e0', color: '#8a6100' },
+  answered: { background: '#e3f9e9', color: '#0f7a3d' },
+  expired: { background: 'var(--color-bg-soft)', color: 'var(--color-text-muted)' },
+}
 
 // The shortlists table only ever tracks the coarse reviewing/shortlisted/
 // rejected status — the actual stage assignment (built-in or a
@@ -106,7 +114,11 @@ export default function ShortlistReview() {
             .eq('role_id', roleParam)
             .order('position', { ascending: true }),
           supabase.from('applications').select('candidate_id, custom_stage_id').eq('role_id', roleParam).in('candidate_id', candidateIds),
-          supabase.from('video_questions').select('candidate_id, status, asked_at').eq('role_id', roleParam),
+          supabase
+            .from('video_questions')
+            .select('id, candidate_id, question_text, status, asked_at, answered_at, answer_video_url')
+            .eq('role_id', roleParam)
+            .order('asked_at', { ascending: false }),
         ])
         stages = await ensureBuiltinStages(supabase, roleParam, stagesData || [])
         const stageByCandidate = {}
@@ -404,6 +416,38 @@ export default function ShortlistReview() {
                       )}
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {(questionsByCandidate[entry.candidate_id] || []).length > 0 && (
+              <div style={{ marginTop: 48 }}>
+                <h2 style={SECTION_TITLE_STYLE}>Video questions</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {questionsByCandidate[entry.candidate_id].map((q) => {
+                    const displayStatus = q.status === 'pending' && isPastDeadline(q.asked_at) ? 'expired' : q.status
+                    const remaining = daysLeftToAnswer(q.asked_at)
+                    return (
+                      <div key={q.id} className="card" style={{ padding: 12, background: 'var(--color-bg-soft)', border: 'none' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
+                          <p style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>{q.question_text}</p>
+                          <span className="tag" style={{ fontSize: 10, flexShrink: 0, ...QUESTION_STATUS_COLORS[displayStatus] }}>
+                            {QUESTION_STATUS_LABELS[displayStatus]}
+                          </span>
+                        </div>
+                        <p style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 6 }}>
+                          Asked {formatRelativeTime(q.asked_at)}
+                          {q.answered_at && ` · Answered ${formatRelativeTime(q.answered_at)}`}
+                          {displayStatus === 'pending' && ` · ${remaining} day${remaining === 1 ? '' : 's'} left to respond`}
+                        </p>
+                        {displayStatus === 'answered' && q.answer_video_url && (
+                          <div style={{ marginTop: 8, maxWidth: 220 }}>
+                            <VideoPlayCard url={q.answer_video_url} format="horizontal" />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}

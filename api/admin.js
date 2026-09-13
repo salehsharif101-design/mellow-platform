@@ -94,7 +94,10 @@ async function getEmployers(supabase) {
   const employers = unwrap(
     await supabase
       .from('employer_profiles')
-      .select('id, user_id, company_name, company_slug, is_visible, created_at, users(email, created_at)')
+      // employer_dashboard_views (migration 0076) added a second path between
+      // employer_profiles and users (via its own two FKs), so the implicit
+      // "users(...)" embed is now ambiguous — must name the FK explicitly.
+      .select('id, user_id, company_name, company_slug, is_visible, created_at, users!employer_profiles_user_id_fkey(email, created_at)')
       .order('created_at', { ascending: false }),
   )
 

@@ -3,7 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { useSeoMeta } from '../../lib/useSeoMeta.js'
-import { resolveEmployerId } from '../../lib/employerAccess.js'
+import { resolveEmployerId, getEmployerMessageUserIds } from '../../lib/employerAccess.js'
 import Modal from '../../components/Modal.jsx'
 import CalendlyModal from '../../components/CalendlyModal.jsx'
 import MessageThread from '../../components/MessageThread.jsx'
@@ -34,6 +34,17 @@ export default function PublicProfile() {
   const [showCalendly, setShowCalendly] = useState(false)
   const [showContact, setShowContact] = useState(false)
   const [showAddVideo, setShowAddVideo] = useState(false)
+  // The owner plus every active (and, for message history, every removed)
+  // teammate — same resolution employer/Messages.jsx uses — so an employer
+  // team member messaging from this profile sees and continues the whole
+  // company's shared conversation with this candidate, not just their own
+  // past messages with them.
+  const [myIds, setMyIds] = useState(null)
+  // Guards against a double-click firing handleBookMeeting twice before the
+  // first request's insert lands — the DB-level backstop is the same-day
+  // unique index (migration 0079), but disabling the button avoids relying
+  // on that alone to swallow the resulting 23505 every time.
+  const [bookingInFlight, setBookingInFlight] = useState(false)
 
   useSeoMeta({
     title: profile ? `${profile.full_name} | Mellow` : undefined,
@@ -86,11 +97,17 @@ export default function PublicProfile() {
   // meeting actually got booked in the Calendly iframe — there's no
   // webhook anymore to tell us that, so the click itself is the trigger
   // for the 7-days-later follow-up email (api/cron/meeting-follow-up.js).
-  // Guarded against a rapid repeat click creating a second row (and so a
-  // second follow-up email) for the same pair within the same day.
+  // Guarded two ways against a rapid repeat click creating a second row
+  // (and so a second follow-up email) for the same pair within the same
+  // day: bookingInFlight stops this handler from running twice back-to-back
+  // client-side, and meetings_employer_candidate_same_day_idx (migration
+  // 0079) is the DB-level backstop if two requests still race (e.g. two
+  // tabs) — its 23505 is swallowed below like any other fire-and-forget
+  // failure here.
   async function handleBookMeeting() {
     setShowCalendly(true)
-    if (!user || userType !== 'employer' || isOwner) return
+    if (!user || userType !== 'employer' || isOwner || bookingInFlight) return
+    setBookingInFlight(true)
     try {
       const { employerId } = await resolveEmployerId(user.id)
       if (!employerId) return
@@ -113,6 +130,8 @@ export default function PublicProfile() {
       })
     } catch {
       // Fire-and-forget — never block opening the booking modal on this.
+    } finally {
+      setBookingInFlight(false)
     }
   }
 
@@ -148,6 +167,21 @@ export default function PublicProfile() {
 
     recordView()
   }, [profile, user, isOwner, userType])
+
+  useEffect(() => {
+    if (!user || userType !== 'employer' || isOwner) return
+    let cancelled = false
+    async function loadMyIds() {
+      const { employerId } = await resolveEmployerId(user.id)
+      if (!employerId) return
+      const ids = await getEmployerMessageUserIds(employerId)
+      if (!cancelled) setMyIds(ids)
+    }
+    loadMyIds()
+    return () => {
+      cancelled = true
+    }
+  }, [user, userType, isOwner])
 
   if (loading) return null
 
@@ -210,7 +244,7 @@ export default function PublicProfile() {
               <ShareButton url={`${window.location.origin}/profile/${profile.username || profile.id}`} label="Share profile" size={19} />
             </>
           }
-          bookMeetingButton={canBookMeeting && <BookMeetingButton onClick={handleBookMeeting} />}
+          bookMeetingButton={canBookMeeting && <BookMeetingButton onClick={handleBookMeeting} disabled={bookingInFlight} />}
         />
       </div>
 
@@ -218,7 +252,7 @@ export default function PublicProfile() {
 
       {showContact && (
         <Modal title={`Message ${profile.full_name}`} onClose={() => setShowContact(false)}>
-          <MessageThread otherUserId={profile.user_id} otherUserLabel={profile.full_name} />
+          <MessageThread otherUserId={profile.user_id} otherUserLabel={profile.full_name} myIds={myIds} />
         </Modal>
       )}
 

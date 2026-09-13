@@ -20,7 +20,7 @@ import { escapeHtml } from './_lib/html.js'
 // Pure functions only (no supabase import, no env var reads) — safe to
 // import here unlike src/lib/employerAccess.js (see getCandidateContact's
 // own comment in db.js for why that one specifically can't be).
-import { reviewingStageId, shortlistedStageId, STATUS_LABELS } from '../src/lib/pipelineStages.js'
+import { reviewingStageId, shortlistedStageId } from '../src/lib/pipelineStages.js'
 import { ANSWER_WINDOW_DAYS } from '../src/lib/videoQuestions.js'
 
 function getAnonClient() {
@@ -109,6 +109,23 @@ async function sendCandidateWelcome(supabase, candidateId) {
 }
 
 async function sendEmployerWelcome(supabase, userId) {
+  const employer = unwrap(
+    await supabase.from('employer_profiles').select('id, welcome_email_sent').eq('user_id', userId).single(),
+  )
+  if (employer.welcome_email_sent) return { skipped: true }
+
+  // Same atomic-claim pattern as sendCandidateWelcome above — two tabs
+  // finishing onboarding for the same employer near-simultaneously would
+  // otherwise both read welcome_email_sent as false and both send.
+  const { data: claimed } = await supabase
+    .from('employer_profiles')
+    .update({ welcome_email_sent: true })
+    .eq('id', employer.id)
+    .eq('welcome_email_sent', false)
+    .select('id')
+    .maybeSingle()
+  if (!claimed) return { skipped: true }
+
   const user = unwrap(await supabase.from('users').select('email').eq('id', userId).single())
 
   return sendEmail({
@@ -306,22 +323,24 @@ async function sendRejectionNotification(supabase, applicationId) {
 // the caller, since RoleApplicants.jsx already generalizes all three kinds
 // of stage through the same custom_stage_id column.
 //
-// Dedup ("once per candidate per role, ever — not once per stage") piggy-
-// backs on the candidate_activity_log rows migration 0057's own DB trigger
-// already writes on every custom_stage_id change (detail = the stage's
-// current name) rather than a new column — this call always runs after
-// that trigger's insert has committed (same transaction as the status
-// update that triggered it). Counts every status_changed row for this
-// candidate+role whose detail isn't one of the four built-in stage labels
-// (New/Reviewing/Shortlisted/Rejected, see STATUS_LABELS) — i.e. every past
-// or present visit to ANY genuine custom stage — so a candidate who was
-// already notified once for this role stays suppressed even after being
-// moved to a different custom stage later.
-const BUILTIN_STAGE_LABELS = Object.values(STATUS_LABELS)
-
+// Dedup ("once per candidate per role, ever — not once per stage") claims
+// applications.custom_stage_notified_at (migration 0078) atomically before
+// sending, the same conditional-update pattern as the welcome emails above
+// — not a read-then-count over candidate_activity_log, which two team
+// members moving the same candidate into a custom stage at nearly the same
+// instant could both read before either write committed. applications
+// already has a unique (candidate_id, role_id) constraint (migration 0001),
+// so applicationId itself is exactly the right thing to claim on. A
+// candidate who was already notified once for this role stays suppressed
+// even after being moved to a different custom stage later, since the
+// column is never cleared.
 async function sendCustomStageNotification(supabase, applicationId) {
   const application = unwrap(
-    await supabase.from('applications').select('candidate_id, role_id, custom_stage_id').eq('id', applicationId).single(),
+    await supabase
+      .from('applications')
+      .select('candidate_id, role_id, custom_stage_id, custom_stage_notified_at')
+      .eq('id', applicationId)
+      .single(),
   )
   if (
     !application.custom_stage_id ||
@@ -331,24 +350,26 @@ async function sendCustomStageNotification(supabase, applicationId) {
     console.log(`[custom-stage-notification] skipped application ${applicationId}: not a genuine custom stage`)
     return { skipped: true }
   }
+  if (application.custom_stage_notified_at) {
+    console.log(
+      `[custom-stage-notification] skipped application ${applicationId}: already notified once for role ${application.role_id}`,
+    )
+    return { skipped: true }
+  }
 
   const stage = unwrap(
     await supabase.from('role_pipeline_stages').select('name').eq('id', application.custom_stage_id).single(),
   )
 
-  const allStageChanges = unwrap(
-    await supabase
-      .from('candidate_activity_log')
-      .select('detail')
-      .eq('candidate_id', application.candidate_id)
-      .eq('role_id', application.role_id)
-      .eq('event_type', 'status_changed'),
-  )
-  const priorCustomStageVisits = allStageChanges.filter((row) => !BUILTIN_STAGE_LABELS.includes(row.detail))
-  if (priorCustomStageVisits.length > 1) {
-    console.log(
-      `[custom-stage-notification] skipped application ${applicationId}: already notified once for role ${application.role_id}`,
-    )
+  const { data: claimed } = await supabase
+    .from('applications')
+    .update({ custom_stage_notified_at: new Date().toISOString() })
+    .eq('id', applicationId)
+    .is('custom_stage_notified_at', null)
+    .select('id')
+    .maybeSingle()
+  if (!claimed) {
+    console.log(`[custom-stage-notification] skipped application ${applicationId}: lost the claim race`)
     return { skipped: true }
   }
 

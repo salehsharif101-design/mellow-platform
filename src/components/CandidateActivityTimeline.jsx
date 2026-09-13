@@ -15,6 +15,9 @@ const EVENT_LABELS = {
   // string ("note_updated") with no label until now.
   note_updated: (detail) => `Note edited${detail ? ` — ${detail}` : ''}`,
   message_sent: (detail) => `Message sent${detail ? `: "${detail}"` : ''}`,
+  question_asked: () => 'Asked a video question',
+  question_answered: () => 'Answered the video question',
+  question_expired: () => 'Video question expired unanswered',
 }
 
 // Most-recent-first timeline of everything that's happened with a candidate
