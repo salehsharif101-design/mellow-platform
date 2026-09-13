@@ -178,9 +178,16 @@ export default function SkillsTagInput({
         </div>
       )}
 
-      {skills.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-          {skills.map((skill) => (
+      {/* Always rendered (not just when skills.length > 0), with a
+          min-height matching one tag's rendered height (.tag: 13px text +
+          4px vertical padding) — so adding the very first tag doesn't
+          shift the submit button (and everything else below) down right
+          as the user is clicking it. required's "at least one" validation
+          flips on exactly that first tag, so that's the click most likely
+          to land on a button that has since moved out from under it. */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12, minHeight: 24 }}>
+        {skills.length > 0 &&
+          skills.map((skill) => (
             <span key={skill} className="tag">
               {skill}
               <button
@@ -193,8 +200,7 @@ export default function SkillsTagInput({
               </button>
             </span>
           ))}
-        </div>
-      )}
+      </div>
     </div>
   )
 }

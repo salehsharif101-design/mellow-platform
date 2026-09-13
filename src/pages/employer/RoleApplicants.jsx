@@ -456,7 +456,7 @@ export default function RoleApplicants() {
 
   return (
     <div className="section">
-      <Link to="/employer/roles" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600 }}>
+      <Link to="/employer/roles" style={{ fontSize: 13, color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
         ← Manage roles
       </Link>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginTop: 8 }}>

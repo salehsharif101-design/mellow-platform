@@ -8,9 +8,25 @@ import Logo from '../../components/Logo.jsx'
 import ResendConfirmationButton from '../../components/ResendConfirmationButton.jsx'
 
 const PASSWORD_REQUIREMENT_MESSAGE = 'Password must be at least 8 characters and include a number or special character'
+const GENERIC_SIGNUP_ERROR = 'Something went wrong. Please try again or contact support.'
 
 function isStrongPassword(password) {
   return password.length >= 8 && /[0-9\W]/.test(password)
+}
+
+// supabase-js treats any 5xx from /auth/v1/signup as a "retryable" network
+// error and deliberately skips parsing the body for those (see auth-js's
+// handleError), so err.message ends up as JSON.stringify(the Response
+// object) — literally the string "{}" — rather than the real message the
+// server sent (e.g. "Error sending confirmation email"). Falls back to a
+// friendly message for that case, and for anything else that isn't a plain
+// human-readable string.
+function friendlyErrorMessage(err) {
+  const raw = err?.message?.trim()
+  if (!raw || raw.startsWith('{') || raw.startsWith('[')) {
+    return GENERIC_SIGNUP_ERROR
+  }
+  return raw
 }
 
 export default function Signup() {
@@ -88,7 +104,7 @@ export default function Signup() {
       // to its idle label for a frame before the route actually changes.
       navigate(userType === 'employer' ? '/employer/onboarding' : '/onboarding')
     } catch (err) {
-      setError(err.message)
+      setError(friendlyErrorMessage(err))
       setLoading(false)
     }
   }
