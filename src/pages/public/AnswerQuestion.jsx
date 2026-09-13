@@ -146,8 +146,12 @@ export default function AnswerQuestion() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <div className="spinner" role="status" aria-label="Loading" />
+      <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
+        <Logo />
+        <img src="/Easy_stuff.png" alt="" style={{ width: '100%', maxWidth: 220, margin: '28px auto 0', display: 'block' }} />
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
+          <div className="spinner" role="status" aria-label="Loading" />
+        </div>
       </div>
     )
   }
@@ -182,7 +186,7 @@ export default function AnswerQuestion() {
     return (
       <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
         <Logo />
-        <img src="/Collaborate.PNG" alt="" style={{ width: '100%', maxWidth: 220, margin: '28px auto 0', display: 'block' }} />
+        <img src="/Easy_stuff.png" alt="" style={{ width: '100%', maxWidth: 220, margin: '28px auto 0', display: 'block' }} />
         <h1 style={{ fontSize: 26, marginTop: 20 }}>This question has expired</h1>
         <p style={{ marginTop: 12, color: 'var(--color-text-muted)' }}>
           The {question.answerWindowDays}-day window to answer this question from {question.companyName} has passed.
