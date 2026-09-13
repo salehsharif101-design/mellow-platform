@@ -37,6 +37,17 @@ export default function EmployerOnboarding() {
   // resumes the celebration/work-library-tip flow instead of losing its
   // place and falling back to the plain onboarding form.
   const [justCompleted, setJustCompleted] = usePersistedState('mellow_onboarding_employer_just_completed', false)
+  // Captured only from the very first render — the one and only way
+  // justCompleted can already be true before this component has done
+  // anything itself this mount is a stale sessionStorage value left over
+  // from an earlier completion the employer never formally exited (e.g.
+  // they navigated elsewhere instead of clicking through the celebration/
+  // work-library-tip screens, then came back to /employer/onboarding
+  // later in the same tab session). A genuine, brand new completion
+  // happening during THIS mount instead has justCompleted start false and
+  // only flip to true as a direct result of the save handler below — see
+  // the effect after loadProfile, which redirects away for the stale case.
+  const justCompletedOnMountRef = useRef(justCompleted)
 
   const [companyName, setCompanyName] = useState('')
   const [industry, setIndustry] = useState('')
@@ -121,6 +132,18 @@ export default function EmployerOnboarding() {
 
     loadProfile()
   }, [user])
+
+  // Sends an already-onboarded employer straight to their dashboard instead
+  // of re-showing the celebration screen when justCompleted is stale (see
+  // justCompletedOnMountRef above) — only once loadProfile has actually
+  // confirmed completion (wasIncomplete false), so this can't fire against
+  // the default-true placeholder while that load is still in flight.
+  useEffect(() => {
+    if (loading) return
+    if (justCompleted && justCompletedOnMountRef.current && !wasIncomplete) {
+      navigate('/employer/dashboard', { replace: true })
+    }
+  }, [loading, justCompleted, wasIncomplete, navigate])
 
   useHideChrome(wasIncomplete)
 
@@ -257,6 +280,9 @@ export default function EmployerOnboarding() {
   if (loading) return null
 
   if (justCompleted) {
+    // Redirecting away in the effect above — render nothing rather than
+    // flash the celebration screen for a frame first.
+    if (justCompletedOnMountRef.current && !wasIncomplete) return null
     return <OnboardingCelebration />
   }
 

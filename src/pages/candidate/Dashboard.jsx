@@ -498,7 +498,7 @@ export default function CandidateDashboard() {
     return (
       <div className="section">
         <p>
-          You haven't started your profile yet. <Link to="/profile/edit">Start now →</Link>
+          You haven't started your profile yet. <Link to="/onboarding">Start now →</Link>
         </p>
       </div>
     )

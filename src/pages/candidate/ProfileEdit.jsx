@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useHideChrome } from '../../components/Layout.jsx'
@@ -39,6 +39,17 @@ export default function ProfileEdit({ forceWizard = false }) {
   // tell "mid celebration" apart from "a stale tab from before onboarding
   // even started."
   const [justCompleted, setJustCompleted] = usePersistedState('mellow_onboarding_candidate_just_completed', false)
+  // Captured only from the very first render — the one and only way
+  // justCompleted can already be true before this component has done
+  // anything itself this mount is a stale sessionStorage value left over
+  // from an earlier completion the candidate never formally exited (e.g.
+  // they navigated elsewhere instead of clicking through the celebration/
+  // work-video-tip screens, then came back to /onboarding later in the
+  // same tab session). A genuine, brand new completion happening during
+  // THIS mount instead has justCompleted start false and only flip to true
+  // as a direct result of finishing Step 5 — see the effect below, which
+  // redirects away for the stale case.
+  const justCompletedOnMountRef = useRef(justCompleted)
 
   useEffect(() => {
     if (!user) return
@@ -126,6 +137,18 @@ export default function ProfileEdit({ forceWizard = false }) {
   // re-running the wizard.
   const showEditProfileForm = !forceWizard || isComplete || savedForLaterAtVideoStep
 
+  // Sends an already-onboarded candidate straight to their dashboard instead
+  // of re-showing the celebration screen when justCompleted is stale (see
+  // justCompletedOnMountRef above) — only once loading has actually
+  // confirmed completion (isComplete), so this can't fire against the
+  // default-false placeholder while profile is still loading.
+  useEffect(() => {
+    if (loading) return
+    if (justCompleted && justCompletedOnMountRef.current && isComplete) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [loading, justCompleted, isComplete, navigate])
+
   // `isComplete` defaults to false while `profile` is still null (loading),
   // so this hides chrome by default and only reveals it once we've
   // confirmed the profile is actually complete (or is taking one of the
@@ -201,6 +224,9 @@ export default function ProfileEdit({ forceWizard = false }) {
 
   if (showEditProfileForm) {
     if (justCompleted) {
+      // Redirecting away in the effect above — render nothing rather than
+      // flash the celebration screen for a frame first.
+      if (justCompletedOnMountRef.current && isComplete) return null
       return <OnboardingCelebration username={profile.username || profile.id} candidateId={profile.id} userId={profile.user_id} />
     }
     return (
