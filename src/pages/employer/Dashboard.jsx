@@ -103,15 +103,25 @@ export default function EmployerDashboard() {
         return
       }
 
-      const [empResult, myIdList] = await Promise.all([
+      const [empResult, myIdList, viewResult] = await Promise.all([
         supabase
           .from('employer_profiles')
           .select(
-            'id, user_id, company_name, company_slug, logo_url, intro_video_url, about, culture_description, company_highlight, typical_roles, linkedin_url, website_url, last_viewed_applications_at',
+            'id, user_id, company_name, company_slug, logo_url, intro_video_url, about, culture_description, company_highlight, typical_roles, linkedin_url, website_url',
           )
           .eq('id', employerId)
           .maybeSingle(),
         getEmployerMessageUserIds(employerId),
+        // This user's own cursor (migration 0076) — kept per-user rather
+        // than shared on employer_profiles, so one teammate visiting their
+        // dashboard doesn't advance the "since last visit" marker for
+        // everyone else on the team.
+        supabase
+          .from('employer_dashboard_views')
+          .select('last_viewed_applications_at')
+          .eq('employer_id', employerId)
+          .eq('user_id', user.id)
+          .maybeSingle(),
       ])
 
       const emp = empResult.data
@@ -156,7 +166,8 @@ export default function EmployerDashboard() {
       // even with real unseen activity.
       if (sinceMsRef.current === null) {
         const sevenDaysAgoMs = Date.now() - SEVEN_DAYS_MS
-        const lastViewedMs = emp.last_viewed_applications_at ? new Date(emp.last_viewed_applications_at).getTime() : 0
+        const lastViewedAt = viewResult.data?.last_viewed_applications_at
+        const lastViewedMs = lastViewedAt ? new Date(lastViewedAt).getTime() : 0
         sinceMsRef.current = Math.max(sevenDaysAgoMs, lastViewedMs)
         // The nav badge itself is intentionally NOT cleared here — clearing
         // it as part of the very first load would zero it out before the

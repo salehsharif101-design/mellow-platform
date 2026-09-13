@@ -71,19 +71,21 @@ export function NotificationProvider({ children }) {
 
     if (userType === 'employer') {
       if (!employerIdRef.current) return
-      const { data: employer } = await supabase
-        .from('employer_profiles')
-        .select('id, last_viewed_applications_at')
-        .eq('id', employerIdRef.current)
-        .maybeSingle()
-      if (!employer) return
-      const { data: roleRows } = await supabase.from('roles').select('id').eq('employer_id', employer.id)
+      const [{ data: roleRows }, { data: view }] = await Promise.all([
+        supabase.from('roles').select('id').eq('employer_id', employerIdRef.current),
+        supabase
+          .from('employer_dashboard_views')
+          .select('last_viewed_applications_at')
+          .eq('employer_id', employerIdRef.current)
+          .eq('user_id', user.id)
+          .maybeSingle(),
+      ])
       const roleIds = (roleRows || []).map((r) => r.id)
       if (roleIds.length === 0) {
         setNewApplications(0)
         return
       }
-      const since = employer.last_viewed_applications_at || EPOCH
+      const since = view?.last_viewed_applications_at || EPOCH
       const { count: appCount } = await supabase
         .from('applications')
         .select('id', { count: 'exact', head: true })
@@ -119,12 +121,17 @@ export function NotificationProvider({ children }) {
 
   async function clearApplicationsBadge() {
     setNewApplications(0)
-    if (userType === 'employer' && employerIdRef.current) {
-      // A direct .update() here only works for the account owner — RLS on
-      // employer_profiles is owner-only (see migration 0054) so a team
-      // member's write would be silently dropped, freezing the "since last
-      // visit" marker forever for anyone but the owner.
-      await supabase.rpc('mark_applications_viewed', { target_employer_id: employerIdRef.current })
+    if (userType === 'employer' && employerIdRef.current && user) {
+      // Each user's own row in employer_dashboard_views (migration 0076) —
+      // unlike employer_profiles, RLS lets a team member write this
+      // directly, so their visit no longer needs to go through the owner's
+      // shared column.
+      await supabase
+        .from('employer_dashboard_views')
+        .upsert(
+          { employer_id: employerIdRef.current, user_id: user.id, last_viewed_applications_at: new Date().toISOString() },
+          { onConflict: 'employer_id,user_id' },
+        )
     }
   }
 
