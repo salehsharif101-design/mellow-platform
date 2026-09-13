@@ -92,7 +92,7 @@ export default function Step1Basics({ initial, onContinue, saving }) {
           className="input"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
-          placeholder="e.g. Sara Al Mansoori"
+          placeholder="e.g. Layla Hassan"
           required
         />
       </div>
