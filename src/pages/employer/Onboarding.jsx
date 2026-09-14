@@ -290,7 +290,7 @@ export default function EmployerOnboarding() {
     return <OnboardingWelcome onContinue={() => setShowWelcome(false)} />
   }
 
-  const isValid = companyName.trim() && industry.trim() && about.trim() && cultureDescription.trim()
+  const isValid = companyName.trim() && industry.trim() && about.trim()
 
   return (
     <div className="section">
@@ -397,7 +397,7 @@ export default function EmployerOnboarding() {
               </p>
             </div>
             <div className="field">
-              <label htmlFor="culture">Brief description of company culture</label>
+              <label htmlFor="culture">Brief description of company culture (optional)</label>
               <textarea
                 id="culture"
                 className="input"
@@ -405,7 +405,6 @@ export default function EmployerOnboarding() {
                 value={cultureDescription}
                 onChange={(e) => setCultureDescription(e.target.value)}
                 placeholder="What's it like to work here?"
-                required
               />
             </div>
             <div className="field">
