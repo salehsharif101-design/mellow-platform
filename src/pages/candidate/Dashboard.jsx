@@ -411,6 +411,11 @@ export default function CandidateDashboard() {
           text: `${companyName} sent you a question about ${q.roles?.title || 'your application'}`,
           link: `/answer-question/${q.answer_token}`,
           timestamp: q.asked_at,
+          // Opens in a new tab (see feedItems.map below) rather than the
+          // usual navigate() — answering takes the candidate away from
+          // this feed entirely (a whole recording flow), and this way they
+          // don't lose their place in it just to go answer a question.
+          openInNewTab: true,
         })
       })
 
@@ -680,16 +685,37 @@ export default function CandidateDashboard() {
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {feedItems.map((item) => (
-              <div
-                key={item.id}
-                className="card"
-                onClick={() => navigate(item.link)}
-                style={{ padding: '14px 18px', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#005ef5' }}
-              >
-                {item.text}
-              </div>
-            ))}
+            {feedItems.map((item) =>
+              item.openInNewTab ? (
+                <a
+                  key={item.id}
+                  href={item.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="card"
+                  style={{
+                    display: 'block',
+                    padding: '14px 18px',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: '#005ef5',
+                    textDecoration: 'none',
+                  }}
+                >
+                  {item.text}
+                </a>
+              ) : (
+                <div
+                  key={item.id}
+                  className="card"
+                  onClick={() => navigate(item.link)}
+                  style={{ padding: '14px 18px', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#005ef5' }}
+                >
+                  {item.text}
+                </div>
+              ),
+            )}
           </div>
         )}
       </div>

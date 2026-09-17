@@ -103,7 +103,12 @@ function Timeline({ application, questions }) {
           <div style={{ paddingBottom: 18 }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: step.muted ? 'var(--color-text-muted)' : 'inherit' }}>
               {step.link ? (
-                <Link to={step.link} style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+                <Link
+                  to={step.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--color-primary)', fontWeight: 600 }}
+                >
                   {step.label}
                 </Link>
               ) : (
