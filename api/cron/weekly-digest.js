@@ -34,8 +34,14 @@ function roleMatches(role, candidateSkills, candidateJobTitle) {
 }
 
 async function sendTalentDigests(supabase, since) {
+  // is_live only — a candidate who signed up but never finished onboarding
+  // (or never uploaded their video) isn't visible on the platform yet, so a
+  // digest of views/matches/updates has nothing relevant to say to them.
   const candidates = unwrap(
-    await supabase.from('candidate_profiles').select('id, skills, job_title, last_weekly_digest_sent_at'),
+    await supabase
+      .from('candidate_profiles')
+      .select('id, skills, job_title, last_weekly_digest_sent_at')
+      .eq('is_live', true),
   )
   if (candidates.length === 0) return 0
 
