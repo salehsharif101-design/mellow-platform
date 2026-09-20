@@ -9,19 +9,19 @@
 //
 // This is the second step after welcome-email-nudge.js, not a parallel
 // send: it requires welcome_email_sent = true (that cron already emailed
-// them) and a row at least 72h old. welcome-email-nudge.js fires on the
-// first daily run after 24h, so waiting until 72h guarantees this never
+// them) and a row at least 96h old. welcome-email-nudge.js fires on the
+// first daily run after 24h, so waiting until 96h guarantees this never
 // lands on the same day as that one.
 //
 // The query has no upper bound on row age, so a daily run still catches
-// everyone eventually, just with up to a day's extra delay past the 72h mark.
+// everyone eventually, just with up to a day's extra delay past the 96h mark.
 
 import { sendEmail } from '../_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from '../_lib/email-template.js'
 import { getServiceClient, unwrap } from '../_lib/db.js'
 
 const HOUR_MS = 60 * 60 * 1000
-const MIN_ROW_AGE_MS = 72 * HOUR_MS
+const MIN_ROW_AGE_MS = 96 * HOUR_MS
 const LAST_ONBOARDING_STEP = 5
 
 export default async function handler(req, res) {
