@@ -5,17 +5,23 @@
 // haven't reached the end of the wizard (onboarding_step < 6), and never
 // used "save for later" at the video step (video_reminder_started_at is
 // null — those candidates are already covered by video-reminder.js's own
-// sequence). Only candidates whose row is at least 24h old are nudged, and
-// nudge_sent (migration 0082) keeps it to once per candidate.
+// sequence). nudge_sent (migration 0082) keeps it to once per candidate.
+//
+// This is the second step after welcome-email-nudge.js, not a parallel
+// send: it requires welcome_email_sent = true (that cron already emailed
+// them) and a row at least 72h old. welcome-email-nudge.js fires on the
+// first daily run after 24h, so waiting until 72h guarantees this never
+// lands on the same day as that one.
 //
 // The query has no upper bound on row age, so a daily run still catches
-// everyone eventually, just with up to a day's extra delay past the 24h mark.
+// everyone eventually, just with up to a day's extra delay past the 72h mark.
 
 import { sendEmail } from '../_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from '../_lib/email-template.js'
 import { getServiceClient, unwrap } from '../_lib/db.js'
 
-const DAY_MS = 24 * 60 * 60 * 1000
+const HOUR_MS = 60 * 60 * 1000
+const MIN_ROW_AGE_MS = 72 * HOUR_MS
 const LAST_ONBOARDING_STEP = 5
 
 export default async function handler(req, res) {
@@ -41,7 +47,7 @@ export default async function handler(req, res) {
   }
 
   const supabase = getServiceClient()
-  const cutoff = new Date(Date.now() - DAY_MS).toISOString()
+  const cutoff = new Date(Date.now() - MIN_ROW_AGE_MS).toISOString()
 
   try {
     const candidates = unwrap(
@@ -50,6 +56,7 @@ export default async function handler(req, res) {
         .select('id, user_id')
         .eq('is_live', false)
         .eq('nudge_sent', false)
+        .eq('welcome_email_sent', true)
         .lte('onboarding_step', LAST_ONBOARDING_STEP)
         .is('video_reminder_started_at', null)
         .lte('created_at', cutoff),
@@ -75,7 +82,7 @@ export default async function handler(req, res) {
 
       await sendEmail({
         to: candidateUser.email,
-        subject: 'Your Mellow profile is waiting for you',
+        subject: 'Still thinking about it? Your Mellow profile is ready when you are',
         html: renderEmailHtml({
           heading: 'You are almost there',
           bodyText:
