@@ -114,8 +114,14 @@ async function sendTalentDigests(supabase, since) {
 }
 
 async function sendEmployerDigests(supabase, since) {
+  // Completed onboarding only — an employer who signed up but never finished
+  // isn't set up on the platform yet, so a digest of applicants/messages/views
+  // has nothing relevant to say to them.
   const employers = unwrap(
-    await supabase.from('employer_profiles').select('id, user_id, last_weekly_digest_sent_at'),
+    await supabase
+      .from('employer_profiles')
+      .select('id, user_id, last_weekly_digest_sent_at')
+      .not('onboarding_completed_at', 'is', null),
   )
   if (employers.length === 0) return 0
 
