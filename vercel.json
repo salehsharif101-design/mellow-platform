@@ -40,7 +40,7 @@
   ],
   "headers": [
     {
-      "source": "/(Client_to_creative.png|Easy_stuff.png|Collaborate2.png|Flexible.PNG|Quality.PNG|thinking2.png|connection.png|Your_Requested_Is_Posted.png|working.png|Floating girl.PNG)",
+      "source": "/email-illustrations/(Client_to_creative.png|Easy_stuff.png|Collaborate2.png|Flexible.PNG|Quality.PNG|thinking2.png|connection.png|Your_Requested_Is_Posted.png|working.png|Floating girl.PNG)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     }
   ],

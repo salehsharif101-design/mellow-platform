@@ -50,7 +50,7 @@ export function renderEmailHtml({
             </tr>
             <tr>
               <td align="center" style="padding-bottom:24px;">
-                <img src="${SITE_URL}/${illustration}" alt="" width="${illustrationWidth}" style="display:block;width:${illustrationWidth}px;max-width:100%;height:auto;" />
+                <img src="${SITE_URL}/email-illustrations/${illustration}" alt="" width="${illustrationWidth}" style="display:block;width:${illustrationWidth}px;max-width:100%;height:auto;" />
               </td>
             </tr>
             <tr>
