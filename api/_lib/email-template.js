@@ -116,6 +116,13 @@ export function renderEmailHtml({
             <tr>
               <td style="border-top:1px solid #eeeeee;padding-top:20px;">
                 <p style="margin:0;font-size:12px;color:#999999;">Mellow &middot; ${footerDomain}</p>
+                <p style="margin:8px 0 0;font-size:12px;color:#999999;">
+                  <a href="https://www.instagram.com/joinmellow_" style="color:#999999;text-decoration:none;">Instagram</a>
+                  &nbsp;&middot;&nbsp;
+                  <a href="https://www.linkedin.com/company/joinmellow/" style="color:#999999;text-decoration:none;">LinkedIn</a>
+                  &nbsp;&middot;&nbsp;
+                  <a href="https://x.com/joinmellow_" style="color:#999999;text-decoration:none;">X</a>
+                </p>
               </td>
             </tr>
           </table>
