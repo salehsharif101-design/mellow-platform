@@ -254,24 +254,44 @@ export default function Login() {
     setResendSent(false)
     setLoading(true)
     try {
-      // Checked before attempting to sign in at all — a removed team
-      // member's Supabase Auth account is normally deleted outright (see
-      // api/team-remove.js), so signIn() would just fail with a generic
-      // "Invalid login credentials" with no way to tell them why. This
-      // check is keyed off email rather than a user id for exactly that
-      // reason: it has to work even after the account itself is gone.
-      const removedRes = await fetch('/api/check-removed-member', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      })
-      const removedData = await removedRes.json().catch(() => ({}))
-      if (removedRes.ok && removedData.removed) {
-        setError('Your team access has been removed. Please sign up for a new account if you would like to use Mellow.')
-        return
+      let user
+      try {
+        ;({ user } = await signIn({ email, password }))
+      } catch (signInErr) {
+        // check-removed-member is keyed off email alone, not a user id, so
+        // it can't tell "these are the old credentials for the specific
+        // employer account this person was removed from" apart from "this
+        // email happens to also belong to a completely different, valid
+        // account" (a fresh talent signup, or a separate employer account,
+        // made with the same address after the removal) — employer_team_
+        // members.invited_email is a permanent tombstone (migration 0046)
+        // that's never cleared, so it still matches long after someone has
+        // moved on and started using Mellow independently. Only consulting
+        // it here, once the real sign-in attempt has already failed, is
+        // what keeps this from blocking that valid account's own logins:
+        // a removed member's Supabase Auth account is normally deleted
+        // outright (api/team-remove.js), so failure here is expected for
+        // their old employer account specifically, and this swaps the
+        // generic "Invalid login credentials" for a clearer explanation
+        // exactly in that case, without touching any other account this
+        // email might also belong to.
+        try {
+          const removedRes = await fetch('/api/check-removed-member', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          })
+          const removedData = await removedRes.json().catch(() => ({}))
+          if (removedRes.ok && removedData.removed) {
+            setError('Your team access has been removed. Please sign up for a new account if you would like to use Mellow.')
+            return
+          }
+        } catch {
+          // Best-effort — fall through to the real sign-in error below
+          // rather than letting a failure here mask it.
+        }
+        throw signInErr
       }
-
-      const { user } = await signIn({ email, password })
 
       const [{ data: row }, { data: removedMembership }] = await Promise.all([
         supabase.from('users').select('user_type').eq('id', user.id).single(),

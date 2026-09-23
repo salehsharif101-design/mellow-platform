@@ -28,7 +28,8 @@ export default function ForgotPassword() {
   if (sent) {
     return (
       <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
-        <h1 style={{ fontSize: 28 }}>Check your email</h1>
+        <img src="/Email_Verification.png" alt="" style={{ width: '100%', maxWidth: 220, margin: '0 auto', display: 'block' }} />
+        <h1 style={{ fontSize: 28, marginTop: 28 }}>Check your email</h1>
         <p style={{ marginTop: 12, color: 'var(--color-text-muted)' }}>Check your email for a reset link.</p>
         <Link to="/login" className="btn btn-primary" style={{ marginTop: 24, display: 'inline-flex' }}>
           Back to login
