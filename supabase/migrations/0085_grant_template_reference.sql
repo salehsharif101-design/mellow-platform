@@ -1,0 +1,58 @@
+-- ============================================================================
+-- REQUIRED GRANT PATTERN FOR EVERY NEW TABLE, STARTING NOW
+-- ============================================================================
+-- Supabase is changing its Data API access policy on 2026-10-30. Up to now,
+-- a newly created table in the public schema has been implicitly reachable
+-- through the REST/Data API by anon, authenticated, and service_role --
+-- Supabase configured that automatically, and row level security (enabled +
+-- policies) was the only access control any migration in this codebase ever
+-- wrote explicitly. From 2026-10-30, that implicit grant stops happening:
+-- a new table with no explicit grant is simply unreachable through the API
+-- for every role, regardless of what its RLS policies say. RLS is still
+-- required and still does the real per-row filtering -- these grants are
+-- the coarser "can this role reach this table's API endpoint at all" layer
+-- underneath it, which Supabase no longer sets up on your behalf.
+--
+-- Audited every migration from 0001 to 0084: NONE of them contain an
+-- explicit table-level grant (checked for `grant select|insert|update
+-- |delete ... on public.<table>` across the whole directory -- zero
+-- matches). The only `grant` statements anywhere in that range are
+-- `grant execute on function ...` for security-definer RPCs (0022, 0024,
+-- 0036, 0054, 0065, 0069, 0072, 0073) -- a different mechanism, for
+-- functions rather than tables, and not what this policy change affects.
+-- So every existing table (0001's users/candidate_profiles/employer_
+-- profiles/roles/applications/shortlists/messages, 0003's candidate_videos/
+-- profile_views, 0007's waitlist_signups, 0036's company_views, 0037's
+-- saved_roles, 0044's employer_team_members, 0049's meetings/hires, 0050's
+-- calendly_tokens, 0056's role_pipeline_stages, 0057's candidate_notes/
+-- candidate_activity_log, 0066's video_questions, 0076's employer_
+-- dashboard_views) has relied entirely on the old implicit behavior. They
+-- keep working after 2026-10-30 -- this only affects tables created by a
+-- migration that runs after that date -- but there is no established
+-- explicit-grant pattern anywhere in this codebase's own history to copy
+-- from, which is why this reference block exists.
+--
+-- Every migration that creates a table from here on must add this right
+-- after `create table` and `enable row level security`:
+--
+--   grant select on public.your_table to anon;
+--   grant select, insert, update, delete on public.your_table to authenticated;
+--   grant select, insert, update, delete on public.your_table to service_role;
+--
+-- Adjust per table:
+--   - Drop the `anon` line entirely if the table has no policy that lets a
+--     logged-out visitor read anything from it (most tables in this app
+--     don't -- public.roles and public.employer_profiles are the rare
+--     exceptions with real anon-readable policies).
+--   - Narrow `authenticated` to `select` only if nothing ever inserts,
+--     updates, or deletes that table directly through a client-side
+--     Supabase call -- e.g. a table only ever written by a service-role
+--     cron job or api/ function, never from src/.
+--   - `service_role` should always get all four: RLS does not apply to it,
+--     and every INSERT/UPDATE/DELETE this codebase's own api/*.js functions
+--     perform goes through the service-role client (see api/_lib/db.js's
+--     getServiceClient()), not a user's own session.
+--
+-- This migration makes no schema changes of its own -- it exists purely as
+-- the living reference for the pattern above.
+-- ============================================================================
