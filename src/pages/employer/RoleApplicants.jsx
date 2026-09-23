@@ -25,6 +25,7 @@ import {
   shortlistedStageId,
 } from '../../lib/pipelineStages.js'
 import { daysLeftToAnswer, isPastDeadline, getAskQuestionAvailability } from '../../lib/videoQuestions.js'
+import PageLoading from '../../components/PageLoading.jsx'
 
 const QUESTION_STATUS_LABELS = { pending: 'Pending', answered: 'Answered', expired: 'Expired' }
 const QUESTION_STATUS_COLORS = {
@@ -443,7 +444,7 @@ export default function RoleApplicants() {
     setReopening(false)
   }
 
-  if (loading) return null
+  if (loading) return <PageLoading />
 
   if (error) {
     return (

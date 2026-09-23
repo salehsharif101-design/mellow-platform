@@ -7,6 +7,7 @@ import { deleteAccount } from '../../lib/deleteAccount.js'
 import { COUNTRIES } from '../../lib/countries.js'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
 import HashScroll from '../../components/HashScroll.jsx'
+import PageLoading from '../../components/PageLoading.jsx'
 
 const COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-500', '500+']
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']
@@ -71,7 +72,7 @@ export default function EmployerEditProfile() {
     loadProfile()
   }, [user])
 
-  if (loading) return null
+  if (loading) return <PageLoading />
 
   if (isTeamMember) {
     return (

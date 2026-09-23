@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { formatRelativeTime } from '../../lib/roleFormat.js'
 import EmptyState from '../../components/EmptyState.jsx'
+import PageLoading from '../../components/PageLoading.jsx'
 
 export default function Shortlisted() {
   const { user } = useAuth()
@@ -46,7 +47,7 @@ export default function Shortlisted() {
     load()
   }, [user])
 
-  if (loading) return null
+  if (loading) return <PageLoading />
 
   if (error) {
     return (

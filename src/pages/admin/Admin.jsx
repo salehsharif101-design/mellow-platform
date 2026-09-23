@@ -9,6 +9,7 @@ import ConversationsTable from './ConversationsTable.jsx'
 import ActivityFeed from './ActivityFeed.jsx'
 import HiresTable from './HiresTable.jsx'
 import MeetingsTable from './MeetingsTable.jsx'
+import PageLoading from '../../components/PageLoading.jsx'
 
 const TABS = ['Overview', 'Candidates', 'Employers', 'Roles', 'Applications', 'Messages', 'Activity', 'Hires', 'Meetings']
 
@@ -105,7 +106,7 @@ export default function Admin() {
     setPasswordInput('')
   }
 
-  if (checkingSession) return null
+  if (checkingSession) return <PageLoading />
 
   if (!authenticated) {
     return (

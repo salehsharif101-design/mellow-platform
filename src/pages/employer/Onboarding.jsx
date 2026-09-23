@@ -11,6 +11,7 @@ import { deleteAccount } from '../../lib/deleteAccount.js'
 import { usePersistedState } from '../../lib/usePersistedState.js'
 import OnboardingWelcome from './OnboardingWelcome.jsx'
 import OnboardingCelebration from './OnboardingCelebration.jsx'
+import PageLoading from '../../components/PageLoading.jsx'
 
 const COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-500', '500+']
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']
@@ -277,7 +278,7 @@ export default function EmployerOnboarding() {
     navigate('/?accountDeleted=1')
   }
 
-  if (loading) return null
+  if (loading) return <PageLoading />
 
   if (justCompleted) {
     // Redirecting away in the effect above — render nothing rather than

@@ -10,6 +10,7 @@ import MessageThread from '../../components/MessageThread.jsx'
 import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
 import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
 import MessageIconButton from '../../components/MessageIconButton.jsx'
+import PageLoading from '../../components/PageLoading.jsx'
 import BookMeetingButton from '../../components/BookMeetingButton.jsx'
 import ShareButton from '../../components/ShareButton.jsx'
 import CandidateProfileContent from '../../components/CandidateProfileContent.jsx'
@@ -183,7 +184,7 @@ export default function PublicProfile() {
     }
   }, [user, userType, isOwner])
 
-  if (loading) return null
+  if (loading) return <PageLoading />
 
   if (notFound) {
     return (

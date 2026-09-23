@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase.js'
 import { useHideChrome } from '../../components/Layout.jsx'
 import ResendConfirmationButton from '../../components/ResendConfirmationButton.jsx'
 import WrongAccountNotice from '../../components/WrongAccountNotice.jsx'
+import PageLoading from '../../components/PageLoading.jsx'
 
 const PASSWORD_REQUIREMENT_MESSAGE = 'Password must be at least 8 characters and include a number or special character'
 
@@ -129,7 +130,7 @@ export default function TeamAccept() {
     }
   }
 
-  if (loading) return null
+  if (loading) return <PageLoading />
 
   // Already signed in with a matching, not-yet-active session — the effect
   // above is about to accept and redirect. Render nothing rather than the

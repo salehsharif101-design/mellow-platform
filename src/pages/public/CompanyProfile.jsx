@@ -7,6 +7,7 @@ import { formatDeadline, formatSalary, formatResponseRate } from '../../lib/role
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
 import ShareButton from '../../components/ShareButton.jsx'
+import PageLoading from '../../components/PageLoading.jsx'
 
 const SECTION_TITLE_STYLE = { fontSize: 20, marginBottom: 16 }
 
@@ -72,7 +73,7 @@ export default function CompanyProfile() {
     supabase.from('company_views').insert({ employer_id: company.id, viewer_id: user.id })
   }, [company, user, userType])
 
-  if (loading) return null
+  if (loading) return <PageLoading />
 
   if (notFound) {
     return (

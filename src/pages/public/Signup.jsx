@@ -6,6 +6,7 @@ import { useRedirectIfAuthenticated } from '../../lib/useRedirectIfAuthenticated
 import { useHideChrome } from '../../components/Layout.jsx'
 import Logo from '../../components/Logo.jsx'
 import ResendConfirmationButton from '../../components/ResendConfirmationButton.jsx'
+import PageLoading from '../../components/PageLoading.jsx'
 
 const PASSWORD_REQUIREMENT_MESSAGE = 'Password must be at least 8 characters and include a number or special character'
 const GENERIC_SIGNUP_ERROR = 'Something went wrong. Please try again or contact support.'
@@ -51,7 +52,7 @@ export default function Signup() {
   // authenticated nav on top of a brand-new-account form.
   useHideChrome()
 
-  if (checkingSession) return null
+  if (checkingSession) return <PageLoading />
 
   async function handleSubmit(e) {
     e.preventDefault()

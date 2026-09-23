@@ -9,6 +9,7 @@ import { suppressNextAuthRedirect, suppressAuthRedirectsFor } from '../../lib/au
 import Logo from '../../components/Logo.jsx'
 import ResendConfirmationButton from '../../components/ResendConfirmationButton.jsx'
 import WrongAccountNotice from '../../components/WrongAccountNotice.jsx'
+import PageLoading from '../../components/PageLoading.jsx'
 
 export default function Login() {
   const [searchParams] = useSearchParams()
@@ -187,7 +188,7 @@ export default function Login() {
     }
   }, [confirmedParam, invalidLink, navigate])
 
-  if (checkingConfirmation || checkingSession) return null
+  if (checkingConfirmation || checkingSession) return <PageLoading />
 
   if (wrongAccountEmail) {
     return (

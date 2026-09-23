@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Logo from '../../components/Logo.jsx'
+import PageLoading from '../../components/PageLoading.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
 
@@ -30,7 +31,12 @@ export default function Welcome() {
     }
   }, [session, authLoading, navigate])
 
-  if (authLoading || session) return null
+  // authLoading is a genuine wait (AuthContext resolving the session) — a
+  // spinner rather than blank for it. session (once resolved) means the
+  // effect above is about to redirect away; still null for that instant,
+  // rather than flashing the landing page content for a frame first.
+  if (authLoading) return <PageLoading />
+  if (session) return null
 
   return (
     <div

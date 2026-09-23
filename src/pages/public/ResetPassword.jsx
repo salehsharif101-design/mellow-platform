@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase, previousSession } from '../../lib/supabase.js'
 import { useHideChrome } from '../../components/Layout.jsx'
 import WrongAccountNotice from '../../components/WrongAccountNotice.jsx'
+import PageLoading from '../../components/PageLoading.jsx'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
@@ -128,7 +129,10 @@ export default function ResetPassword() {
     )
   }
 
-  if (!ready) return null
+  // Shown for however long it takes the PASSWORD_RECOVERY auth event to
+  // fire, up to the 4-second timeout above that falls back to linkInvalid —
+  // a spinner immediately rather than a blank screen for that whole wait.
+  if (!ready) return <PageLoading />
 
   return (
     <div className="section" style={{ maxWidth: 420, margin: '0 auto' }}>

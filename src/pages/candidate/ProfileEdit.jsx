@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useHideChrome } from '../../components/Layout.jsx'
+import PageLoading from '../../components/PageLoading.jsx'
 import { supabase } from '../../lib/supabase.js'
 import { usePersistedState } from '../../lib/usePersistedState.js'
 import OnboardingProgress from './onboarding/OnboardingProgress.jsx'
@@ -212,7 +213,7 @@ export default function ProfileEdit({ forceWizard = false }) {
     }
   }
 
-  if (loading) return null
+  if (loading) return <PageLoading />
 
   if (loadError) {
     return (

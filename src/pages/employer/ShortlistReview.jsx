@@ -17,6 +17,7 @@ import IconButton from '../../components/IconButton.jsx'
 import AskQuestionModal from '../../components/AskQuestionModal.jsx'
 import { ensureBuiltinStages, statusForStage } from '../../lib/pipelineStages.js'
 import { getAskQuestionAvailability, daysLeftToAnswer, isPastDeadline } from '../../lib/videoQuestions.js'
+import PageLoading from '../../components/PageLoading.jsx'
 
 const STATUSES = ['reviewing', 'shortlisted', 'rejected']
 const STATUS_LABELS = { reviewing: 'Reviewing', shortlisted: 'Shortlisted', rejected: 'Rejected' }
@@ -244,7 +245,7 @@ export default function ShortlistReview() {
     setPendingRejection(false)
   }
 
-  if (loading) return null
+  if (loading) return <PageLoading />
 
   if (error) {
     return (

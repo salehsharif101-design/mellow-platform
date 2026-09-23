@@ -111,7 +111,17 @@ export default function MessageThread({
     setSending(false)
   }
 
-  if (loading) return null
+  // Lighter than PageLoading — this sits inside an already-rendered panel
+  // (the conversation list is already on screen around it), not a whole
+  // blank page, so a smaller inline spinner fits better than the full-page
+  // 80px padding.
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '32px 0' }}>
+        <div className="spinner" role="status" aria-label="Loading" />
+      </div>
+    )
+  }
 
   const AvatarComponent = otherAvatarType === 'company' ? CompanyAvatar : CandidateAvatar
   const avatarProps =

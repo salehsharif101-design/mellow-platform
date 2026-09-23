@@ -10,6 +10,7 @@ import CandidateProfileContent from '../../components/CandidateProfileContent.js
 import QuickMessageModal from '../../components/QuickMessageModal.jsx'
 import CalendlyModal from '../../components/CalendlyModal.jsx'
 import { syncApplicationStatus } from '../../lib/shortlistSync.js'
+import PageLoading from '../../components/PageLoading.jsx'
 
 const CANDIDATE_SELECT =
   'id, user_id, username, full_name, job_title, current_company, location, bio, headline, proud_of, skills, languages, availability, work_style, years_of_experience, intro_video_url, avatar_url, education_level, field_of_study, institution_name, graduation_year, linkedin_url, calendly_url, website_url'
@@ -116,7 +117,7 @@ export default function Shortlist() {
     setRemovingId(null)
   }
 
-  if (loading) return null
+  if (loading) return <PageLoading />
 
   if (error) {
     return (

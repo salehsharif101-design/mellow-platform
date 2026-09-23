@@ -7,6 +7,7 @@ import { formatRelativeTime } from '../../lib/roleFormat.js'
 import { CUSTOM_STAGE_COLOR } from '../../lib/pipelineStages.js'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
+import PageLoading from '../../components/PageLoading.jsx'
 
 const STATUS_LABELS = { applied: 'New', reviewing: 'Reviewing', shortlisted: 'Shortlisted', rejected: 'Rejected' }
 const STATUS_COLORS = {
@@ -79,7 +80,7 @@ export default function AllApplicants() {
     load()
   }, [user])
 
-  if (loading) return null
+  if (loading) return <PageLoading />
 
   if (error) {
     return (

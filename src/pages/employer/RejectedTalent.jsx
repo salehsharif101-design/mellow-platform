@@ -6,6 +6,7 @@ import { resolveEmployerId } from '../../lib/employerAccess.js'
 import { formatRelativeTime } from '../../lib/roleFormat.js'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
+import PageLoading from '../../components/PageLoading.jsx'
 
 export default function RejectedTalent() {
   const { user } = useAuth()
@@ -41,7 +42,7 @@ export default function RejectedTalent() {
     load()
   }, [user])
 
-  if (loading) return null
+  if (loading) return <PageLoading />
 
   if (error) {
     return (

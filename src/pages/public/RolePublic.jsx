@@ -9,6 +9,7 @@ import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
 import ShareButton from '../../components/ShareButton.jsx'
 import SaveRoleButton from '../../components/SaveRoleButton.jsx'
+import PageLoading from '../../components/PageLoading.jsx'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -211,7 +212,7 @@ export default function RolePublic() {
     navigate('/signup?type=candidate')
   }
 
-  if (loading) return null
+  if (loading) return <PageLoading />
 
   if (redirectSlug) {
     return <Navigate to={`/jobs/${redirectSlug}`} replace />
