@@ -48,7 +48,7 @@
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     },
     {
-      "source": "/(Email_Verification.png|Email_Verification3.png)",
+      "source": "/(Email_Verification.png|Email_Verification3.png|mellow_logofont_email_blue.png)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     }
   ],
