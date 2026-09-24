@@ -256,7 +256,7 @@ body.has-banner .pw{padding-top:104px;}
       <a href="employers.html">For Employers</a>
       <a href="about.html">About</a>
       <a href="index.html#faq">FAQ</a>
-      <a href="index.html#waitlist" class="nav-cta">Get early access</a>
+      <a href="https://beta.joinmellow.xyz" class="nav-cta">Sign up free</a>
     </div>
     <button class="hamburger" id="hamburger" aria-label="Menu">
       <span></span><span></span><span></span>
@@ -269,24 +269,19 @@ body.has-banner .pw{padding-top:104px;}
   <a href="employers.html">For Employers</a>
   <a href="about.html">About</a>
   <a href="index.html#faq">FAQ</a>
-  <a href="index.html#waitlist" class="mob-cta">Get early access</a>
+  <a href="https://beta.joinmellow.xyz" class="mob-cta">Sign up free</a>
 </div>
 
 <div class="pw">
 
 <!-- HERO -->
-<section class="hero" id="waitlist">
+<section class="hero">
   <div class="hero-inner">
     <div style="flex:1">
       <p class="eyebrow">Meet people, not documents</p>
       <h1>You're more than what fits on a page</h1>
       <p class="hero-sub">Mellow replaces the CV with a 60-second video profile. Record once, apply everywhere, and let employers meet the real you before the first interview.</p>
-      <form id="wf" action="https://beta.joinmellow.xyz/api/waitlist" method="POST">
-        <div class="hform">
-          <input type="email" name="email" placeholder="your@email.com" autocomplete="email" required/>
-          <button type="submit">Get early access</button>
-        </div>
-      </form>
+      <div style="margin-bottom:10px"><a href="https://beta.joinmellow.xyz" class="btn btn-solid" style="padding:13px 26px">Sign up free</a></div>
       <p class="hnote">For talent and employers</p>
     </div>
     <div class="hero-img"><img src="img/floating.png" alt=""/></div>
@@ -385,8 +380,8 @@ body.has-banner .pw{padding-top:104px;}
   <div class="con cta">
     <p class="eyebrow">Join us</p>
     <h2>You deserve to be seen for who you actually are</h2>
-    <p>Free for talent, free to start for employers. Sign up and be among the first to experience Mellow when we launch.</p>
-    <a href="#waitlist" class="btn btn-wh">Get early access</a>
+    <p>Free for talent, free to start for employers. Sign up free, no CV required.</p>
+    <a href="https://beta.joinmellow.xyz" class="btn btn-wh">Sign up free</a>
   </div>
 </section>
 
@@ -471,26 +466,6 @@ document.querySelectorAll('.nav-links a:not(.nav-cta)').forEach(function(a) {
   var href = (a.getAttribute('href') || '').replace(/\.html$/, '');
   if (href === path) a.classList.add('active');
 });
-
-// Waitlist form
-var wf = document.getElementById('wf');
-if (wf) {
-  wf.addEventListener('submit', function(e) {
-    e.preventDefault();
-    var btn = wf.querySelector('button');
-    btn.textContent = 'Joining...'; btn.disabled = true;
-    var email = wf.querySelector('input[name="email"]').value;
-    fetch(wf.action, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email })
-    })
-      .then(function(r) {
-        if (r.ok) { wf.innerHTML = '<p style="font-size:16px;font-weight:600;padding:14px 0">You\'re on the list. We\'ll be in touch soon \uD83C\uDF89</p>'; }
-        else { btn.textContent = 'Get early access'; btn.disabled = false; }
-      }).catch(function(){ btn.textContent = 'Get early access'; btn.disabled = false; });
-  });
-}
 </script>
 <script defer src='https://va.vercel-scripts.com/v1/script.js'></script>
 </body>

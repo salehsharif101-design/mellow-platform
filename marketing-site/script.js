@@ -52,23 +52,3 @@ document.querySelectorAll('.nav-links a:not(.nav-cta)').forEach(function(a) {
   var href = (a.getAttribute('href') || '').replace(/\.html$/, '');
   if (href === path) a.classList.add('active');
 });
-
-// Waitlist form
-var wf = document.getElementById('wf');
-if (wf) {
-  wf.addEventListener('submit', function(e) {
-    e.preventDefault();
-    var btn = wf.querySelector('button');
-    btn.textContent = 'Joining...'; btn.disabled = true;
-    var email = wf.querySelector('input[name="email"]').value;
-    fetch(wf.action, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email })
-    })
-      .then(function(r) {
-        if (r.ok) { wf.innerHTML = '<p style="font-size:16px;font-weight:600;padding:14px 0">You\'re on the list. We\'ll be in touch soon \uD83C\uDF89</p>'; }
-        else { btn.textContent = 'Get early access'; btn.disabled = false; }
-      }).catch(function(){ btn.textContent = 'Get early access'; btn.disabled = false; });
-  });
-}
