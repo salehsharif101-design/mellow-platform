@@ -84,20 +84,16 @@ export default async function handler(req, res) {
   try {
     await sendEmail({
       to: email,
-      subject: "You're on the list",
+      subject: 'Mellow is live - come meet people, not documents',
       html: renderEmailHtml({
-        heading: "Your next job won't start with a CV.",
+        heading: 'The wait is over',
         bodyText:
-          'Thank you for signing up. You are one of the first people to hear about Mellow, and that means something to us.<br><br>' +
-          'Here is what we are building: a hiring platform where talent shows up as people, not documents. One 60-second video profile, recorded once, that travels to every opportunity. No CV, no cover letter, ever again. Employers get a feed of real people instead of a pile of identical paperwork. The first conversation happens faster than any tool on the market makes possible.<br><br>' +
-          'We are in beta right now and will be opening up access very soon. When we do, you will be among the first to know.<br><br>' +
-          'In the meantime, if you know someone who is hiring or looking for their next role, tell them about Mellow. Every person you bring in makes the platform better for everyone.<br><br>' +
-          'We will be in touch soon.<br><br>' +
-          'The Mellow team',
-        ctaLabel: 'Learn more about Mellow',
-        ctaUrl: 'https://joinmellow.xyz',
+          'You signed up for early access to Mellow. Thank you for believing in us from the start. Mellow is now live in beta.<br><br>' +
+          'If you are looking for your next role, record a 60-second video, apply everywhere with one tap, and let employers see who you actually are. No CV. No cover letter. Just you.<br><br>' +
+          'If you are hiring, browse real people instead of CVs, shortlist, ask video questions, and book meetings all in one place. Post your roles for free in 5 minutes.',
+        ctaLabel: 'Join Mellow now',
+        ctaUrl: 'https://beta.joinmellow.xyz',
         illustration: 'Client_to_creative.png',
-        footerDomain: 'joinmellow.xyz',
       }),
     })
     res.statusCode = 200
