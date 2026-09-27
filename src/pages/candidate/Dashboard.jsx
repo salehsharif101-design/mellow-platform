@@ -79,6 +79,20 @@ export default function CandidateDashboard() {
   const [strengthDismissed, setStrengthDismissed] = useState(
     () => user?.id && localStorage.getItem(`mellow_strength_dismissed_${user.id}`) === '1',
   )
+  // Same idea, but per saved-role deadline nudge rather than a single flag —
+  // a candidate can have several saved roles closing soon at once, and
+  // dismissing one shouldn't hide the others. Stored as a JSON array of
+  // nudge ids (`deadline-${savedRowId}`) rather than one boolean per key,
+  // so there's a single localStorage entry to read/write instead of one per
+  // saved role.
+  const [dismissedDeadlineIds, setDismissedDeadlineIds] = useState(() => {
+    if (!user?.id) return []
+    try {
+      return JSON.parse(localStorage.getItem(`mellow_dismissed_deadline_nudges_${user.id}`)) || []
+    } catch {
+      return []
+    }
+  })
   // Frozen on first load — see the employer dashboard's identical pattern.
   // Without this, the 30s poll re-reads last_viewed_dashboard_at *after*
   // clearDashboardBadges() has already overwritten it, collapsing the
@@ -96,12 +110,26 @@ export default function CandidateDashboard() {
   useEffect(() => {
     if (!user?.id) return
     setStrengthDismissed(localStorage.getItem(`mellow_strength_dismissed_${user.id}`) === '1')
+    try {
+      setDismissedDeadlineIds(JSON.parse(localStorage.getItem(`mellow_dismissed_deadline_nudges_${user.id}`)) || [])
+    } catch {
+      setDismissedDeadlineIds([])
+    }
   }, [user?.id])
 
   function dismissStrength() {
     if (!user?.id) return
     localStorage.setItem(`mellow_strength_dismissed_${user.id}`, '1')
     setStrengthDismissed(true)
+  }
+
+  function dismissDeadlineNudge(id) {
+    if (!user?.id) return
+    setDismissedDeadlineIds((prev) => {
+      const next = [...prev, id]
+      localStorage.setItem(`mellow_dismissed_deadline_nudges_${user.id}`, JSON.stringify(next))
+      return next
+    })
   }
 
   useEffect(() => {
@@ -428,9 +456,15 @@ export default function CandidateDashboard() {
       // section instead.
       const standingNudges = []
 
+      // A saved role the candidate has already applied to doesn't need a
+      // "closes soon" nudge — they've already acted on it, so the reminder
+      // has nothing left to prompt.
+      const appliedRoleIds = new Set(apps.map((a) => a.role_id).filter(Boolean))
+
       savedRows.forEach((s) => {
         const role = s.roles
         if (!role || !role.is_active || !role.deadline) return
+        if (appliedRoleIds.has(role.id)) return
         const days = daysUntil(role.deadline)
         if (days !== null && days >= 0 && days <= 3) {
           standingNudges.push({
@@ -657,27 +691,61 @@ export default function CandidateDashboard() {
 
       <div id="whats-new-section" style={{ marginTop: 28, scrollMarginTop: 20 }}>
         <h3 style={{ fontSize: 18, marginBottom: 14 }}>What's new</h3>
-        {standingNudges.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
-            {standingNudges.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => navigate(item.link)}
-                style={{
-                  padding: '14px 18px',
-                  cursor: 'pointer',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: '#8a6100',
-                  background: '#fff6e0',
-                  borderRadius: 8,
-                }}
-              >
-                {item.text}
+        {(() => {
+          const visibleNudges = standingNudges.filter((item) => !dismissedDeadlineIds.includes(item.id))
+          return (
+            visibleNudges.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+                {visibleNudges.map((item) => {
+                  const isDeadlineNudge = item.id.startsWith('deadline-')
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => navigate(item.link)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 12,
+                        padding: '14px 18px',
+                        cursor: 'pointer',
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: '#8a6100',
+                        background: '#fff6e0',
+                        borderRadius: 8,
+                      }}
+                    >
+                      <span>{item.text}</span>
+                      {isDeadlineNudge && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            dismissDeadlineNudge(item.id)
+                          }}
+                          aria-label="Dismiss"
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            fontSize: 18,
+                            cursor: 'pointer',
+                            color: '#8a6100',
+                            lineHeight: 1,
+                            flexShrink: 0,
+                            padding: 0,
+                          }}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
-            ))}
-          </div>
-        )}
+            )
+          )
+        })()}
         {feedItems.length === 0 ? (
           <p className="card" style={{ padding: 16, fontSize: 14, color: 'var(--color-text-muted)' }}>
             You're all caught up — nothing new since your last visit{views && views.length === 0 ? ', including no profile views yet' : ''}. Keep your
