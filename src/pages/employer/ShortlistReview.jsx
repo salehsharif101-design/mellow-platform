@@ -50,7 +50,7 @@ function parseStageValue(rawValue, roleId, stages) {
 }
 
 const CANDIDATE_SELECT =
-  'id, user_id, username, full_name, job_title, current_company, location, bio, headline, proud_of, skills, languages, availability, work_style, years_of_experience, intro_video_url, avatar_url, education_level, field_of_study, institution_name, graduation_year, linkedin_url, calendly_url, website_url'
+  'id, user_id, username, full_name, job_title, current_company, location, bio, headline, proud_of, skills, languages, availability, work_style, years_of_experience, intro_video_url, avatar_url, education_level, field_of_study, institution_name, graduation_year, linkedin_url, calendly_url, calendly_scheduling_url, website_url'
 
 export default function ShortlistReview() {
   const { user } = useAuth()
@@ -339,7 +339,7 @@ export default function ShortlistReview() {
                           })()}
                         <ShareButton url={`${window.location.origin}/profile/${c.username || c.id}`} label="Share profile" size={19} />
                       </div>
-                      {c.calendly_url && <BookMeetingButton onClick={() => setShowCalendly(true)} />}
+                      {(c.calendly_scheduling_url || c.calendly_url) && <BookMeetingButton onClick={() => setShowCalendly(true)} />}
                     </div>
                     <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>
                       {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title}
@@ -596,7 +596,9 @@ export default function ShortlistReview() {
         </button>
       </div>
 
-      {showCalendly && c.calendly_url && <CalendlyModal calendlyUrl={c.calendly_url} onClose={() => setShowCalendly(false)} />}
+      {showCalendly && (c.calendly_scheduling_url || c.calendly_url) && (
+        <CalendlyModal calendlyUrl={c.calendly_scheduling_url || c.calendly_url} onClose={() => setShowCalendly(false)} />
+      )}
 
       {showMessage && (
         <QuickMessageModal

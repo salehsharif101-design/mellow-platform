@@ -1,10 +1,15 @@
 // Vercel Cron target — see the "crons" entry in vercel.json (runs daily).
 // Three related follow-ups between an employer and a candidate:
-//   1. the "how did it go?" email to the employer 7 days after they
-//      clicked "Book a meeting" on the candidate's public profile
-//      (src/pages/candidate/PublicProfile.jsx — there's no Calendly
-//      webhook telling us a meeting actually happened, so the click
-//      itself is the trigger)
+//   1. the "how did it go?" email to the employer, sent 7 days after
+//      whichever signal we actually have for this meeting:
+//        - if the candidate has connected Calendly and
+//          api/calendly-webhook.js confirmed a real booking, 7 days after
+//          that meeting's actual start_time (sendConfirmedMeetingFollowUps)
+//        - otherwise, the original click+7days behavior — 7 days after the
+//          employer clicked "Book a meeting" on the candidate's public
+//          profile (src/pages/candidate/PublicProfile.jsx), since there's
+//          no way to know whether a meeting actually happened
+//          (sendClickBasedFollowUps)
 //   2. a second "just checking in" email to the employer 14 days after
 //      they clicked "Still in progress" on (1), if no hire has been
 //      confirmed for that pair by then
@@ -22,14 +27,34 @@ import { getServiceClient, unwrap, getCandidateContact, getEmployerContact } fro
 const HOUR_MS = 60 * 60 * 1000
 const DAY_MS = 24 * HOUR_MS
 
-async function sendMeetingFollowUps(supabase) {
-  // scheduled_at is no longer an actual meeting time from Calendly, it's
-  // stamped at click time as "now + 7 days" (src/pages/candidate/
-  // PublicProfile.jsx's handleBookMeeting), so it already IS the send
-  // time. No extra offset needed here, just "has that moment arrived yet".
+// Sends the "did you connect" follow-up. Split into two queries rather
+// than one, since a meeting confirmed via Calendly OAuth (start_time set)
+// and one that never got past a bare "Book a meeting" click (start_time
+// still null) are timed off completely different columns:
+//   - confirmed via Calendly: 7 days after the actual meeting start_time,
+//     so a meeting booked for next week doesn't get "did you connect"
+//     before it's even happened.
+//   - never confirmed: the original click+7days behavior, unchanged, so a
+//     candidate/employer pair that never reconnects via Calendly still
+//     gets their follow-up on the same schedule as before this feature
+//     existed.
+// Each query only ever touches meetings where its own trigger column is
+// non-null, so neither path can crash or misfire off the other's data.
+async function sendClickBasedFollowUps(supabase) {
+  // scheduled_at is stamped at click time as "now + 7 days" (src/pages/
+  // candidate/PublicProfile.jsx's handleBookMeeting), so it already IS the
+  // send time. No extra offset needed here, just "has that moment arrived
+  // yet". Restricted to start_time is null — a meeting that did get
+  // confirmed via Calendly is handled by sendConfirmedMeetingFollowUps
+  // instead, off its real start_time rather than the click-time guess.
   const now = new Date().toISOString()
   const meetings = unwrap(
-    await supabase.from('meetings').select('id, employer_id, candidate_id').eq('follow_up_sent', false).lte('scheduled_at', now),
+    await supabase
+      .from('meetings')
+      .select('id, employer_id, candidate_id')
+      .eq('follow_up_sent', false)
+      .is('start_time', null)
+      .lte('scheduled_at', now),
   )
 
   let sent = 0
@@ -68,6 +93,54 @@ async function sendMeetingFollowUps(supabase) {
         // skips the second follow-up entirely: sendSecondFollowUps only
         // ever selects meetings with still_in_progress_at set, which this
         // path never touches.
+        extraCtaLabel: "We didn't connect",
+        extraCtaUrl: `${SITE_URL}/not-this-time?candidate=${meeting.candidate_id}&employer=${meeting.employer_id}`,
+        illustration: 'Collaborate2.png',
+      }),
+    })
+
+    sent += 1
+  }
+  return sent
+}
+
+async function sendConfirmedMeetingFollowUps(supabase) {
+  const cutoff = new Date(Date.now() - 7 * DAY_MS).toISOString()
+  const meetings = unwrap(
+    await supabase
+      .from('meetings')
+      .select('id, employer_id, candidate_id')
+      .eq('follow_up_sent', false)
+      .not('start_time', 'is', null)
+      .lte('start_time', cutoff),
+  )
+
+  let sent = 0
+  for (const meeting of meetings) {
+    const { data: claimed } = await supabase
+      .from('meetings')
+      .update({ follow_up_sent: true })
+      .eq('id', meeting.id)
+      .eq('follow_up_sent', false)
+      .select('id')
+      .maybeSingle()
+    if (!claimed) continue
+
+    const [{ email: employerEmail }, { fullName: candidateName }] = await Promise.all([
+      getEmployerContact(supabase, meeting.employer_id),
+      getCandidateContact(supabase, meeting.candidate_id),
+    ])
+
+    await sendEmail({
+      to: employerEmail,
+      subject: `Did you connect with ${candidateName}?`,
+      html: renderEmailHtml({
+        heading: 'Checking in',
+        bodyText: `You recently met with ${candidateName} on Mellow. We wanted to check in, how did it go?`,
+        ctaLabel: 'We made a hire',
+        ctaUrl: `${SITE_URL}/hire-confirmed?candidate=${meeting.candidate_id}&employer=${meeting.employer_id}`,
+        secondaryCtaLabel: 'Still in progress',
+        secondaryCtaUrl: `${SITE_URL}/still-deciding?candidate=${meeting.candidate_id}&employer=${meeting.employer_id}`,
         extraCtaLabel: "We didn't connect",
         extraCtaUrl: `${SITE_URL}/not-this-time?candidate=${meeting.candidate_id}&employer=${meeting.employer_id}`,
         illustration: 'Collaborate2.png',
@@ -212,13 +285,21 @@ export default async function handler(req, res) {
   const supabase = getServiceClient()
 
   try {
-    const [followUpsSent, secondFollowUpsSent, nudgesSent] = await Promise.all([
-      sendMeetingFollowUps(supabase),
+    const [clickBasedSent, confirmedSent, secondFollowUpsSent, nudgesSent] = await Promise.all([
+      sendClickBasedFollowUps(supabase),
+      sendConfirmedMeetingFollowUps(supabase),
       sendSecondFollowUps(supabase),
       sendTalentNudges(supabase),
     ])
     res.statusCode = 200
-    res.end(JSON.stringify({ success: true, followUpsSent, secondFollowUpsSent, nudgesSent }))
+    res.end(
+      JSON.stringify({
+        success: true,
+        followUpsSent: clickBasedSent + confirmedSent,
+        secondFollowUpsSent,
+        nudgesSent,
+      }),
+    )
   } catch (err) {
     res.statusCode = 500
     res.end(JSON.stringify({ error: err.message }))

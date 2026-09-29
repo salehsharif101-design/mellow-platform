@@ -259,19 +259,21 @@ async function sendShortlistNotification(supabase, shortlistId) {
   const candidate = unwrap(
     await supabase
       .from('candidate_profiles')
-      .select('user_id, username, calendly_url')
+      .select('user_id, username, calendly_url, calendly_scheduling_url')
       .eq('id', shortlist.candidate_id)
       .single(),
   )
   const candidateUser = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
 
-  // Nudges the candidate to add a Calendly link, but only if they don't
-  // already have one — an employer who just shortlisted them may want to
-  // book time directly, and this is the moment that's most likely to land.
-  const calendlyNudge = candidate.calendly_url
-    ? ''
-    : '<br><br>Make it easy for employers to reach you. Add your Calendly link to your profile so they can book a meeting with you directly.<br><br>' +
-      `<a href="${SITE_URL}/profile/edit#links-section" style="color:#005ef5;font-weight:700;text-decoration:none;">Add your Calendly link</a>`
+  // Nudges the candidate to connect Calendly, but only if they don't
+  // already have a link (manual or OAuth) — an employer who just
+  // shortlisted them may want to book time directly, and this is the
+  // moment that's most likely to land.
+  const calendlyNudge =
+    candidate.calendly_url || candidate.calendly_scheduling_url
+      ? ''
+      : '<br><br>Make it easy for employers to reach you. Connect your Calendly so they can book a meeting with you directly.<br><br>' +
+        `<a href="${SITE_URL}/profile/edit#calendly-section" style="color:#005ef5;font-weight:700;text-decoration:none;">Connect your Calendly</a>`
 
   return sendEmail({
     to: candidateUser.email,
@@ -377,17 +379,22 @@ async function sendCustomStageNotification(supabase, applicationId) {
     await supabase.from('roles').select('title, employer_profiles(company_name)').eq('id', application.role_id).single(),
   )
   const candidate = unwrap(
-    await supabase.from('candidate_profiles').select('calendly_url').eq('id', application.candidate_id).single(),
+    await supabase
+      .from('candidate_profiles')
+      .select('calendly_url, calendly_scheduling_url')
+      .eq('id', application.candidate_id)
+      .single(),
   )
   const { email } = await getCandidateContact(supabase, application.candidate_id)
   const companyName = role.employer_profiles?.company_name || 'the company'
 
   // Same Calendly nudge as sendShortlistNotification, and same reason —
-  // only shown when the candidate doesn't already have one set.
-  const calendlyNudge = candidate.calendly_url
-    ? ''
-    : '<br><br>Make it easy for employers to reach you. Add your Calendly link to your profile so they can book a meeting with you directly.<br><br>' +
-      `<a href="${SITE_URL}/profile/edit#links-section" style="color:#005ef5;font-weight:700;text-decoration:none;">Add your Calendly link</a>`
+  // only shown when the candidate doesn't already have a link set.
+  const calendlyNudge =
+    candidate.calendly_url || candidate.calendly_scheduling_url
+      ? ''
+      : '<br><br>Make it easy for employers to reach you. Connect your Calendly so they can book a meeting with you directly.<br><br>' +
+        `<a href="${SITE_URL}/profile/edit#calendly-section" style="color:#005ef5;font-weight:700;text-decoration:none;">Connect your Calendly</a>`
 
   const emailHtml = renderEmailHtml({
     heading: 'Good news',
