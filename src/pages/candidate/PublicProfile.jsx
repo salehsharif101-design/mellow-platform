@@ -199,8 +199,7 @@ export default function PublicProfile() {
   }
 
   const isEmployerViewer = userType === 'employer' && !isOwner
-  const calendlyBookingUrl = profile.calendly_scheduling_url || profile.calendly_url
-  const canBookMeeting = user && !isOwner && calendlyBookingUrl
+  const canBookMeeting = user && !isOwner && profile.calendly_url
   const showSignupCta = !user
   const hasActions = isOwner || showSignupCta
 
@@ -250,7 +249,7 @@ export default function PublicProfile() {
         />
       </div>
 
-      {showCalendly && <CalendlyModal calendlyUrl={calendlyBookingUrl} onClose={() => setShowCalendly(false)} />}
+      {showCalendly && <CalendlyModal calendlyUrl={profile.calendly_url} onClose={() => setShowCalendly(false)} />}
 
       {showContact && (
         <Modal title={`Message ${profile.full_name}`} onClose={() => setShowContact(false)}>

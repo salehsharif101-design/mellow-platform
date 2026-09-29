@@ -6,7 +6,6 @@ import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
 import VideoRecorderModal from '../../components/VideoRecorderModal.jsx'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
 import SkillsTagInput from '../../components/SkillsTagInput.jsx'
-import CalendlyConnect from '../../components/CalendlyConnect.jsx'
 import { deleteAccount } from '../../lib/deleteAccount.js'
 
 const PROFICIENCIES = ['basic', 'conversational', 'fluent', 'native']
@@ -37,6 +36,7 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
   const [skills, setSkills] = useState(profile.skills || [])
   const [languages, setLanguages] = useState(profile.languages || [])
   const [linkedinUrl, setLinkedinUrl] = useState(profile.linkedin_url || '')
+  const [calendlyUrl, setCalendlyUrl] = useState(profile.calendly_url || '')
   const [websiteUrl, setWebsiteUrl] = useState(profile.website_url || '')
   const [introVideoUrl, setIntroVideoUrl] = useState(profile.intro_video_url || null)
 
@@ -54,6 +54,7 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
     skills: useRef(null),
     languages: useRef(null),
     linkedinUrl: useRef(null),
+    calendlyUrl: useRef(null),
     websiteUrl: useRef(null),
   }
 
@@ -68,6 +69,14 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
     const trimmedLinkedin = linkedinUrl.trim()
     if (trimmedLinkedin && !/^https?:\/\//i.test(trimmedLinkedin)) {
       return { field: 'linkedinUrl', message: 'LinkedIn URL must start with https:// or http://' }
+    }
+    const trimmedCalendly = calendlyUrl.trim()
+    // A bare http(s):// check let a candidate save any URL at all here —
+    // CalendlyModal iframes it verbatim with no further check of its own,
+    // so "Book a meeting" would frame whatever site was saved, not just an
+    // actual Calendly page.
+    if (trimmedCalendly && !/^https?:\/\/([a-z0-9-]+\.)?calendly\.com\//i.test(trimmedCalendly)) {
+      return { field: 'calendlyUrl', message: 'Please enter a valid Calendly link (e.g. https://calendly.com/yourname)' }
     }
     const trimmedWebsite = websiteUrl.trim()
     if (trimmedWebsite && !/^https?:\/\//i.test(trimmedWebsite)) {
@@ -142,6 +151,7 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
         skills,
         languages,
         linkedin_url: linkedinUrl.trim() || null,
+        calendly_url: calendlyUrl.trim() || null,
         website_url: websiteUrl.trim() || null,
         intro_video_url: introVideoUrl || null,
         is_live: wasHired ? false : Boolean(introVideoUrl),
@@ -225,24 +235,13 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
       <LinkedInSection
         linkedinUrl={linkedinUrl}
         setLinkedinUrl={setLinkedinUrl}
+        calendlyUrl={calendlyUrl}
+        setCalendlyUrl={setCalendlyUrl}
         websiteUrl={websiteUrl}
         setWebsiteUrl={setWebsiteUrl}
         errorField={errorField}
         fieldRefs={fieldRefs}
       />
-
-      <section>
-        <h3 style={{ fontSize: 16, marginBottom: 12 }}>Calendly</h3>
-        <p style={{ marginTop: -6, marginBottom: 12, fontSize: 13, color: 'var(--color-text-muted)', maxWidth: 420 }}>
-          Connect your Calendly account so employers can book a meeting with you directly from your profile.
-        </p>
-        <CalendlyConnect
-          schedulingUrl={profile.calendly_scheduling_url}
-          username={profile.calendly_username}
-          returnTo="edit"
-          onDisconnected={() => onUpdated({ ...profile, calendly_scheduling_url: null, calendly_username: null })}
-        />
-      </section>
 
       <SaveControls saving={saving} success={success} error={saveError} />
 
@@ -794,7 +793,16 @@ function LanguagesSection({ languages, setLanguages, errorField, fieldRefs }) {
   )
 }
 
-function LinkedInSection({ linkedinUrl, setLinkedinUrl, websiteUrl, setWebsiteUrl, errorField, fieldRefs }) {
+function LinkedInSection({
+  linkedinUrl,
+  setLinkedinUrl,
+  calendlyUrl,
+  setCalendlyUrl,
+  websiteUrl,
+  setWebsiteUrl,
+  errorField,
+  fieldRefs,
+}) {
   return (
     <section id="links-section">
       <h3 style={{ fontSize: 16, marginBottom: 12 }}>Links</h3>
@@ -810,6 +818,24 @@ function LinkedInSection({ linkedinUrl, setLinkedinUrl, websiteUrl, setWebsiteUr
             placeholder="https://linkedin.com/in/yourname"
             style={fieldStyle(errorField === 'linkedinUrl')}
           />
+        </div>
+        <div className="field" id="calendly-field">
+          <label>Calendly link (optional)</label>
+          <p style={{ marginTop: -2, marginBottom: 6, fontSize: 13, color: 'var(--color-text-muted)' }}>
+            Add your Calendly link so employers can book a meeting with you directly from your profile.
+          </p>
+          <input
+            ref={fieldRefs.calendlyUrl}
+            className="input"
+            type="text"
+            value={calendlyUrl}
+            onChange={(e) => setCalendlyUrl(e.target.value)}
+            placeholder="https://calendly.com/yourname"
+            style={fieldStyle(errorField === 'calendlyUrl')}
+          />
+          <p style={{ marginTop: 6, marginBottom: 0, fontSize: 13, color: 'var(--color-text-muted)' }}>
+            Tip — make sure your Calendly reminders are turned on so you never miss a meeting.
+          </p>
         </div>
         <div className="field">
           <label>Portfolio or website (optional)</label>

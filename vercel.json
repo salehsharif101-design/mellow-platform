@@ -62,7 +62,6 @@
     { "path": "/api/cron/video-question-reminder", "schedule": "0 * * * *" },
     { "path": "/api/cron/post-hire-nudge", "schedule": "0 11 * * *" },
     { "path": "/api/cron/onboarding-dropoff-nudge", "schedule": "0 12 * * *" },
-    { "path": "/api/cron/employer-onboarding-dropoff-nudge", "schedule": "0 13 * * *" },
-    { "path": "/api/cron/meeting-reminder", "schedule": "0 * * * *" }
+    { "path": "/api/cron/employer-onboarding-dropoff-nudge", "schedule": "0 13 * * *" }
   ]
 }

@@ -475,11 +475,11 @@ export default function CandidateDashboard() {
         }
       })
 
-      if (shortlistRows.length > 0 && !candidate.calendly_url && !candidate.calendly_scheduling_url) {
+      if (shortlistRows.length > 0 && !candidate.calendly_url) {
         standingNudges.push({
           id: 'calendly-nudge',
-          text: 'You have been shortlisted. Connect your Calendly so the employer can book a meeting with you.',
-          link: '/profile/edit#calendly-section',
+          text: 'You have been shortlisted. Add your Calendly link so the employer can book a meeting with you.',
+          link: '/profile/edit#calendly-field',
         })
       }
 
@@ -569,7 +569,7 @@ export default function CandidateDashboard() {
     else if (check.key === 'nationality') complete = Boolean(profile.nationality)
     else if (check.key === 'languages') complete = (profile.languages?.length || 0) > 0
     else if (check.key === 'website') complete = Boolean(profile.website_url)
-    else if (check.key === 'calendly') complete = Boolean(profile.calendly_url || profile.calendly_scheduling_url)
+    else if (check.key === 'calendly') complete = Boolean(profile.calendly_url)
     return { ...check, complete }
   })
   const completedCount = strengthChecks.filter((c) => c.complete).length

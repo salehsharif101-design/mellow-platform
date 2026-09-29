@@ -38,11 +38,6 @@ const { default: sitemapHandler } = await import('../api/sitemap.js')
 const { default: ogRoleHandler } = await import('../api/og-role.js')
 const { default: ogCompanyHandler } = await import('../api/og-company.js')
 const { default: ogProfileHandler } = await import('../api/og-profile.js')
-const { default: calendlyOauthHandler } = await import('../api/calendly-oauth.js')
-const { default: calendlyOauthCallbackHandler } = await import('../api/calendly-oauth/callback.js')
-const { default: calendlyDisconnectHandler } = await import('../api/calendly-disconnect.js')
-const { default: calendlyWebhookHandler } = await import('../api/calendly-webhook.js')
-const { default: meetingReminderHandler } = await import('../api/cron/meeting-reminder.js')
 
 const PORT = process.env.ADMIN_API_PORT || 5174
 
@@ -70,11 +65,6 @@ const ROUTES = {
   '/api/og-role': ogRoleHandler,
   '/api/og-company': ogCompanyHandler,
   '/api/og-profile': ogProfileHandler,
-  '/api/calendly-oauth': calendlyOauthHandler,
-  '/api/calendly-oauth/callback': calendlyOauthCallbackHandler,
-  '/api/calendly-disconnect': calendlyDisconnectHandler,
-  '/api/calendly-webhook': calendlyWebhookHandler,
-  '/api/cron/meeting-reminder': meetingReminderHandler,
 }
 
 const server = http.createServer(async (req, res) => {
