@@ -104,7 +104,7 @@ export default function Welcome() {
         </div>
 
         <div className="split-row-media">
-          <img src="/Floating girl.PNG" alt="" />
+          <img src="/Floating_girl.PNG" alt="" />
         </div>
       </div>
     </div>

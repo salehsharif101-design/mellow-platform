@@ -18,7 +18,7 @@ function TipsScreen({ onContinue }) {
   useHideChrome()
   return (
     <div style={{ background: '#fff', padding: '48px 24px', textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
-      <img src="/Floating girl.PNG" alt="" style={{ width: '100%', maxWidth: 260, margin: '0 auto', display: 'block' }} />
+      <img src="/Floating_girl.PNG" alt="" style={{ width: '100%', maxWidth: 260, margin: '0 auto', display: 'block' }} />
       <h2 style={{ marginTop: 32, fontSize: 26 }}>Make it count</h2>
       <p style={{ marginTop: 16, fontSize: 16, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
         Before you upload, here is what makes a great Mellow video. Good lighting, face a window if you can. Clear
