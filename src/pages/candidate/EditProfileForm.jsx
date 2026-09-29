@@ -831,8 +831,7 @@ function LinkedInSection({
             style={fieldStyle(errorField === 'calendlyUrl')}
           />
           <p style={{ marginTop: 6, marginBottom: 0, fontSize: 13, color: 'var(--color-text-muted)' }}>
-            Add your Calendly link so employers can book meetings directly from your profile. Tip: keep your Calendly
-            reminders on.
+            Add your Calendly link so employers can book meetings directly from your profile.
           </p>
         </div>
         <div className="field">
