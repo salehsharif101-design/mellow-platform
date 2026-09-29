@@ -821,9 +821,6 @@ function LinkedInSection({
         </div>
         <div className="field" id="calendly-field">
           <label>Calendly link (optional)</label>
-          <p style={{ marginTop: -2, marginBottom: 6, fontSize: 13, color: 'var(--color-text-muted)' }}>
-            Add your Calendly link so employers can book a meeting with you directly from your profile.
-          </p>
           <input
             ref={fieldRefs.calendlyUrl}
             className="input"
@@ -834,7 +831,8 @@ function LinkedInSection({
             style={fieldStyle(errorField === 'calendlyUrl')}
           />
           <p style={{ marginTop: 6, marginBottom: 0, fontSize: 13, color: 'var(--color-text-muted)' }}>
-            Tip — make sure your Calendly reminders are turned on so you never miss a meeting.
+            Add your Calendly link so employers can book meetings directly from your profile. Tip: keep your Calendly
+            reminders on.
           </p>
         </div>
         <div className="field">
