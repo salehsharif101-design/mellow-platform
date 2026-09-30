@@ -64,7 +64,7 @@ async function loadQuestion(supabase, token) {
   const { data, error } = await supabase
     .from('video_questions')
     .select(
-      'id, question_text, asked_at, answered_at, status, answer_video_url, role_id, candidate_id, employer_id, roles(title), employer_profiles(company_name, logo_url), candidate_profiles(full_name, user_id)',
+      'id, question_text, asked_at, answered_at, status, answer_video_url, role_id, candidate_id, employer_id, roles(title), employer_profiles(company_name, logo_url, company_slug), candidate_profiles(full_name, user_id)',
     )
     .eq('answer_token', token)
     .maybeSingle()
@@ -210,6 +210,7 @@ export default async function handler(req, res) {
           roleTitle: question.roles?.title || 'this role',
           companyName: question.employer_profiles?.company_name || 'This company',
           companyLogoUrl: question.employer_profiles?.logo_url || null,
+          companySlug: question.employer_profiles?.company_slug || null,
         }),
       )
       return

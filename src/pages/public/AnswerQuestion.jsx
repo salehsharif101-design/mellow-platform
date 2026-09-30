@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase.js'
 import { useHideChrome } from '../../components/Layout.jsx'
 import CompanyAvatar from '../../components/CompanyAvatar.jsx'
@@ -199,9 +199,26 @@ export default function AnswerQuestion() {
     <div className="section" style={{ maxWidth: 480, margin: '0 auto' }}>
       <Logo />
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 28 }}>
-        <CompanyAvatar logoUrl={question.companyLogoUrl} companyName={question.companyName} size={44} />
+        {question.companySlug ? (
+          <Link to={`/company/${question.companySlug}`} target="_blank" rel="noopener noreferrer" style={{ flexShrink: 0, lineHeight: 0 }}>
+            <CompanyAvatar logoUrl={question.companyLogoUrl} companyName={question.companyName} size={44} />
+          </Link>
+        ) : (
+          <CompanyAvatar logoUrl={question.companyLogoUrl} companyName={question.companyName} size={44} />
+        )}
         <div>
-          <p style={{ fontWeight: 700, fontSize: 16 }}>{question.companyName}</p>
+          {question.companySlug ? (
+            <Link
+              to={`/company/${question.companySlug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ fontWeight: 700, fontSize: 16, color: 'inherit', textDecoration: 'none' }}
+            >
+              {question.companyName}
+            </Link>
+          ) : (
+            <p style={{ fontWeight: 700, fontSize: 16 }}>{question.companyName}</p>
+          )}
           <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{question.roleTitle}</p>
         </div>
       </div>
