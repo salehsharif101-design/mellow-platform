@@ -79,6 +79,10 @@ export default function CandidateDashboard() {
   const [strengthDismissed, setStrengthDismissed] = useState(
     () => user?.id && localStorage.getItem(`mellow_strength_dismissed_${user.id}`) === '1',
   )
+  // Same per-user, permanent-dismissal pattern as strengthDismissed above.
+  const [workVideoNudgeDismissed, setWorkVideoNudgeDismissed] = useState(
+    () => user?.id && localStorage.getItem(`mellow_work_video_nudge_dismissed_${user.id}`) === '1',
+  )
   // Same idea, but per saved-role deadline nudge rather than a single flag —
   // a candidate can have several saved roles closing soon at once, and
   // dismissing one shouldn't hide the others. Stored as a JSON array of
@@ -110,6 +114,7 @@ export default function CandidateDashboard() {
   useEffect(() => {
     if (!user?.id) return
     setStrengthDismissed(localStorage.getItem(`mellow_strength_dismissed_${user.id}`) === '1')
+    setWorkVideoNudgeDismissed(localStorage.getItem(`mellow_work_video_nudge_dismissed_${user.id}`) === '1')
     try {
       setDismissedDeadlineIds(JSON.parse(localStorage.getItem(`mellow_dismissed_deadline_nudges_${user.id}`)) || [])
     } catch {
@@ -121,6 +126,12 @@ export default function CandidateDashboard() {
     if (!user?.id) return
     localStorage.setItem(`mellow_strength_dismissed_${user.id}`, '1')
     setStrengthDismissed(true)
+  }
+
+  function dismissWorkVideoNudge() {
+    if (!user?.id) return
+    localStorage.setItem(`mellow_work_video_nudge_dismissed_${user.id}`, '1')
+    setWorkVideoNudgeDismissed(true)
   }
 
   function dismissDeadlineNudge(id) {
@@ -893,7 +904,7 @@ export default function CandidateDashboard() {
         </div>
       )}
 
-      {workVideoCount === 0 && (
+      {workVideoCount === 0 && !workVideoNudgeDismissed && (
         <div
           style={{
             marginTop: 24,
@@ -902,7 +913,17 @@ export default function CandidateDashboard() {
             borderRadius: 10,
           }}
         >
-          <h3 style={{ fontSize: 18 }}>Stand out from the crowd</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+            <h3 style={{ fontSize: 18 }}>Stand out from the crowd</h3>
+            <button
+              type="button"
+              onClick={dismissWorkVideoNudge}
+              aria-label="Dismiss stand out from the crowd"
+              style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--color-text-muted)', lineHeight: 1, flexShrink: 0 }}
+            >
+              ×
+            </button>
+          </div>
           <p style={{ marginTop: 10, fontSize: 14, lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
             Talent with work videos gets significantly more employer attention. Show employers how you think and
             what you are capable of. A designer can walk through a project. A developer can screen record a problem
