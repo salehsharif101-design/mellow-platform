@@ -106,7 +106,7 @@ export default function AddWorkVideoModal({ candidateId, userId, onClose, onAdde
               className="input"
               value={customLabel}
               onChange={(e) => setCustomLabel(e.target.value.slice(0, MAX_CUSTOM_LABEL_LENGTH))}
-              placeholder="e.g. Client pitch, Teaching session, Live performance, Product demo"
+              placeholder="e.g. Brand redesign, Product demo"
               maxLength={MAX_CUSTOM_LABEL_LENGTH}
               style={{ marginTop: 8 }}
             />

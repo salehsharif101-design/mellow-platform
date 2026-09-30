@@ -195,21 +195,31 @@ export default function AnswerQuestion() {
     )
   }
 
+  // The role page gives more relevant context than the company profile,
+  // since the candidate is answering a question about this specific role
+  // — but not every role has a slug (see migration 0017), so this falls
+  // back to the company profile rather than showing no link at all.
+  const contextLinkTo = question.roleSlug
+    ? `/jobs/${question.roleSlug}`
+    : question.companySlug
+      ? `/company/${question.companySlug}`
+      : null
+
   return (
     <div className="section" style={{ maxWidth: 480, margin: '0 auto' }}>
       <Logo />
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 28 }}>
-        {question.companySlug ? (
-          <Link to={`/company/${question.companySlug}`} target="_blank" rel="noopener noreferrer" style={{ flexShrink: 0, lineHeight: 0 }}>
+        {contextLinkTo ? (
+          <Link to={contextLinkTo} target="_blank" rel="noopener noreferrer" style={{ flexShrink: 0, lineHeight: 0 }}>
             <CompanyAvatar logoUrl={question.companyLogoUrl} companyName={question.companyName} size={44} />
           </Link>
         ) : (
           <CompanyAvatar logoUrl={question.companyLogoUrl} companyName={question.companyName} size={44} />
         )}
         <div>
-          {question.companySlug ? (
+          {contextLinkTo ? (
             <Link
-              to={`/company/${question.companySlug}`}
+              to={contextLinkTo}
               target="_blank"
               rel="noopener noreferrer"
               style={{ fontWeight: 700, fontSize: 16, color: 'inherit', textDecoration: 'none' }}
