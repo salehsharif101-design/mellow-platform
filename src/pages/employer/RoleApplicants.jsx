@@ -89,6 +89,25 @@ export default function RoleApplicants() {
   const [showManageStages, setShowManageStages] = useState(false)
   const [reopening, setReopening] = useState(false)
   const [reopenError, setReopenError] = useState('')
+  // Per-employer (not per-role) and permanent, same localStorage-backed
+  // dismissal pattern as the candidate/employer dashboard cards — the key
+  // is keyed on user.id alone, with no role id in it, so dismissing it once
+  // on any role's applicants page keeps it hidden on every other role's
+  // applicants page too.
+  const [askQuestionBannerDismissed, setAskQuestionBannerDismissed] = useState(
+    () => user?.id && localStorage.getItem(`mellow_ask_question_banner_dismissed_${user.id}`) === '1',
+  )
+
+  useEffect(() => {
+    if (!user?.id) return
+    setAskQuestionBannerDismissed(localStorage.getItem(`mellow_ask_question_banner_dismissed_${user.id}`) === '1')
+  }, [user?.id])
+
+  function dismissAskQuestionBanner() {
+    if (!user?.id) return
+    localStorage.setItem(`mellow_ask_question_banner_dismissed_${user.id}`, '1')
+    setAskQuestionBannerDismissed(true)
+  }
 
   useEffect(() => {
     if (!user) return
@@ -466,6 +485,35 @@ export default function RoleApplicants() {
           Manage stages
         </button>
       </div>
+
+      {applications.length > 0 && !askQuestionBannerDismissed && (
+        <div
+          className="card"
+          style={{
+            marginTop: 16,
+            padding: '14px 20px',
+            background: '#EEF4FF',
+            border: 'none',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: 16,
+          }}
+        >
+          <p style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>
+            Want to know more about a candidate? Ask them a video question directly on Mellow — they record their
+            answer and you watch it when you are ready.
+          </p>
+          <button
+            type="button"
+            onClick={dismissAskQuestionBanner}
+            aria-label="Dismiss ask a video question banner"
+            style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--color-text-muted)', lineHeight: 1, flexShrink: 0 }}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {(role.status === 'paused' || role.status === 'closed') && (
         <div

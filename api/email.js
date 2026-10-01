@@ -135,6 +135,13 @@ async function sendEmployerWelcome(supabase, userId) {
       heading: 'Start meeting people, not documents',
       bodyText:
         'Browse real talent, post your first role, and find the right person without reading a single CV. Your talent feed is ready and waiting.',
+      // Feature highlight, shown as a second paragraph block below the main
+      // welcome copy — secondaryBodyText is raw HTML (see email-template.js's
+      // own top-of-file comment), so the "Did you know?" heading is just a
+      // bold line rather than a true <h2>, matching how other emails splice
+      // an extra highlighted block into this same slot.
+      secondaryBodyText:
+        '<strong>Did you know?</strong><br><br>Once you start receiving applications you can send candidates a video question directly on Mellow. They record their answer and you watch it when you are ready. No scheduling, no back and forth. Just better information before the first interview.',
       ctaLabel: 'Browse the talent feed',
       ctaUrl: `${SITE_URL}/employer/talent`,
       illustration: 'Client_to_creative.png',
