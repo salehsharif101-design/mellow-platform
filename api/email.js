@@ -15,7 +15,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { sendEmail } from './_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from './_lib/email-template.js'
-import { getServiceClient, unwrap, getCandidateContact, getEmployerEmails, getEmployerUserIds } from './_lib/db.js'
+import { getServiceClient, unwrap, getCandidateContact, getEmployerContact, getEmployerEmails, getEmployerUserIds } from './_lib/db.js'
 import { escapeHtml } from './_lib/html.js'
 // Pure functions only (no supabase import, no env var reads) — safe to
 // import here unlike src/lib/employerAccess.js (see getCandidateContact's
@@ -222,6 +222,56 @@ async function sendMessageNotification(supabase, messageId) {
   })
 }
 
+// Fires exactly once per employer, the moment they receive their very
+// first application across every role they've ever posted — introducing
+// Ask a Video Question right when they're excited about a new applicant
+// and thinking about next steps. "First ever" is re-derived by counting
+// every other application against any of this employer's roles (not just
+// this one), same "count what came before, excluding this row" convention
+// as sendRoleLiveNotification's isFirstRole check above — zero means this
+// application IS the first. Claimed atomically before sending (same
+// pattern as sendEmployerWelcome/sendCandidateWelcome) so two applications
+// landing near-simultaneously can't both think they're the first. Goes to
+// the account owner only, never the whole team, per spec.
+async function maybeSendFirstApplicationEmail(supabase, employerId, roleId, applicationId) {
+  const employer = unwrap(
+    await supabase.from('employer_profiles').select('first_application_email_sent').eq('id', employerId).single(),
+  )
+  if (employer.first_application_email_sent) return
+
+  const { count: priorApplications, error: countError } = await supabase
+    .from('applications')
+    .select('id, roles!inner(employer_id)', { count: 'exact', head: true })
+    .eq('roles.employer_id', employerId)
+    .neq('id', applicationId)
+  if (countError) throw new Error(countError.message)
+  if (priorApplications > 0) return
+
+  const { data: claimed } = await supabase
+    .from('employer_profiles')
+    .update({ first_application_email_sent: true })
+    .eq('id', employerId)
+    .eq('first_application_email_sent', false)
+    .select('id')
+    .maybeSingle()
+  if (!claimed) return
+
+  const { email } = await getEmployerContact(supabase, employerId)
+
+  await sendEmail({
+    to: email,
+    subject: 'You just got your first applicant. Here is how to get more from them',
+    html: renderEmailHtml({
+      heading: 'Your first applicant is here',
+      bodyText:
+        'Congratulations on your first application on Mellow. Want to know more about this candidate before reaching out? Try Ask a Question. Go to your applicants page, open the candidate and click Ask a Question. They record their answer and you watch it when you are ready. No scheduling, no back and forth. Just better information before the first interview.',
+      ctaLabel: 'View your applicant',
+      ctaUrl: `${SITE_URL}/employer/roles/${roleId}/applicants`,
+      illustration: 'Collaborate2.png',
+    }),
+  })
+}
+
 async function sendApplicationNotification(supabase, applicationId) {
   const application = unwrap(
     await supabase.from('applications').select('candidate_id, role_id').eq('id', applicationId).single(),
@@ -239,7 +289,7 @@ async function sendApplicationNotification(supabase, applicationId) {
   const emails = await getEmployerEmails(supabase, role.employer_id)
   if (emails.length === 0) return { skipped: true }
 
-  return sendEmail({
+  const result = await sendEmail({
     to: emails,
     subject: 'New application on Mellow',
     html: renderEmailHtml({
@@ -250,6 +300,10 @@ async function sendApplicationNotification(supabase, applicationId) {
       illustration: 'Flexible.PNG',
     }),
   })
+
+  await maybeSendFirstApplicationEmail(supabase, role.employer_id, application.role_id, applicationId)
+
+  return result
 }
 
 async function sendShortlistNotification(supabase, shortlistId) {
