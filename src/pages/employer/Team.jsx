@@ -225,7 +225,7 @@ export default function Team() {
         <h1 style={{ fontSize: 28 }}>Team</h1>
         <p style={{ marginTop: 8, color: 'var(--color-text-muted)', fontSize: 15 }}>
           {isOwner
-            ? 'Invite teammates to help manage applications, message candidates, shortlist, and post roles. Only you can invite or remove team members and edit the company profile.'
+            ? 'Invite teammates to help manage applications, message candidates, shortlist, ask video questions, and post roles. Only you can invite or remove team members and edit the company profile.'
             : "You're a team member on this account. Only the account owner can invite or remove team members and edit the company profile."}
         </p>
 
