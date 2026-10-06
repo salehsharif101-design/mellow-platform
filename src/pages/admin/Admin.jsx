@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { callAdminApi, clearStoredPassword, getStoredPassword, storePassword } from './adminApi.js'
+import { adminLogin, adminVerifyCode, callAdminApi, clearStoredSession, getStoredSession, storeSession } from './adminApi.js'
 import OverviewStats from './OverviewStats.jsx'
 import CandidatesTable from './CandidatesTable.jsx'
 import EmployersTable from './EmployersTable.jsx'
@@ -20,6 +20,10 @@ export default function Admin() {
   const [passwordInput, setPasswordInput] = useState('')
   const [authError, setAuthError] = useState('')
   const [authenticating, setAuthenticating] = useState(false)
+  // Set once the password step passes and 2FA is on; its presence is what
+  // switches the login form to the code screen.
+  const [pendingToken, setPendingToken] = useState(null)
+  const [codeInput, setCodeInput] = useState('')
 
   const [activeTab, setActiveTab] = useState('Overview')
   const [stats, setStats] = useState(null)
@@ -33,11 +37,10 @@ export default function Admin() {
   const [meetings, setMeetings] = useState(null)
   const [loadError, setLoadError] = useState('')
 
-  // If a password is already stashed in this tab's sessionStorage, verify it
+  // If a session token from an earlier visit is still stored, verify it
   // still works before trusting it (server re-validates on every call anyway).
   useEffect(() => {
-    const stored = getStoredPassword()
-    if (!stored) {
+    if (!getStoredSession()) {
       setCheckingSession(false)
       return
     }
@@ -47,7 +50,7 @@ export default function Admin() {
         setAuthenticated(true)
       })
       .catch(() => {
-        clearStoredPassword()
+        clearStoredSession()
       })
       .finally(() => setCheckingSession(false))
   }, [])
@@ -70,29 +73,77 @@ export default function Admin() {
       if (tab === 'Hires' && !hires) setHires(await callAdminApi('hires'))
       if (tab === 'Meetings' && !meetings) setMeetings(await callAdminApi('meetings'))
     } catch (err) {
+      // The 24-hour session ran out (or was invalidated by a secret/password
+      // change) mid-visit — back to the login screen rather than a raw error.
+      if (err.status === 401) {
+        handleLogOut()
+        setAuthError(err.message)
+        return
+      }
       setLoadError(err.message)
     }
+  }
+
+  async function finishLogin(session) {
+    storeSession(session)
+    const data = await callAdminApi('stats')
+    setStats(data)
+    setAuthenticated(true)
+    setPasswordInput('')
+    setCodeInput('')
+    setPendingToken(null)
   }
 
   async function handlePasswordSubmit(e) {
     e.preventDefault()
     setAuthenticating(true)
     setAuthError('')
-    storePassword(passwordInput)
     try {
-      const data = await callAdminApi('stats')
-      setStats(data)
-      setAuthenticated(true)
+      const result = await adminLogin(passwordInput)
+      if (result.twoFactorRequired) {
+        setPendingToken(result.pendingToken)
+        // The password has done its job; don't keep it around in state.
+        setPasswordInput('')
+      } else {
+        await finishLogin(result)
+      }
     } catch (err) {
-      clearStoredPassword()
+      clearStoredSession()
       setAuthError(err.status === 401 ? 'Incorrect password.' : err.message)
     } finally {
       setAuthenticating(false)
     }
   }
 
+  async function handleCodeSubmit(e) {
+    e.preventDefault()
+    setAuthenticating(true)
+    setAuthError('')
+    try {
+      const session = await adminVerifyCode(pendingToken, codeInput)
+      await finishLogin(session)
+    } catch (err) {
+      setCodeInput('')
+      // An expired password step can't be retried with another code — start over.
+      if (err.status === 401 && /expired/i.test(err.message)) {
+        setPendingToken(null)
+      }
+      setAuthError(err.message)
+    } finally {
+      setAuthenticating(false)
+    }
+  }
+
+  function handleBackToPassword() {
+    setPendingToken(null)
+    setCodeInput('')
+    setAuthError('')
+  }
+
   function handleLogOut() {
-    clearStoredPassword()
+    clearStoredSession()
+    setPendingToken(null)
+    setCodeInput('')
     setAuthenticated(false)
     setStats(null)
     setCandidates(null)
@@ -120,29 +171,67 @@ export default function Admin() {
           padding: 20,
         }}
       >
-        <form
-          onSubmit={handlePasswordSubmit}
-          className="card"
-          style={{ padding: 32, width: '100%', maxWidth: 360, display: 'flex', flexDirection: 'column', gap: 16 }}
-        >
-          <h1 style={{ fontSize: 20 }}>Admin access</h1>
-          <div className="field">
-            <label htmlFor="admin-password">Password</label>
-            <input
-              id="admin-password"
-              type="password"
-              className="input"
-              autoFocus
-              value={passwordInput}
-              onChange={(e) => setPasswordInput(e.target.value)}
-              required
-            />
-          </div>
-          {authError && <p className="form-error">{authError}</p>}
-          <button className="btn btn-primary" type="submit" disabled={authenticating}>
-            {authenticating ? 'Checking…' : 'Enter'}
-          </button>
-        </form>
+        {pendingToken ? (
+          <form
+            onSubmit={handleCodeSubmit}
+            className="card"
+            style={{ padding: 32, width: '100%', maxWidth: 360, display: 'flex', flexDirection: 'column', gap: 16 }}
+          >
+            <h1 style={{ fontSize: 20 }}>Two-factor authentication</h1>
+            <p style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>
+              Enter the 6-digit code from your authenticator app.
+            </p>
+            <div className="field">
+              <label htmlFor="admin-code">Authentication code</label>
+              <input
+                id="admin-code"
+                className="input"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]*"
+                maxLength={6}
+                autoFocus
+                value={codeInput}
+                onChange={(e) => setCodeInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="123456"
+                style={{ letterSpacing: 4, fontSize: 18 }}
+                required
+              />
+            </div>
+            {authError && <p className="form-error">{authError}</p>}
+            <button className="btn btn-primary" type="submit" disabled={authenticating || codeInput.length !== 6}>
+              {authenticating ? 'Checking…' : 'Verify'}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={handleBackToPassword} disabled={authenticating}>
+              Back
+            </button>
+          </form>
+        ) : (
+          <form
+            onSubmit={handlePasswordSubmit}
+            className="card"
+            style={{ padding: 32, width: '100%', maxWidth: 360, display: 'flex', flexDirection: 'column', gap: 16 }}
+          >
+            <h1 style={{ fontSize: 20 }}>Admin access</h1>
+            <div className="field">
+              <label htmlFor="admin-password">Password</label>
+              <input
+                id="admin-password"
+                type="password"
+                className="input"
+                autoFocus
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                required
+              />
+            </div>
+            {authError && <p className="form-error">{authError}</p>}
+            <button className="btn btn-primary" type="submit" disabled={authenticating}>
+              {authenticating ? 'Checking…' : 'Enter'}
+            </button>
+          </form>
+        )}
       </div>
     )
   }

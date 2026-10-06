@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute.jsx'
 
 const Welcome = lazy(() => import('./pages/public/Welcome.jsx'))
 const Admin = lazy(() => import('./pages/admin/Admin.jsx'))
+const Setup2FA = lazy(() => import('./pages/admin/Setup2FA.jsx'))
 const Signup = lazy(() => import('./pages/public/Signup.jsx'))
 const Login = lazy(() => import('./pages/public/Login.jsx'))
 const ForgotPassword = lazy(() => import('./pages/public/ForgotPassword.jsx'))
@@ -59,6 +60,7 @@ export default function App() {
 
         {/* Password-protected, intentionally never linked from the app nav */}
         <Route path="/admin" element={<Admin />} />
+        <Route path="/admin/setup-2fa" element={<Setup2FA />} />
 
         <Route element={<Layout />}>
           {/* Auth */}

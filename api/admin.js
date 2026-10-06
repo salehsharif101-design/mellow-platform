@@ -1,9 +1,26 @@
 // Vercel serverless function. Runs server-side only — the service role key
-// and admin password never reach the browser. Every request re-validates
-// the password before touching the database.
+// and admin password never reach the browser.
+//
+// Access is password + TOTP two-factor (see _lib/adminAuth.js). The login
+// actions below exchange credentials for a signed 24-hour session token;
+// every other action requires that token, checked here on the server on
+// every request — never trusted from the client. While ADMIN_TOTP_SECRET is
+// unset the password alone is enough to get a token (so 2FA can be set up
+// without locking anyone out); once it's set, a valid code is mandatory.
 
 import { createClient } from '@supabase/supabase-js'
+import QRCode from 'qrcode'
+import { generateSecret, generateURI } from 'otplib'
 import { deleteUserStorageFiles } from './_lib/storageCleanup.js'
+import {
+  SESSION_TTL_MS,
+  PENDING_TTL_MS,
+  passwordIsValid,
+  totpEnabled,
+  issueToken,
+  verifyToken,
+  totpCodeIsValid,
+} from './_lib/adminAuth.js'
 
 const COMPLETENESS_FIELDS = ['full_name', 'job_title', 'location', 'bio', 'intro_video_url']
 
@@ -486,6 +503,8 @@ async function deleteUser(supabase, userId) {
 
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json')
+  // Responses can carry a freshly generated TOTP secret or a session token.
+  res.setHeader('Cache-Control', 'no-store')
 
   if (req.method !== 'POST') {
     res.statusCode = 405
@@ -502,7 +521,7 @@ export default async function handler(req, res) {
     return
   }
 
-  const { password, action } = body
+  const { action } = body
 
   if (!process.env.ADMIN_PASSWORD) {
     res.statusCode = 500
@@ -510,10 +529,76 @@ export default async function handler(req, res) {
     return
   }
 
-  if (!password || password !== process.env.ADMIN_PASSWORD) {
-    res.statusCode = 401
-    res.end(JSON.stringify({ error: 'Incorrect password' }))
+  function fail(status, error) {
+    res.statusCode = status
+    res.end(JSON.stringify({ error }))
+  }
+
+  // --- Authentication actions: these run before any session exists. ---
+
+  if (action === 'login') {
+    if (!passwordIsValid(body.password)) return fail(401, 'Incorrect password')
+    if (totpEnabled()) {
+      const { token } = issueToken('pw', PENDING_TTL_MS)
+      res.statusCode = 200
+      res.end(JSON.stringify({ twoFactorRequired: true, pendingToken: token }))
+      return
+    }
+    const { token, expiresAt } = issueToken('session', SESSION_TTL_MS)
+    res.statusCode = 200
+    res.end(JSON.stringify({ twoFactorRequired: false, token, expiresAt }))
     return
+  }
+
+  if (action === 'verify-2fa') {
+    if (!verifyToken(body.pendingToken, 'pw')) {
+      return fail(401, 'Your password check expired. Please enter your password again.')
+    }
+    if (!totpEnabled()) return fail(400, 'Two-factor authentication is not enabled')
+    if (!totpCodeIsValid(process.env.ADMIN_TOTP_SECRET, body.code)) {
+      return fail(401, 'Invalid code. Check your authenticator app and try again.')
+    }
+    const { token, expiresAt } = issueToken('session', SESSION_TTL_MS)
+    res.statusCode = 200
+    res.end(JSON.stringify({ token, expiresAt }))
+    return
+  }
+
+  // One-time enrollment. The secret is generated here, shown once, and never
+  // stored — the admin copies it into ADMIN_TOTP_SECRET themselves. Refused
+  // outright once that variable exists, so this can't be used to replace a
+  // live secret. Still needs the password so it isn't open to anyone who
+  // finds the URL.
+  if (action === 'setup-2fa') {
+    if (!passwordIsValid(body.password)) return fail(401, 'Incorrect password')
+    if (totpEnabled()) return fail(403, 'Two-factor authentication is already set up.')
+    const secret = generateSecret()
+    const otpauthUri = generateURI({ issuer: 'Mellow', label: 'Admin', secret })
+    const qrDataUrl = await QRCode.toDataURL(otpauthUri, { margin: 1, width: 260 })
+    res.statusCode = 200
+    res.end(JSON.stringify({ secret, otpauthUri, qrDataUrl }))
+    return
+  }
+
+  // Lets the admin prove their authenticator app produces matching codes
+  // *before* the secret goes live in Vercel — catching a bad scan while it
+  // still can't lock them out.
+  if (action === 'setup-2fa-verify') {
+    if (!passwordIsValid(body.password)) return fail(401, 'Incorrect password')
+    if (totpEnabled()) return fail(403, 'Two-factor authentication is already set up.')
+    if (!totpCodeIsValid(body.secret, body.code)) {
+      return fail(401, 'That code does not match. Check your authenticator app and try again.')
+    }
+    res.statusCode = 200
+    res.end(JSON.stringify({ success: true }))
+    return
+  }
+
+  // --- Everything else needs a live session token. ---
+
+  const sessionToken = (req.headers.authorization || '').replace(/^Bearer\s+/i, '')
+  if (!verifyToken(sessionToken, 'session')) {
+    return fail(401, 'Session expired. Please sign in again.')
   }
 
   const supabase = getServiceClient()
