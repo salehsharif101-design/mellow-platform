@@ -365,10 +365,16 @@ export default function TalentFeed() {
     setSwipeMode(false)
   }
 
-  async function handleSwipeShortlist() {
+  // Advances first and saves in the background. Awaiting the save before
+  // advancing left the same candidate on screen for the whole round-trip, so
+  // a second press in that window acted on them again and both presses then
+  // advanced the index, passing over the next person. shortlist() reports its
+  // own failures, so nothing is lost by not waiting on it.
+  function handleSwipeShortlist() {
     if (!swipeCandidate) return
-    if (!shortlistedIds.has(swipeCandidate.id)) await shortlist(swipeCandidate.id)
+    const candidateId = swipeCandidate.id
     setSwipeIndex((i) => i + 1)
+    if (!shortlistedIds.has(candidateId)) shortlist(candidateId)
   }
 
   function handleSwipeSkip() {
