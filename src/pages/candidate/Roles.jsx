@@ -15,38 +15,94 @@ import ViewToggle from '../../components/ViewToggle.jsx'
 const MAX_RECOMMENDATIONS = 5
 const VIEW_MODE_KEY = 'mellow_roles_view_mode'
 
-// Collapsed height (260px desktop, 220px mobile) is pure CSS — see
-// .role-card-clip in components.css, applied to a wrapper around
-// header/description/what-matters only. Show more/less lives OUTSIDE
-// that wrapper (a sibling, not a child) so it's never clipped away along
-// with the content — a role whose header alone fills the fixed height
-// would otherwise make the button invisible exactly when it's needed
-// most.
+// List cards size to their content — no fixed height. Only the description
+// (with "what matters most" flowing on from it as one paragraph) is
+// capped, at 3 lines via -webkit-line-clamp; Show more removes the cap.
 //
-// Whether the button shows at all is decided by measuring a second,
-// hidden copy of the same content that permanently carries
-// .role-card-clip (see the ref'd clone below) — never the visible copy,
-// whose own clip class comes and goes with expanded/collapsed. Measuring
-// the visible copy would be self-referential: once expanded removes the
-// clip class there's nothing left to clip, so scrollHeight and
-// clientHeight go equal and the card would read as "not overflowing"
-// right as the user opens it — which would yank Show less away the
-// instant they click Show more. The hidden clone's content never
-// changes based on the state it's used to compute, so there's no
-// feedback loop either.
-function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needsVideo, onShowVideo, expanded, onToggleExpanded }) {
+// Whether Show more appears is decided by measuring the clamped
+// paragraph itself (scrollHeight > clientHeight). That measurement is
+// skipped while expanded — with the clamp gone the two heights are equal
+// and the result would read "not overflowing", yanking Show less away the
+// instant the user clicked Show more. The last collapsed result simply
+// stands until the card is collapsed again, which re-measures.
+const DESCRIPTION_LINES = 3
+
+function pickTitle(text, width, meter) {
+  meter.textContent = text
+  if (meter.offsetWidth <= width) return text
+  // Cut points are spaces and just after a hyphen, so a hyphenated
+  // compound can also break cleanly between its parts.
+  for (let i = text.length - 1; i > 0; i--) {
+    if (!/\s/.test(text[i]) && text[i - 1] !== '-') continue
+    const head = text.slice(0, i).replace(/[\s,;:&/|\-\u2013\u2014]+$/, '')
+    if (!head) continue
+    meter.textContent = head + '\u2026'
+    if (meter.offsetWidth <= width) return head + '\u2026'
+  }
+  return text
+}
+
+// One-line title that, when it doesn't fit, drops whole trailing words and
+// adds an ellipsis instead of cutting a word in half. A hidden span with the
+// same inherited font measures each candidate. A single unbroken word wider
+// than the whole line has no boundary to cut at, so that case falls back to
+// the plain CSS ellipsis.
+function TruncatedTitle({ text }) {
+  const boxRef = useRef(null)
+  const measureRef = useRef(null)
+  const [shown, setShown] = useState(text)
+
+  useLayoutEffect(() => {
+    const box = boxRef.current
+    const meter = measureRef.current
+    if (!box || !meter) return
+    function fit() {
+      const width = box.clientWidth
+      if (!width) return
+      setShown(pickTitle(text, width, meter))
+      meter.textContent = ''
+    }
+    fit()
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(fit) : null
+    ro?.observe(box)
+    let cancelled = false
+    document.fonts?.ready?.then(() => {
+      if (!cancelled) fit()
+    })
+    return () => {
+      cancelled = true
+      ro?.disconnect()
+    }
+  }, [text])
+
+  return (
+    <span ref={boxRef} title={text} style={{ display: 'block', position: 'relative', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+      {shown}
+      <span
+        ref={measureRef}
+        aria-hidden="true"
+        style={{ position: 'absolute', left: 0, top: 0, visibility: 'hidden', pointerEvents: 'none', whiteSpace: 'nowrap' }}
+      />
+    </span>
+  )
+}
+
+function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needsVideo, expanded, onToggleExpanded }) {
   const navigate = useNavigate()
-  const clipRef = useRef(null)
+  const textRef = useRef(null)
+  const expandedRef = useRef(expanded)
+  expandedRef.current = expanded
   const [overflowing, setOverflowing] = useState(false)
   const employer = role.employer_profiles
   const deadlineLabel = formatDeadline(role.deadline)
   const salaryLabel = formatSalary(role)
 
   useLayoutEffect(() => {
-    const el = clipRef.current
-    if (!el) return
+    const el = textRef.current
+    if (!el || expanded) return
     function measure() {
-      setOverflowing(el.scrollHeight > el.clientHeight)
+      if (expandedRef.current) return
+      setOverflowing(el.scrollHeight > el.clientHeight + 1)
     }
     measure()
     window.addEventListener('resize', measure)
@@ -61,124 +117,9 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
       cancelled = true
       window.removeEventListener('resize', measure)
     }
-  }, [role.description, role.what_matters])
+  }, [role.description, role.what_matters, expanded])
 
-  function renderBody() {
-    return (
-      <>
-        <div className={`role-card-header${employer?.logo_url ? '' : ' no-logo'}`}>
-          <h3 className="role-card-title" style={{ fontSize: 19 }}>{role.title}</h3>
-          {employer?.logo_url && (
-            employer.company_slug ? (
-              <Link
-                to={`/company/${employer.company_slug}`}
-                className="role-card-logo-area"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <img
-                  src={employer.logo_url}
-                  alt={employer.company_name}
-                  className="role-card-logo"
-                  style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
-                />
-              </Link>
-            ) : (
-              <img
-                src={employer.logo_url}
-                alt={employer.company_name}
-                className="role-card-logo role-card-logo-area"
-                style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
-              />
-            )
-          )}
-          <p className="role-card-company" style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
-            {employer?.company_slug ? (
-              <Link
-                to={`/company/${employer.company_slug}`}
-                style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {employer?.company_name}
-              </Link>
-            ) : (
-              employer?.company_name
-            )}{' '}
-            · {role.location}
-            {role.role_type && ` · ${role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')}`}
-          </p>
-          <div className="role-card-rest">
-            {(employer?.industry || employer?.company_size) && (
-              <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
-                {[employer?.industry, employer?.company_size && `${employer.company_size} employees`]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </p>
-            )}
-            <div className="role-card-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-              {employer?.company_highlight && (
-                <span className="tag" style={{ fontSize: 12 }}>
-                  {employer.company_highlight}
-                </span>
-              )}
-              {salaryLabel && (
-                <span className="tag" style={{ fontSize: 12 }}>
-                  {salaryLabel}
-                </span>
-              )}
-              {role.work_style && (
-                <span className="tag" style={{ fontSize: 12 }}>
-                  {role.work_style}
-                </span>
-              )}
-              {deadlineLabel && (
-                <span className="tag" style={{ fontSize: 12 }}>
-                  Apply by {deadlineLabel}
-                </span>
-              )}
-              {employer?.intro_video_url && (
-                <button
-                  type="button"
-                  className="tag"
-                  style={{ fontSize: 12, border: 'none', cursor: 'pointer', background: '#005ef5', color: '#ffffff' }}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onShowVideo(employer)
-                  }}
-                >
-                  <span style={{ fontSize: 9 }} aria-hidden="true">▶</span>
-                  See the team
-                </button>
-              )}
-            </div>
-            {role.required_skills?.length > 0 && (
-              <div className="role-card-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                {role.required_skills.slice(0, 3).map((skill) => (
-                  <span
-                    key={skill}
-                    className="tag"
-                    style={{ fontSize: 12, background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-        {role.description && (
-          <div style={{ marginTop: 14 }}>
-            <p style={{ fontSize: 15, color: 'var(--color-text-muted)' }}>{role.description}</p>
-          </div>
-        )}
-        {role.what_matters && (
-          <p style={{ marginTop: 10, fontSize: 13, color: 'var(--color-text-muted)' }}>
-            <strong style={{ color: 'var(--color-text)' }}>What matters most: </strong>
-            {role.what_matters}
-          </p>
-        )}
-      </>
-    )
-  }
+  const bodyText = [role.description, role.what_matters].filter(Boolean).join(' ')
 
   return (
     <div className="card role-card" style={{ padding: 24, cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
@@ -197,16 +138,109 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
           {applied ? 'Applied' : applying ? 'Applying…' : 'Apply'}
         </button>
       </div>
-      <div
-        ref={clipRef}
-        className="role-card-clip"
-        aria-hidden="true"
-        style={{ position: 'absolute', left: 0, right: 0, top: 0, visibility: 'hidden', pointerEvents: 'none', zIndex: -1 }}
-      >
-        {renderBody()}
+      <div className={`role-card-header${employer?.logo_url ? '' : ' no-logo'}`}>
+        <h3 className="role-card-title" style={{ fontSize: 19 }} aria-label={role.title}>
+          <TruncatedTitle text={role.title} />
+        </h3>
+        {employer?.logo_url && (
+          employer.company_slug ? (
+            <Link
+              to={`/company/${employer.company_slug}`}
+              className="role-card-logo-area"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={employer.logo_url}
+                alt={employer.company_name}
+                className="role-card-logo"
+                style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
+              />
+            </Link>
+          ) : (
+            <img
+              src={employer.logo_url}
+              alt={employer.company_name}
+              className="role-card-logo role-card-logo-area"
+              style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
+            />
+          )
+        )}
+        <p className="role-card-company" style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
+          {employer?.company_slug ? (
+            <Link
+              to={`/company/${employer.company_slug}`}
+              style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {employer?.company_name}
+            </Link>
+          ) : (
+            employer?.company_name
+          )}{' '}
+          · {role.location}
+          {role.role_type && ` · ${role.role_type[0].toUpperCase() + role.role_type.slice(1).replace('-', ' ')}`}
+        </p>
+        <div className="role-card-rest">
+          {(employer?.industry || employer?.company_size) && (
+            <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
+              {[employer?.industry, employer?.company_size && `${employer.company_size} employees`]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          )}
+          <div className="role-card-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+            {employer?.company_highlight && (
+              <span className="tag" style={{ fontSize: 12 }}>
+                {employer.company_highlight}
+              </span>
+            )}
+            {salaryLabel && (
+              <span className="tag" style={{ fontSize: 12 }}>
+                {salaryLabel}
+              </span>
+            )}
+            {role.work_style && (
+              <span className="tag" style={{ fontSize: 12 }}>
+                {role.work_style}
+              </span>
+            )}
+            {deadlineLabel && (
+              <span className="tag" style={{ fontSize: 12 }}>
+                Apply by {deadlineLabel}
+              </span>
+            )}
+          </div>
+          {role.required_skills?.length > 0 && (
+            <div className="role-card-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+              {role.required_skills.slice(0, 3).map((skill) => (
+                <span
+                  key={skill}
+                  className="tag"
+                  style={{ fontSize: 12, background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-      <div className={expanded ? undefined : `role-card-clip${overflowing ? ' role-card-fade' : ''}`}>{renderBody()}</div>
-      {overflowing && (
+      {bodyText && (
+        <p
+          ref={textRef}
+          style={{
+            marginTop: 14,
+            fontSize: 15,
+            color: 'var(--color-text-muted)',
+            ...(expanded
+              ? null
+              : { display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: DESCRIPTION_LINES, overflow: 'hidden' }),
+          }}
+        >
+          {bodyText}
+        </p>
+      )}
+      {bodyText && overflowing && (
         <button
           type="button"
           onClick={(e) => {
@@ -220,12 +254,17 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
             fontSize: 13,
             fontWeight: 600,
             padding: 0,
-            marginTop: 8,
+            marginTop: 6,
             cursor: 'pointer',
           }}
         >
           {expanded ? 'Show less' : 'Show more'}
         </button>
+      )}
+      {employer?.intro_video_url && (
+        <div style={{ marginTop: 14, maxWidth: 320 }} onClick={(e) => e.stopPropagation()}>
+          <VideoPlayCard url={employer.intro_video_url} format="horizontal" style={{ margin: 0 }} />
+        </div>
       )}
       {needsVideo && (
         <div
@@ -563,8 +602,8 @@ export default function BrowseRoles() {
               </div>
             )}
             <div style={{ minWidth: 0 }}>
-              <h3 style={{ fontSize: 15, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {role.title}
+              <h3 style={{ fontSize: 15, lineHeight: 1.3 }} aria-label={role.title}>
+                <TruncatedTitle text={role.title} />
               </h3>
               <p style={{ fontSize: 12, color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {employer?.company_name}
@@ -603,18 +642,39 @@ export default function BrowseRoles() {
             </div>
           )}
 
-          <button
-            type="button"
-            className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
-            disabled={applied || applyingId === role.id}
-            onClick={(e) => {
-              e.stopPropagation()
-              apply(role.id)
-            }}
-            style={{ marginTop: 'auto', alignSelf: 'center', fontSize: 13, padding: '8px 28px' }}
-          >
-            {applied ? 'Applied' : applyingId === role.id ? 'Applying…' : 'Apply'}
-          </button>
+          {applied ? (
+            <span
+              style={{
+                marginTop: 'auto',
+                alignSelf: 'center',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '4px 10px',
+                borderRadius: 999,
+                background: '#e7f6ec',
+                color: '#1e7a3c',
+                fontSize: 12,
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span aria-hidden="true">✓</span> Applied
+            </span>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={applyingId === role.id}
+              onClick={(e) => {
+                e.stopPropagation()
+                apply(role.id)
+              }}
+              style={{ marginTop: 'auto', alignSelf: 'center', fontSize: 13, padding: '8px 28px' }}
+            >
+              {applyingId === role.id ? 'Applying…' : 'Apply'}
+            </button>
+          )}
         </div>
       </div>
     )
@@ -893,7 +953,6 @@ export default function BrowseRoles() {
                       onToggleSave={() => toggleSave(role)}
                       onApply={() => apply(role.id)}
                       needsVideo={needsVideoRoleId === role.id}
-                      onShowVideo={setVideoModalEmployer}
                       expanded={expandedIds.has(role.id)}
                       onToggleExpanded={() =>
                         setExpandedIds((prev) => {
@@ -925,7 +984,6 @@ export default function BrowseRoles() {
                     onToggleSave={() => toggleSave(role)}
                     onApply={() => apply(role.id)}
                     needsVideo={needsVideoRoleId === role.id}
-                    onShowVideo={setVideoModalEmployer}
                     expanded={expandedIds.has(role.id)}
                     onToggleExpanded={() =>
                       setExpandedIds((prev) => {
