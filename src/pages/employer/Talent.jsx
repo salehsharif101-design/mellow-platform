@@ -77,6 +77,15 @@ function cardName(fullName) {
   return `${words[0]} ${words[words.length - 1]}`
 }
 
+function RadioOption({ label, checked, onChange }) {
+  return (
+    <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 4px', fontSize: 14, cursor: 'pointer' }}>
+      <input type="radio" name="match-role" checked={checked} onChange={onChange} />
+      {label}
+    </label>
+  )
+}
+
 function CheckOption({ label, checked, onChange }) {
   return (
     <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 4px', fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>
@@ -620,29 +629,24 @@ export default function TalentFeed() {
         </FilterPopover>
 
         {scorableRoles.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <label
-              htmlFor="match-role"
-              title="Match candidates against one of your open roles"
-              style={{ fontSize: 13, color: 'var(--color-text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}
-            >
-              Match:
-            </label>
-            <select
-              id="match-role"
-              aria-label="Match against"
-              className="input"
-              style={{ width: 'auto', padding: '7px 12px', fontSize: 13 }}
-              value={selectedRoleId}
-              onChange={(e) => setSelectedRoleId(e.target.value)}
-            >
-              {scorableRoles.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.title}
-                </option>
-              ))}
-            </select>
-          </div>
+          <FilterPopover label={selectedRole ? `Match: ${selectedRole.title}` : 'Match'} maxLabelWidth={200} panelWidth={260}>
+            {({ close }) => (
+              <>
+                <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: 6 }}>Match against</p>
+                {scorableRoles.map((r) => (
+                  <RadioOption
+                    key={r.id}
+                    label={r.title}
+                    checked={r.id === selectedRoleId}
+                    onChange={() => {
+                      setSelectedRoleId(r.id)
+                      close()
+                    }}
+                  />
+                ))}
+              </>
+            )}
+          </FilterPopover>
         )}
 
         <button type="button" className="btn btn-primary" onClick={openSwipeMode} disabled={filtered.length === 0} style={{ fontSize: 13, padding: '9px 16px', whiteSpace: 'nowrap' }}>

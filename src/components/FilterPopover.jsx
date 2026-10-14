@@ -4,7 +4,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 // to fold the talent feed's multi-row filter pills into one row. Closes on
 // an outside press or Escape. `activeCount` shows how many options inside
 // are currently applied, so a collapsed filter still reads as "on".
-export default function FilterPopover({ label, activeCount = 0, children, panelWidth }) {
+// `children` may be a function, called with { close }, for single-choice
+// panels that should dismiss themselves once an option is picked.
+// `maxLabelWidth` ellipsizes a long dynamic label (e.g. a role title) so
+// it can't stretch the filter bar.
+export default function FilterPopover({ label, activeCount = 0, children, panelWidth, maxLabelWidth }) {
   const [open, setOpen] = useState(false)
   const [alignRight, setAlignRight] = useState(false)
   const wrapRef = useRef(null)
@@ -45,6 +49,7 @@ export default function FilterPopover({ label, activeCount = 0, children, panelW
         className="btn btn-ghost"
         aria-haspopup="true"
         aria-expanded={open}
+        aria-label={maxLabelWidth ? label : undefined}
         onClick={() => setOpen((prev) => !prev)}
         style={{
           fontSize: 13,
@@ -56,7 +61,13 @@ export default function FilterPopover({ label, activeCount = 0, children, panelW
           background: active || open ? 'var(--color-bg-soft)' : undefined,
         }}
       >
-        {label}
+        {maxLabelWidth ? (
+          <span style={{ maxWidth: maxLabelWidth, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={label}>
+            {label}
+          </span>
+        ) : (
+          label
+        )}
         {active && (
           <span
             style={{
@@ -100,7 +111,7 @@ export default function FilterPopover({ label, activeCount = 0, children, panelW
             padding: 12,
           }}
         >
-          {children}
+          {typeof children === 'function' ? children({ close: () => setOpen(false) }) : children}
         </div>
       )}
     </div>
