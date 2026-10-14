@@ -13,6 +13,7 @@ import ListPageSkeleton from '../../components/ListPageSkeleton.jsx'
 import QuickMessageModal from '../../components/QuickMessageModal.jsx'
 import ViewToggle from '../../components/ViewToggle.jsx'
 import FilterPopover from '../../components/FilterPopover.jsx'
+import SkillTags from '../../components/SkillTags.jsx'
 
 const AVAILABILITY_OPTIONS = ['Immediately', 'Within a month', '1 to 3 months', 'Just exploring']
 const WORK_STYLE_OPTIONS = ['Remote', 'Hybrid', 'On-site']
@@ -92,35 +93,6 @@ function CheckOption({ label, checked, onChange }) {
       <input type="checkbox" checked={checked} onChange={onChange} />
       {label}
     </label>
-  )
-}
-
-// Card skill tags, capped at `max` with a muted "+N" pill for the rest. The
-// pill reuses the real .tag class and the caller's exact size overrides, so
-// height, radius and font size match the skill tags by construction; only
-// the colours differ, to read as "not a skill". The full list always lives
-// on the candidate's profile page.
-function SkillTags({ skills, max, gap, tagStyle, style }) {
-  const visible = skills.slice(0, max)
-  const hidden = skills.slice(max)
-  return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap, ...style }}>
-      {visible.map((s) => (
-        <span key={s} className="tag" style={tagStyle}>
-          {s}
-        </span>
-      ))}
-      {hidden.length > 0 && (
-        <span
-          className="tag"
-          title={hidden.join(', ')}
-          aria-label={`${hidden.length} more skill${hidden.length === 1 ? '' : 's'}: ${hidden.join(', ')}`}
-          style={{ ...tagStyle, background: '#eef0f3', color: 'var(--color-text-muted)' }}
-        >
-          +{hidden.length}
-        </span>
-      )}
-    </div>
   )
 }
 

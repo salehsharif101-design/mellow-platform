@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
@@ -11,6 +11,7 @@ import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import SaveRoleButton from '../../components/SaveRoleButton.jsx'
 import ListPageSkeleton from '../../components/ListPageSkeleton.jsx'
 import ViewToggle from '../../components/ViewToggle.jsx'
+import SkillTags from '../../components/SkillTags.jsx'
 
 const MAX_RECOMMENDATIONS = 5
 const VIEW_MODE_KEY = 'mellow_roles_view_mode'
@@ -120,6 +121,10 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
   }, [role.description, role.what_matters, expanded])
 
   const bodyText = [role.description, role.what_matters].filter(Boolean).join(' ')
+  // Employers often type "What matters most:" into the description itself as
+  // one continuous block; start that part on its own paragraph in the card.
+  // Pure whitespace (two <br>s), so existing line-clamping still applies.
+  const bodyParts = bodyText.split(/\s+(?=What matters most:)/i)
 
   return (
     <div className="card role-card" style={{ padding: 24, cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
@@ -211,17 +216,14 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
             )}
           </div>
           {role.required_skills?.length > 0 && (
-            <div className="role-card-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-              {role.required_skills.slice(0, 3).map((skill) => (
-                <span
-                  key={skill}
-                  className="tag"
-                  style={{ fontSize: 12, background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}
-                >
-                  {skill}
-                </span>
-              ))}
-            </div>
+            <SkillTags
+              skills={role.required_skills}
+              max={3}
+              gap={6}
+              className="role-card-tags"
+              style={{ marginTop: 6 }}
+              tagStyle={{ fontSize: 12, background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}
+            />
           )}
         </div>
       </div>
@@ -237,7 +239,17 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
               : { display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: DESCRIPTION_LINES, overflow: 'hidden' }),
           }}
         >
-          {bodyText}
+          {bodyParts.map((part, i) => (
+            <Fragment key={i}>
+              {i > 0 && (
+                <>
+                  <br />
+                  <br />
+                </>
+              )}
+              {part}
+            </Fragment>
+          ))}
         </p>
       )}
       {bodyText && overflowing && (
@@ -548,7 +560,7 @@ export default function BrowseRoles() {
     // shared, capped tag row — every field below gets its own dedicated
     // spot so a role with 3 skills and a salary doesn't silently push
     // location out. Top 2-3 required skills, per the design.
-    const skillTags = (role.required_skills || []).slice(0, 3)
+    const skillTags = role.required_skills || []
     const workStyleLocation = [role.work_style, role.location].filter(Boolean).join(' · ')
     return (
       <div key={role.id} className="card compact-card" style={{ cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
@@ -633,13 +645,7 @@ export default function BrowseRoles() {
           )}
 
           {skillTags.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
-              {skillTags.map((s) => (
-                <span key={s} className="tag" style={{ fontSize: 11, padding: '2px 8px' }}>
-                  {s}
-                </span>
-              ))}
-            </div>
+            <SkillTags skills={skillTags} max={3} gap={4} style={{ marginTop: 6 }} tagStyle={{ fontSize: 11, padding: '2px 8px' }} />
           )}
 
           {applied ? (
@@ -942,7 +948,7 @@ export default function BrowseRoles() {
               {viewMode === 'grid' ? (
                 <div className="compact-grid">{recommended.map((role) => renderCompactRoleCard(role))}</div>
               ) : (
-                <div className="role-list" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div className="role-list" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                   {recommended.map((role) => (
                     <RoleCard
                       key={role.id}
@@ -973,7 +979,7 @@ export default function BrowseRoles() {
             {viewMode === 'grid' ? (
               <div className="compact-grid">{remainingRoles.map((role) => renderCompactRoleCard(role))}</div>
             ) : (
-              <div className="role-list" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div className="role-list" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 {remainingRoles.map((role) => (
                   <RoleCard
                     key={role.id}
