@@ -448,6 +448,15 @@ export default function TalentFeed() {
         <div className="swipe-stage">
           {swipeDone || !swipeCandidate ? (
             <div style={{ textAlign: 'center', maxWidth: 320 }}>
+              {/* maxHeight keeps the stage (overflow: hidden) from clipping the
+                  button on short screens, e.g. a phone in landscape. It's inert
+                  above ~490px of viewport height, where the image is its full
+                  220px width like every other empty state. */}
+              <img
+                src="/Collaborate2.png"
+                alt=""
+                style={{ width: '100%', maxWidth: 220, maxHeight: 'calc(100vh - 290px)', objectFit: 'contain', margin: '0 auto 24px', display: 'block' }}
+              />
               <h2 style={{ fontSize: 22 }}>You're all caught up</h2>
               <p style={{ marginTop: 8, fontSize: 14, color: 'var(--color-text-muted)' }}>
                 You've screened every candidate matching your current filters.
