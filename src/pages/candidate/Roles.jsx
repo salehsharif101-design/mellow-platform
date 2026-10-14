@@ -99,6 +99,30 @@ function TruncatedTitle({ text }) {
   )
 }
 
+// The green "✓ Applied" pill, shared by the grid and list cards so an
+// applied role reads identically in both views.
+function AppliedBadge({ style }) {
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: '4px 10px',
+        borderRadius: 999,
+        background: '#e7f6ec',
+        color: '#1e7a3c',
+        fontSize: 12,
+        fontWeight: 600,
+        whiteSpace: 'nowrap',
+        ...style,
+      }}
+    >
+      <span aria-hidden="true">✓</span> Applied
+    </span>
+  )
+}
+
 function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needsVideo, expanded, onToggleExpanded }) {
   const navigate = useNavigate()
   const textRef = useRef(null)
@@ -145,8 +169,7 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
     .join(' ')
 
   // Header (title, company, metadata, tags, skills), then the 3-line
-  // description with Show more. With a team video these form the left column
-  // of a split row beside the video; without one they fill the card.
+  // description with Show more — the left column of the split row.
   const textContent = (
     <>
       <div className={`role-card-header${employer?.logo_url ? '' : ' no-logo'}`}>
@@ -272,45 +295,44 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
     </>
   )
 
-  // Save / Apply. Top-right of the card; with a team video they sit at the
-  // bottom of the right column, under the video (.role-card-split in
-  // components.css). One element either way, so the buttons are identical.
+  // Save / Apply. Always the bottom of the right column (under the video
+  // when there is one, alone when there isn't) so every card has the same
+  // structure; the stacked mobile layout moves them back to the top-right.
   const actions = (
     <div className="role-card-actions">
       <SaveRoleButton saved={saved} onToggle={onToggleSave} />
-      <button
-        type="button"
-        className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
-        disabled={applied || applying}
-        onClick={(e) => {
-          e.stopPropagation()
-          onApply()
-        }}
-        style={{ whiteSpace: 'nowrap' }}
-      >
-        {applied ? 'Applied' : applying ? 'Applying…' : 'Apply'}
-      </button>
+      {applied ? (
+        <AppliedBadge />
+      ) : (
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={applying}
+          onClick={(e) => {
+            e.stopPropagation()
+            onApply()
+          }}
+          style={{ whiteSpace: 'nowrap' }}
+        >
+          {applying ? 'Applying…' : 'Apply'}
+        </button>
+      )}
     </div>
   )
 
   return (
     <div className="card role-card" style={{ padding: 24, cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
-      {employer?.intro_video_url ? (
-        <div className="role-card-split">
-          <div className="role-card-split-text">{textContent}</div>
-          <div className="role-card-split-side">
+      <div className="role-card-split">
+        <div className="role-card-split-text">{textContent}</div>
+        <div className={`role-card-split-side${employer?.intro_video_url ? '' : ' no-video'}`}>
+          {employer?.intro_video_url && (
             <div onClick={(e) => e.stopPropagation()}>
               <VideoPlayCard url={employer.intro_video_url} format="horizontal" style={{ margin: 0, maxWidth: 'none' }} />
             </div>
-            {actions}
-          </div>
-        </div>
-      ) : (
-        <>
+          )}
           {actions}
-          {textContent}
-        </>
-      )}
+        </div>
+      </div>
       {needsVideo && (
         <div
           className="card"
@@ -710,24 +732,7 @@ export default function BrowseRoles() {
           )}
 
           {applied ? (
-            <span
-              style={{
-                marginTop: 'auto',
-                alignSelf: 'center',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '4px 10px',
-                borderRadius: 999,
-                background: '#e7f6ec',
-                color: '#1e7a3c',
-                fontSize: 12,
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <span aria-hidden="true">✓</span> Applied
-            </span>
+            <AppliedBadge style={{ marginTop: 'auto', alignSelf: 'center' }} />
           ) : (
             <button
               type="button"

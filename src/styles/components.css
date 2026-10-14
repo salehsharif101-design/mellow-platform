@@ -125,12 +125,14 @@
   box-shadow: 0 1px 3px rgba(10, 10, 10, 0.07);
 }
 
-/* A role with a team video lays out as two columns: all the text on the
-   left, and on the right the video pinned to the top (level with the title
-   row) with Save/Apply at the bottom-right under it. Below 768px it stacks:
-   video under the text and the actions back in the top-right corner. The
-   header's 132px right reservation for those actions isn't needed on
-   desktop here, as they no longer sit beside the text. */
+/* Every list card is two columns: all the text on the left, and on the
+   right the video (when the role has one) pinned to the top, level with the
+   title row, with Save/Apply at the bottom-right. Without a video the right
+   column is just empty space above the buttons, so cards line up the same
+   either way. Below 768px it stacks: video under the text and the actions
+   in the top-right corner. The header's 132px right reservation for those
+   actions isn't needed on desktop here, as they don't sit beside the
+   text. */
 .role-card-split {
   display: flex;
   align-items: stretch;
@@ -175,6 +177,12 @@
     position: absolute;
     margin-top: 0;
     padding-top: 0;
+  }
+
+  /* Nothing but the (absolutely placed) actions — drop the column's own
+     box so it doesn't leave a gap under the text. */
+  .role-card-split-side.no-video {
+    display: contents;
   }
 }
 
