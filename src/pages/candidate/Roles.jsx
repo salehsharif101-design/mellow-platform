@@ -144,9 +144,8 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
     .filter(Boolean)
     .join(' ')
 
-  // Header, description and Show more. With a team video these sit in the
-  // left column of a split row beside the video; without one they fill the
-  // card, exactly as before.
+  // Header (title, company, metadata, tags, skills), then the team video
+  // when there is one, then the 3-line description with Show more.
   const textContent = (
     <>
       <div className={`role-card-header${employer?.logo_url ? '' : ' no-logo'}`}>
@@ -233,6 +232,11 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
           )}
         </div>
       </div>
+      {employer?.intro_video_url && (
+        <div style={{ marginTop: 14 }} onClick={(e) => e.stopPropagation()}>
+          <VideoPlayCard url={employer.intro_video_url} format="horizontal" style={{ margin: 0, maxWidth: 'none' }} />
+        </div>
+      )}
       {bodyText && (
         <p
           ref={textRef}
@@ -272,45 +276,24 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
     </>
   )
 
-  // Save / Apply. Pinned top-right of the card; with a team video they
-  // instead sit at the bottom of the right column, under the video (see
-  // .role-card-split in components.css).
-  const actions = (
-    <div className="role-card-actions">
-      <SaveRoleButton saved={saved} onToggle={onToggleSave} />
-      <button
-        type="button"
-        className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
-        disabled={applied || applying}
-        onClick={(e) => {
-          e.stopPropagation()
-          onApply()
-        }}
-        style={{ whiteSpace: 'nowrap' }}
-      >
-        {applied ? 'Applied' : applying ? 'Applying…' : 'Apply'}
-      </button>
-    </div>
-  )
-
   return (
     <div className="card role-card" style={{ padding: 24, cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
-      {employer?.intro_video_url ? (
-        <div className="role-card-split">
-          <div className="role-card-split-text">{textContent}</div>
-          <div className="role-card-split-side">
-            <div onClick={(e) => e.stopPropagation()}>
-              <VideoPlayCard url={employer.intro_video_url} format="horizontal" style={{ margin: 0, maxWidth: 'none' }} />
-            </div>
-            {actions}
-          </div>
-        </div>
-      ) : (
-        <>
-          {actions}
-          {textContent}
-        </>
-      )}
+      <div className="role-card-actions">
+        <SaveRoleButton saved={saved} onToggle={onToggleSave} />
+        <button
+          type="button"
+          className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
+          disabled={applied || applying}
+          onClick={(e) => {
+            e.stopPropagation()
+            onApply()
+          }}
+          style={{ whiteSpace: 'nowrap' }}
+        >
+          {applied ? 'Applied' : applying ? 'Applying…' : 'Apply'}
+        </button>
+      </div>
+      {textContent}
       {needsVideo && (
         <div
           className="card"
