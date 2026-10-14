@@ -54,6 +54,15 @@ function pickTitle(text, width, meter) {
   return text
 }
 
+// Company names are stored as typed, so some are all lowercase ("mellow").
+// A name that is entirely lowercase is capitalised word by word for display;
+// anything with its own capitals ("4SPOTS EVOLVE", "eBay") is left exactly
+// as the employer wrote it.
+function displayCompanyName(name) {
+  if (!name || name !== name.toLowerCase()) return name || ''
+  return name.replace(/(^|\s)(\S)/g, (_, space, ch) => space + ch.toUpperCase())
+}
+
 // One-line title that, when it doesn't fit, drops whole trailing words and
 // adds an ellipsis instead of cutting a word in half. A hidden span with the
 // same inherited font measures each candidate. A single unbroken word wider
@@ -297,13 +306,14 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
             e.stopPropagation()
             onShowVideo(employer)
           }}
-          aria-label={`Watch ${employer.company_name} team`}
+          aria-label={`Watch ${displayCompanyName(employer.company_name)} team`}
           style={{
             marginTop: 14,
             width: '100%',
+            maxWidth: 360,
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
+            gap: 10,
             padding: 8,
             textAlign: 'left',
             cursor: 'pointer',
@@ -321,10 +331,10 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
             playsInline
             aria-hidden="true"
             tabIndex={-1}
-            style={{ width: 96, height: 54, objectFit: 'cover', borderRadius: 6, background: '#000', flexShrink: 0, pointerEvents: 'none' }}
+            style={{ width: 64, height: 36, objectFit: 'cover', borderRadius: 6, background: '#000', flexShrink: 0, pointerEvents: 'none' }}
           />
           <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            Watch {employer.company_name} team
+            Watch {displayCompanyName(employer.company_name)} team
           </span>
           <span
             aria-hidden="true"
