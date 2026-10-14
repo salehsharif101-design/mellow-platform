@@ -125,6 +125,43 @@
   box-shadow: 0 1px 3px rgba(10, 10, 10, 0.07);
 }
 
+/* A role with a team video lays out as text (left, ~60%) beside the video
+   (right, ~40%), vertically centred; stacked below 768px. The header's
+   132px right reservation for the pinned Save/Apply actions isn't needed
+   here — those sit above the video column, not beside the text. */
+.role-card-split {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.role-card-split-text {
+  flex: 3 1 0;
+  min-width: 0;
+}
+
+.role-card-split-video {
+  flex: 2 1 0;
+  min-width: 0;
+}
+
+.role-card-split .role-card-header {
+  padding-right: 0;
+}
+
+@media (max-width: 768px) {
+  .role-card-split {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .role-card-split-video {
+    flex: none;
+    max-width: 320px;
+  }
+}
+
 /* Grid (not flex) so mobile can rearrange title/logo/company without
    touching DOM order — see the mobile override below. Desktop keeps the
    original look: logo on the left spanning the full height, title/company

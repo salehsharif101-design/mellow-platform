@@ -144,23 +144,11 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
     .filter(Boolean)
     .join(' ')
 
-  return (
-    <div className="card role-card" style={{ padding: 24, cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
-      <div className="role-card-actions">
-        <SaveRoleButton saved={saved} onToggle={onToggleSave} />
-        <button
-          type="button"
-          className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
-          disabled={applied || applying}
-          onClick={(e) => {
-            e.stopPropagation()
-            onApply()
-          }}
-          style={{ whiteSpace: 'nowrap' }}
-        >
-          {applied ? 'Applied' : applying ? 'Applying…' : 'Apply'}
-        </button>
-      </div>
+  // Header, description and Show more. With a team video these sit in the
+  // left column of a split row beside the video; without one they fill the
+  // card, exactly as before.
+  const textContent = (
+    <>
       <div className={`role-card-header${employer?.logo_url ? '' : ' no-logo'}`}>
         <h3 className="role-card-title" style={{ fontSize: 19 }} aria-label={role.title}>
           <TruncatedTitle text={role.title} />
@@ -281,10 +269,35 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
           {expanded ? 'Show less' : 'Show more'}
         </button>
       )}
-      {employer?.intro_video_url && (
-        <div style={{ marginTop: 14, maxWidth: 320 }} onClick={(e) => e.stopPropagation()}>
-          <VideoPlayCard url={employer.intro_video_url} format="horizontal" style={{ margin: 0 }} />
+    </>
+  )
+
+  return (
+    <div className="card role-card" style={{ padding: 24, cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
+      <div className="role-card-actions">
+        <SaveRoleButton saved={saved} onToggle={onToggleSave} />
+        <button
+          type="button"
+          className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
+          disabled={applied || applying}
+          onClick={(e) => {
+            e.stopPropagation()
+            onApply()
+          }}
+          style={{ whiteSpace: 'nowrap' }}
+        >
+          {applied ? 'Applied' : applying ? 'Applying…' : 'Apply'}
+        </button>
+      </div>
+      {employer?.intro_video_url ? (
+        <div className="role-card-split">
+          <div className="role-card-split-text">{textContent}</div>
+          <div className="role-card-split-video" onClick={(e) => e.stopPropagation()}>
+            <VideoPlayCard url={employer.intro_video_url} format="horizontal" style={{ margin: 0, maxWidth: 'none' }} />
+          </div>
         </div>
+      ) : (
+        textContent
       )}
       {needsVideo && (
         <div
