@@ -31,12 +31,14 @@ const SAVED_ROLES_SELECT = `id, role_id, role_title, company_name, created_at, r
 // (with "what matters most" flowing on from it as one paragraph) is
 // capped, at 3 lines via -webkit-line-clamp; Show more removes the cap.
 //
-// Whether Show more appears is decided by measuring the clamped
-// paragraph itself (scrollHeight > clientHeight). That measurement is
-// skipped while expanded — with the clamp gone the two heights are equal
-// and the result would read "not overflowing", yanking Show less away the
-// instant the user clicked Show more. The last collapsed result simply
-// stands until the card is collapsed again, which re-measures.
+// Whether Show more/less appears is decided by measuring the paragraph
+// itself against the 3-line clamp (scrollHeight > clientHeight). While the
+// card is expanded the clamp is off, so the measurement briefly applies it
+// (synchronously, before paint) and removes it again. That keeps the answer
+// correct however the card got there — including a card that mounts already
+// expanded after a grid/list switch, where nothing was ever measured while
+// collapsed. The expanded state itself lives in BrowseRoles, keyed by role
+// id, so it survives the switch.
 const DESCRIPTION_LINES = 3
 
 function pickTitle(text, width, meter) {
@@ -135,10 +137,22 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
 
   useLayoutEffect(() => {
     const el = textRef.current
-    if (!el || expanded) return
+    if (!el) return
     function measure() {
-      if (expandedRef.current) return
+      const clampWhileMeasuring = expandedRef.current
+      if (clampWhileMeasuring) {
+        el.style.display = '-webkit-box'
+        el.style.webkitBoxOrient = 'vertical'
+        el.style.webkitLineClamp = String(DESCRIPTION_LINES)
+        el.style.overflow = 'hidden'
+      }
       setOverflowing(el.scrollHeight > el.clientHeight + 1)
+      if (clampWhileMeasuring) {
+        el.style.display = ''
+        el.style.webkitBoxOrient = ''
+        el.style.webkitLineClamp = ''
+        el.style.overflow = ''
+      }
     }
     measure()
     window.addEventListener('resize', measure)
