@@ -130,6 +130,7 @@ export default function TalentFeed() {
 
   const [swipeMode, setSwipeMode] = useState(false)
   const [swipeIndex, setSwipeIndex] = useState(0)
+  const [swipeSkippedIds, setSwipeSkippedIds] = useState(() => new Set())
   const [skippedIds, setSkippedIds] = useState(() => new Set())
   const touchStartXRef = useRef(null)
 
@@ -349,9 +350,14 @@ export default function TalentFeed() {
   const swipeQueue = useMemo(() => filtered.filter((c) => !skippedIds.has(c.id)), [filtered, skippedIds])
   const swipeCandidate = swipeQueue[swipeIndex]
   const swipeDone = swipeQueue.length > 0 && swipeIndex >= swipeQueue.length
+  // Skipped candidates drop out of swipeQueue, so they're added back here to
+  // keep "reviewed / total" counting everyone seen in this session.
+  const swipeReviewed = Math.min(swipeIndex, swipeQueue.length) + swipeSkippedIds.size
+  const swipeTotal = swipeQueue.length + swipeSkippedIds.size
 
   function openSwipeMode() {
     setSwipeIndex(0)
+    setSwipeSkippedIds(new Set())
     setSwipeMode(true)
   }
 
@@ -372,7 +378,9 @@ export default function TalentFeed() {
       persistSkipped(employerId, next)
       return next
     })
-    setSwipeIndex((i) => i + 1)
+    // No setSwipeIndex here: skipping removes the candidate from swipeQueue,
+    // so the next one slides into the current index on its own.
+    setSwipeSkippedIds((prev) => new Set(prev).add(swipeCandidate.id))
   }
 
   useEffect(() => {
@@ -423,11 +431,11 @@ export default function TalentFeed() {
           <div className="swipe-progress-track">
             <div
               className="swipe-progress-fill"
-              style={{ width: `${swipeQueue.length > 0 ? Math.min(100, (swipeIndex / swipeQueue.length) * 100) : 0}%` }}
+              style={{ width: `${swipeTotal > 0 ? Math.min(100, (swipeReviewed / swipeTotal) * 100) : 0}%` }}
             />
           </div>
           <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
-            {Math.min(swipeIndex, swipeQueue.length)} / {swipeQueue.length}
+            {swipeReviewed} / {swipeTotal}
           </p>
         </div>
 
