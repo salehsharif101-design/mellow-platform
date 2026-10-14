@@ -54,15 +54,6 @@ function pickTitle(text, width, meter) {
   return text
 }
 
-// Company names are stored as typed, so some are all lowercase ("mellow").
-// A name that is entirely lowercase is capitalised word by word for display;
-// anything with its own capitals ("4SPOTS EVOLVE", "eBay") is left exactly
-// as the employer wrote it.
-function displayCompanyName(name) {
-  if (!name || name !== name.toLowerCase()) return name || ''
-  return name.replace(/(^|\s)(\S)/g, (_, space, ch) => space + ch.toUpperCase())
-}
-
 // One-line title that, when it doesn't fit, drops whole trailing words and
 // adds an ellipsis instead of cutting a word in half. A hidden span with the
 // same inherited font measures each candidate. A single unbroken word wider
@@ -108,7 +99,7 @@ function TruncatedTitle({ text }) {
   )
 }
 
-function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needsVideo, onShowVideo, expanded, onToggleExpanded }) {
+function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needsVideo, expanded, onToggleExpanded }) {
   const navigate = useNavigate()
   const textRef = useRef(null)
   const expandedRef = useRef(expanded)
@@ -154,8 +145,8 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
     .join(' ')
 
   // Header (title, company, metadata, tags, skills), then the 3-line
-  // description with Show more. The team video, when there is one, is a
-  // media row at the bottom of the card (see below).
+  // description with Show more. With a team video these form the left column
+  // of a split row beside the video; without one they fill the card.
   const textContent = (
     <>
       <div className={`role-card-header${employer?.logo_url ? '' : ' no-logo'}`}>
@@ -281,80 +272,44 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
     </>
   )
 
+  // Save / Apply. Top-right of the card; with a team video they sit at the
+  // bottom of the right column, under the video (.role-card-split in
+  // components.css). One element either way, so the buttons are identical.
+  const actions = (
+    <div className="role-card-actions">
+      <SaveRoleButton saved={saved} onToggle={onToggleSave} />
+      <button
+        type="button"
+        className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
+        disabled={applied || applying}
+        onClick={(e) => {
+          e.stopPropagation()
+          onApply()
+        }}
+        style={{ whiteSpace: 'nowrap' }}
+      >
+        {applied ? 'Applied' : applying ? 'Applying…' : 'Apply'}
+      </button>
+    </div>
+  )
+
   return (
     <div className="card role-card" style={{ padding: 24, cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
-      <div className="role-card-actions">
-        <SaveRoleButton saved={saved} onToggle={onToggleSave} />
-        <button
-          type="button"
-          className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
-          disabled={applied || applying}
-          onClick={(e) => {
-            e.stopPropagation()
-            onApply()
-          }}
-          style={{ whiteSpace: 'nowrap' }}
-        >
-          {applied ? 'Applied' : applying ? 'Applying…' : 'Apply'}
-        </button>
-      </div>
-      {textContent}
-      {employer?.intro_video_url && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            onShowVideo(employer)
-          }}
-          aria-label={`Watch ${displayCompanyName(employer.company_name)} team`}
-          style={{
-            marginTop: 14,
-            width: '100%',
-            maxWidth: 360,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: 8,
-            textAlign: 'left',
-            cursor: 'pointer',
-            font: 'inherit',
-            color: 'var(--color-text)',
-            background: 'var(--color-bg-soft)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 10,
-          }}
-        >
-          <video
-            src={`${employer.intro_video_url}#t=0.1`}
-            preload="metadata"
-            muted
-            playsInline
-            aria-hidden="true"
-            tabIndex={-1}
-            style={{ width: 64, height: 36, objectFit: 'cover', borderRadius: 6, background: '#000', flexShrink: 0, pointerEvents: 'none' }}
-          />
-          <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            Watch {displayCompanyName(employer.company_name)} team
-          </span>
-          <span
-            aria-hidden="true"
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: '50%',
-              background: 'var(--color-primary)',
-              color: '#fff',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </span>
-        </button>
+      {employer?.intro_video_url ? (
+        <div className="role-card-split">
+          <div className="role-card-split-text">{textContent}</div>
+          <div className="role-card-split-side">
+            <div onClick={(e) => e.stopPropagation()}>
+              <VideoPlayCard url={employer.intro_video_url} format="horizontal" style={{ margin: 0, maxWidth: 'none' }} />
+            </div>
+            {actions}
+          </div>
+        </div>
+      ) : (
+        <>
+          {actions}
+          {textContent}
+        </>
       )}
       {needsVideo && (
         <div
@@ -651,7 +606,6 @@ export default function BrowseRoles() {
         onToggleSave={() => toggleSave(role)}
         onApply={() => apply(role.id)}
         needsVideo={needsVideoRoleId === role.id}
-        onShowVideo={setVideoModalEmployer}
         expanded={expandedIds.has(role.id)}
         onToggleExpanded={() => toggleExpanded(role.id)}
       />
