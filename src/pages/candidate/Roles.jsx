@@ -120,11 +120,19 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
     }
   }, [role.description, role.what_matters, expanded])
 
-  const bodyText = [role.description, role.what_matters].filter(Boolean).join(' ')
-  // Employers often type "What matters most:" into the description itself as
-  // one continuous block; start that part on its own paragraph in the card.
-  // Pure whitespace (two <br>s), so existing line-clamping still applies.
-  const bodyParts = bodyText.split(/\s+(?=What matters most:)/i)
+  // Description and "what matters most" are separate columns; they always
+  // render as two paragraphs with exactly one blank line between them. A
+  // literal "What matters most:" typed into the description itself also
+  // starts its own paragraph. Every break is two <br>s between parts (never
+  // the employer's raw newlines, which collapse), so a gap can't double up.
+  // Pure whitespace, so the 3-line clamp still applies.
+  const bodyParts = [
+    ...(role.description ? role.description.split(/\s+(?=What matters most:)/i) : []),
+    ...(role.what_matters ? [role.what_matters] : []),
+  ]
+    .map((part) => part.trim())
+    .filter(Boolean)
+  const bodyText = bodyParts.join(' ')
 
   return (
     <div className="card role-card" style={{ padding: 24, cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
