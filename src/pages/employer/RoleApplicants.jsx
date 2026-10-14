@@ -664,7 +664,7 @@ export default function RoleApplicants() {
                         )}
                       </div>
 
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', minWidth: 0, maxWidth: '100%' }}>
                         <button
                           type="button"
                           className="btn btn-ghost"
@@ -708,7 +708,7 @@ export default function RoleApplicants() {
                               }
                             }}
                             onBlur={() => submitNewStage(a.id)}
-                            style={{ width: 160, padding: '8px 12px' }}
+                            style={{ width: 160, maxWidth: '100%', padding: '8px 12px' }}
                           />
                         ) : (
                           <select
@@ -723,7 +723,7 @@ export default function RoleApplicants() {
                               }
                               handleStatusSelect(a.id, e.target.value)
                             }}
-                            style={{ width: 'auto', padding: '8px 12px' }}
+                            style={{ width: 'auto', maxWidth: '100%', padding: '8px 12px' }}
                           >
                             <option value="applied">{STATUS_LABELS.applied}</option>
                             {[...pipelineStages]
