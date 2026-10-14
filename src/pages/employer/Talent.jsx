@@ -67,6 +67,35 @@ function XIcon() {
   )
 }
 
+// Card skill tags, capped at `max` with a muted "+N" pill for the rest. The
+// pill reuses the real .tag class and the caller's exact size overrides, so
+// height, radius and font size match the skill tags by construction; only
+// the colours differ, to read as "not a skill". The full list always lives
+// on the candidate's profile page.
+function SkillTags({ skills, max, gap, tagStyle }) {
+  const visible = skills.slice(0, max)
+  const hidden = skills.slice(max)
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap }}>
+      {visible.map((s) => (
+        <span key={s} className="tag" style={tagStyle}>
+          {s}
+        </span>
+      ))}
+      {hidden.length > 0 && (
+        <span
+          className="tag"
+          title={hidden.join(', ')}
+          aria-label={`${hidden.length} more skill${hidden.length === 1 ? '' : 's'}: ${hidden.join(', ')}`}
+          style={{ ...tagStyle, background: '#eef0f3', color: 'var(--color-text-muted)' }}
+        >
+          +{hidden.length}
+        </span>
+      )}
+    </div>
+  )
+}
+
 export default function TalentFeed() {
   const { user } = useAuth()
 
@@ -636,7 +665,6 @@ export default function TalentFeed() {
         <div className="compact-grid" style={{ marginTop: 24 }}>
           {filtered.map((c) => {
             const profileUrl = `/profile/${c.username || c.id}`
-            const topSkills = (c.skills || []).slice(0, 2)
             const score = matchScoreFor(c)
             const isShortlisted = shortlistedIds.has(c.id)
             return (
@@ -714,14 +742,8 @@ export default function TalentFeed() {
                     </p>
                   )}
 
-                  {topSkills.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                      {topSkills.map((s) => (
-                        <span key={s} className="tag" style={{ fontSize: 11, padding: '2px 8px' }}>
-                          {s}
-                        </span>
-                      ))}
-                    </div>
+                  {(c.skills || []).length > 0 && (
+                    <SkillTags skills={c.skills} max={2} gap={4} tagStyle={{ fontSize: 11, padding: '2px 8px' }} />
                   )}
 
                   {c.availability && (
@@ -819,15 +841,7 @@ export default function TalentFeed() {
                   </div>
                 </div>
 
-                {c.skills.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {c.skills.map((s) => (
-                      <span key={s} className="tag" style={{ fontSize: 12 }}>
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                {c.skills.length > 0 && <SkillTags skills={c.skills} max={5} gap={6} tagStyle={{ fontSize: 12 }} />}
 
                 <div className="talent-list-card-actions" style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                   <button
