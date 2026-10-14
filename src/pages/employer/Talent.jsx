@@ -12,6 +12,7 @@ import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import ListPageSkeleton from '../../components/ListPageSkeleton.jsx'
 import QuickMessageModal from '../../components/QuickMessageModal.jsx'
 import ViewToggle from '../../components/ViewToggle.jsx'
+import FilterPopover from '../../components/FilterPopover.jsx'
 
 const AVAILABILITY_OPTIONS = ['Immediately', 'Within a month', '1 to 3 months', 'Just exploring']
 const WORK_STYLE_OPTIONS = ['Remote', 'Hybrid', 'On-site']
@@ -64,6 +65,24 @@ function XIcon() {
       <line x1="18" y1="6" x2="6" y2="18" />
       <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
+  )
+}
+
+// Cards show at most first + last name (e.g. "Amer Zamir Khan Raja Khan" ->
+// "Amer Khan"), cleanly, with no ellipsis. The profile page keeps the full
+// name, and search still matches against it.
+function cardName(fullName) {
+  const words = String(fullName || '').trim().split(/\s+/).filter(Boolean)
+  if (words.length <= 2) return words.join(' ')
+  return `${words[0]} ${words[words.length - 1]}`
+}
+
+function CheckOption({ label, checked, onChange }) {
+  return (
+    <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 4px', fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+      <input type="checkbox" checked={checked} onChange={onChange} />
+      {label}
+    </label>
   )
 }
 
@@ -163,6 +182,11 @@ export default function TalentFeed() {
             )
             .eq('is_live', true)
             .eq('is_open_to_opportunities', true)
+            // Candidates without an intro video aren't shown in the feed at
+            // all — filtered here rather than client-side so they're never
+            // fetched. They appear on the next load once they upload one.
+            .not('intro_video_url', 'is', null)
+            .neq('intro_video_url', '')
             // Belt-and-suspenders alongside is_live: a hired candidate is
             // set availability: 'Not available' (api/meeting-outcome.js)
             // and shouldn't resurface here even in the window before that
@@ -527,23 +551,27 @@ export default function TalentFeed() {
         </p>
       )}
 
-      <input
-        className="input"
-        style={{ marginTop: 20 }}
-        placeholder="Search by name, current role, skills, or location…"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-      />
+      {/* One compact row: search, filters, match-against, quick screen and
+          the view toggle. It wraps onto extra lines only on narrow screens. */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginTop: 20 }}>
+        <input
+          className="input"
+          style={{ flex: '1 1 200px', width: 'auto', minWidth: 0 }}
+          placeholder="Search by name, current role, skills, or location…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
         {allSkills.length > 0 && (
-          <div>
+          <FilterPopover label="Filters" activeCount={activeSkills.size} panelWidth={480}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: 10 }}>Skills</p>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {visibleSkills.map((skill) => (
                 <button
                   key={skill}
                   type="button"
                   onClick={() => toggleSkill(skill)}
+                  aria-pressed={activeSkills.has(skill)}
                   className="tag"
                   style={{
                     border: 'none',
@@ -556,72 +584,80 @@ export default function TalentFeed() {
                 </button>
               ))}
             </div>
-            {allSkills.length > SKILLS_SHOWN_COLLAPSED && (
-              <button
-                type="button"
-                onClick={() => setShowAllSkills((prev) => !prev)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--color-primary)',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  padding: 0,
-                  marginTop: 8,
-                  cursor: 'pointer',
-                }}
-              >
-                {showAllSkills ? 'Show less' : `Show more (${allSkills.length - SKILLS_SHOWN_COLLAPSED})`}
-              </button>
-            )}
+            <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
+              {allSkills.length > SKILLS_SHOWN_COLLAPSED && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllSkills((prev) => !prev)}
+                  style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: 13, fontWeight: 600, padding: 0, cursor: 'pointer' }}
+                >
+                  {showAllSkills ? 'Show less' : `Show more (${allSkills.length - SKILLS_SHOWN_COLLAPSED})`}
+                </button>
+              )}
+              {activeSkills.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setActiveSkills(new Set())}
+                  style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', fontSize: 13, fontWeight: 600, padding: 0, cursor: 'pointer' }}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </FilterPopover>
+        )}
+
+        <FilterPopover label="Availability" activeCount={activeAvailability.size}>
+          {AVAILABILITY_OPTIONS.map((option) => (
+            <CheckOption key={option} label={option} checked={activeAvailability.has(option)} onChange={() => toggleAvailability(option)} />
+          ))}
+        </FilterPopover>
+
+        <FilterPopover label="Work style" activeCount={activeWorkStyle.size}>
+          {WORK_STYLE_OPTIONS.map((option) => (
+            <CheckOption key={option} label={option} checked={activeWorkStyle.has(option)} onChange={() => toggleWorkStyle(option)} />
+          ))}
+        </FilterPopover>
+
+        {scorableRoles.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <label
+              htmlFor="match-role"
+              title="Match candidates against one of your open roles"
+              style={{ fontSize: 13, color: 'var(--color-text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}
+            >
+              Match:
+            </label>
+            <select
+              id="match-role"
+              aria-label="Match against"
+              className="input"
+              style={{ width: 'auto', padding: '7px 12px', fontSize: 13 }}
+              value={selectedRoleId}
+              onChange={(e) => setSelectedRoleId(e.target.value)}
+            >
+              {scorableRoles.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.title}
+                </option>
+              ))}
+            </select>
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: 13, color: 'var(--color-text-muted)', fontWeight: 600 }}>Availability:</span>
-          {AVAILABILITY_OPTIONS.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => toggleAvailability(option)}
-              className="tag"
-              style={{
-                border: 'none',
-                cursor: 'pointer',
-                background: activeAvailability.has(option) ? 'var(--color-primary)' : 'var(--color-bg-soft)',
-                color: activeAvailability.has(option) ? '#fff' : 'var(--color-primary)',
-              }}
-            >
-              {option}
-            </button>
-          ))}
-        </div>
+        <button type="button" className="btn btn-primary" onClick={openSwipeMode} disabled={filtered.length === 0} style={{ fontSize: 13, padding: '9px 16px', whiteSpace: 'nowrap' }}>
+          Quick screen
+        </button>
 
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: 13, color: 'var(--color-text-muted)', fontWeight: 600 }}>Work style:</span>
-          {WORK_STYLE_OPTIONS.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => toggleWorkStyle(option)}
-              className="tag"
-              style={{
-                border: 'none',
-                cursor: 'pointer',
-                background: activeWorkStyle.has(option) ? 'var(--color-primary)' : 'var(--color-bg-soft)',
-                color: activeWorkStyle.has(option) ? '#fff' : 'var(--color-primary)',
-              }}
-            >
-              {option}
-            </button>
-          ))}
+        <div style={{ marginLeft: 'auto' }}>
+          <ViewToggle mode={viewMode} onChange={setViewMode} />
         </div>
       </div>
 
       {myRoles.length > 0 && scorableRoles.length === 0 && (
         <p
           style={{
-            marginTop: 20,
+            marginTop: 14,
             fontSize: 13,
             color: 'var(--color-text-muted)',
             background: 'var(--color-bg-soft)',
@@ -636,35 +672,6 @@ export default function TalentFeed() {
         </p>
       )}
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between', marginTop: 24 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
-          {scorableRoles.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <label htmlFor="match-role" style={{ fontSize: 13, color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                Match against:
-              </label>
-              <select
-                id="match-role"
-                className="input"
-                style={{ width: 'auto', padding: '7px 12px', fontSize: 13 }}
-                value={selectedRoleId}
-                onChange={(e) => setSelectedRoleId(e.target.value)}
-              >
-                {scorableRoles.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          <button type="button" className="btn btn-primary" onClick={openSwipeMode} disabled={filtered.length === 0} style={{ fontSize: 13, padding: '9px 16px' }}>
-            Quick screen
-          </button>
-        </div>
-
-        <ViewToggle mode={viewMode} onChange={setViewMode} />
-      </div>
 
       {candidates.length === 0 ? (
         <EmptyState
@@ -708,8 +715,6 @@ export default function TalentFeed() {
                   </button>
                 </div>
 
-                {score !== null && <span className="match-score-badge">{score}% match</span>}
-
                 <div className="compact-card-media">
                   {c.intro_video_url ? (
                     <VideoPlayCard
@@ -726,10 +731,11 @@ export default function TalentFeed() {
                 </div>
 
                 <div className="compact-card-body">
+                  {score !== null && <span className="match-score-badge">{score}% match</span>}
                   <Link to={profileUrl} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
                     <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={30} style={{ fontSize: 13 }} />
                     <h3 style={{ fontSize: 14, lineHeight: 1.3, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {c.full_name}
+                      {cardName(c.full_name)}
                     </h3>
                   </Link>
                   <p
@@ -789,11 +795,6 @@ export default function TalentFeed() {
             const score = matchScoreFor(c)
             return (
               <div key={c.id} className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, position: 'relative' }}>
-                {score !== null && (
-                  <span className="tag" style={{ position: 'absolute', top: 14, right: 14, zIndex: 1, background: 'var(--color-primary)', color: '#fff', fontWeight: 700 }}>
-                    {score}% match
-                  </span>
-                )}
                 <div style={{ position: 'relative' }}>
                   <Link
                     to={`/profile/${c.username || c.id}`}
@@ -826,7 +827,7 @@ export default function TalentFeed() {
 
                 <div>
                   <Link to={`/profile/${c.username || c.id}`} style={{ textDecoration: 'none' }}>
-                    <h3 style={{ fontSize: 17 }}>{c.full_name}</h3>
+                    <h3 style={{ fontSize: 17 }}>{cardName(c.full_name)}</h3>
                   </Link>
                   <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 2 }}>
                     {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title} · {c.location}
@@ -837,6 +838,11 @@ export default function TalentFeed() {
                     </p>
                   )}
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                    {score !== null && (
+                      <span className="tag" style={{ fontSize: 12, background: 'var(--color-primary)', color: '#fff', fontWeight: 700 }}>
+                        {score}% match
+                      </span>
+                    )}
                     {c.availability && (
                       <span className="tag" style={{ display: 'inline-flex', fontSize: 12, background: 'var(--color-bg-soft)' }}>
                         {c.availability}

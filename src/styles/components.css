@@ -1117,18 +1117,15 @@ textarea.input:focus {
   color: #fff;
 }
 
+/* Sits in the card body below the video (not over it). */
 .match-score-badge {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 2;
+  align-self: flex-start;
   background: var(--color-primary);
   color: #fff;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 4px 10px;
+  padding: 2px 8px;
   border-radius: 999px;
-  box-shadow: 0 1px 4px rgba(10, 10, 10, 0.2);
 }
 
 /* Swipe screening mode */
