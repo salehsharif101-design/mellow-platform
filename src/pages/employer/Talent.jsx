@@ -450,10 +450,10 @@ export default function TalentFeed() {
             <div style={{ textAlign: 'center', maxWidth: 320 }}>
               {/* maxHeight keeps the stage (overflow: hidden) from clipping the
                   button on short screens, e.g. a phone in landscape. It's inert
-                  above ~490px of viewport height, where the image is its full
+                  above ~505px of viewport height, where the image is its full
                   220px width like every other empty state. */}
               <img
-                src="/Collaborate2.png"
+                src="/Easy_stuff.png"
                 alt=""
                 style={{ width: '100%', maxWidth: 220, maxHeight: 'calc(100vh - 290px)', objectFit: 'contain', margin: '0 auto 24px', display: 'block' }}
               />
