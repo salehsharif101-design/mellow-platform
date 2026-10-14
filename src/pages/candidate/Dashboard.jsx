@@ -37,13 +37,13 @@ const PROFILE_STRENGTH_CHECKS = [
   { key: 'website', label: 'Portfolio or website added', anchor: '#links-section', tip: 'Add your portfolio or website so employers can see more of your work.' },
   // hideWhenComplete: unlike every other check above (which keeps showing a
   // checked-off row once done), there's nothing more to nudge once a
-  // candidate has a Calendly link — the row disappears entirely rather
+  // candidate has a meeting link — the row disappears entirely rather
   // than sitting there permanently checked.
   {
     key: 'calendly',
-    label: 'Calendly link added',
+    label: 'Meeting link added',
     anchor: '#links-section',
-    tip: 'Add your Calendly link so employers can book time with you directly.',
+    tip: 'Add your booking link so employers can schedule a meeting with you.',
     hideWhenComplete: true,
   },
 ]
@@ -489,7 +489,7 @@ export default function CandidateDashboard() {
       if (shortlistRows.length > 0 && !candidate.calendly_url) {
         standingNudges.push({
           id: 'calendly-nudge',
-          text: 'You have been shortlisted. Add your Calendly link so the employer can book a meeting with you.',
+          text: 'You have been shortlisted. Add your meeting link so the employer can book a meeting with you.',
           link: '/profile/edit#calendly-field',
         })
       }

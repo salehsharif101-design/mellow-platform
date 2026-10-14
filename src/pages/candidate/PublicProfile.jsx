@@ -6,6 +6,7 @@ import { useSeoMeta } from '../../lib/useSeoMeta.js'
 import { resolveEmployerId, getEmployerMessageUserIds } from '../../lib/employerAccess.js'
 import Modal from '../../components/Modal.jsx'
 import CalendlyModal from '../../components/CalendlyModal.jsx'
+import { canEmbedMeetingLink, isSafeMeetingLink, openMeetingLinkInNewTab } from '../../lib/meetingLink.js'
 import MessageThread from '../../components/MessageThread.jsx'
 import AddWorkVideoModal from '../../components/AddWorkVideoModal.jsx'
 import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
@@ -106,7 +107,12 @@ export default function PublicProfile() {
   // tabs) — its 23505 is swallowed below like any other fire-and-forget
   // failure here.
   async function handleBookMeeting() {
-    setShowCalendly(true)
+    // Calendly links open in the in-page modal; Zoom, Google Meet and
+    // other tools can't be framed, so they open in a new tab. Done
+    // synchronously, before any await below, so the browser still treats
+    // window.open as part of the click and doesn't block it.
+    if (canEmbedMeetingLink(profile.calendly_url)) setShowCalendly(true)
+    else openMeetingLinkInNewTab(profile.calendly_url)
     if (!user || userType !== 'employer' || isOwner || bookingInFlight) return
     setBookingInFlight(true)
     try {
@@ -199,7 +205,7 @@ export default function PublicProfile() {
   }
 
   const isEmployerViewer = userType === 'employer' && !isOwner
-  const canBookMeeting = user && !isOwner && profile.calendly_url
+  const canBookMeeting = user && !isOwner && isSafeMeetingLink(profile.calendly_url)
   const showSignupCta = !user
   const hasActions = isOwner || showSignupCta
 
@@ -249,7 +255,9 @@ export default function PublicProfile() {
         />
       </div>
 
-      {showCalendly && <CalendlyModal calendlyUrl={profile.calendly_url} onClose={() => setShowCalendly(false)} />}
+      {showCalendly && canEmbedMeetingLink(profile.calendly_url) && (
+        <CalendlyModal calendlyUrl={profile.calendly_url} onClose={() => setShowCalendly(false)} />
+      )}
 
       {showContact && (
         <Modal title={`Message ${profile.full_name}`} onClose={() => setShowContact(false)}>

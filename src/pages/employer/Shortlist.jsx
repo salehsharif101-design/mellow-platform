@@ -9,6 +9,7 @@ import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import CandidateProfileContent from '../../components/CandidateProfileContent.jsx'
 import QuickMessageModal from '../../components/QuickMessageModal.jsx'
 import CalendlyModal from '../../components/CalendlyModal.jsx'
+import { canEmbedMeetingLink, isSafeMeetingLink, openMeetingLinkInNewTab } from '../../lib/meetingLink.js'
 import { syncApplicationStatus } from '../../lib/shortlistSync.js'
 import PageLoading from '../../components/PageLoading.jsx'
 
@@ -324,9 +325,17 @@ export default function Shortlist() {
                 <button type="button" className="btn btn-primary" onClick={() => setShowMessage(true)}>
                   Message
                 </button>
-                {selectedCandidate.calendly_url && (
-                  <button type="button" className="btn btn-ghost" onClick={() => setShowCalendly(true)}>
-                    Book a meeting
+                {isSafeMeetingLink(selectedCandidate.calendly_url) && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() =>
+                      canEmbedMeetingLink(selectedCandidate.calendly_url)
+                        ? setShowCalendly(true)
+                        : openMeetingLinkInNewTab(selectedCandidate.calendly_url)
+                    }
+                  >
+                    Book a Meeting
                   </button>
                 )}
                 <button
@@ -352,7 +361,7 @@ export default function Shortlist() {
         />
       )}
 
-      {showCalendly && selectedCandidate?.calendly_url && (
+      {showCalendly && canEmbedMeetingLink(selectedCandidate?.calendly_url) && (
         <CalendlyModal calendlyUrl={selectedCandidate.calendly_url} onClose={() => setShowCalendly(false)} />
       )}
     </div>

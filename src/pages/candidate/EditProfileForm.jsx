@@ -7,6 +7,7 @@ import VideoRecorderModal from '../../components/VideoRecorderModal.jsx'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
 import SkillsTagInput from '../../components/SkillsTagInput.jsx'
 import { deleteAccount } from '../../lib/deleteAccount.js'
+import { isValidMeetingLink, MEETING_LINK_ERROR } from '../../lib/meetingLink.js'
 
 const PROFICIENCIES = ['basic', 'conversational', 'fluent', 'native']
 const EDUCATION_LEVELS = ['High School', 'Diploma', "Bachelor's", "Master's", 'PhD', 'Self-taught', 'Other']
@@ -70,13 +71,13 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
     if (trimmedLinkedin && !/^https?:\/\//i.test(trimmedLinkedin)) {
       return { field: 'linkedinUrl', message: 'LinkedIn URL must start with https:// or http://' }
     }
+    // Any https:// meeting or scheduling link is fine (Calendly, Zoom,
+    // Google Meet, ...). Only Calendly links are ever framed in the Book a
+    // Meeting modal; everything else opens in a new tab (see
+    // src/lib/meetingLink.js), so accepting other hosts is safe.
     const trimmedCalendly = calendlyUrl.trim()
-    // A bare http(s):// check let a candidate save any URL at all here —
-    // CalendlyModal iframes it verbatim with no further check of its own,
-    // so "Book a meeting" would frame whatever site was saved, not just an
-    // actual Calendly page.
-    if (trimmedCalendly && !/^https?:\/\/([a-z0-9-]+\.)?calendly\.com\//i.test(trimmedCalendly)) {
-      return { field: 'calendlyUrl', message: 'Please enter a valid Calendly link (e.g. https://calendly.com/yourname)' }
+    if (trimmedCalendly && !isValidMeetingLink(trimmedCalendly)) {
+      return { field: 'calendlyUrl', message: MEETING_LINK_ERROR }
     }
     const trimmedWebsite = websiteUrl.trim()
     if (trimmedWebsite && !/^https?:\/\//i.test(trimmedWebsite)) {
@@ -820,18 +821,19 @@ function LinkedInSection({
           />
         </div>
         <div className="field" id="calendly-field">
-          <label>Calendly link (optional)</label>
+          <label>Meeting Link (optional)</label>
           <input
             ref={fieldRefs.calendlyUrl}
             className="input"
             type="text"
             value={calendlyUrl}
             onChange={(e) => setCalendlyUrl(e.target.value)}
-            placeholder="https://calendly.com/yourname"
+            placeholder="https://calendly.com/your-link or https://zoom.us/your-link"
             style={fieldStyle(errorField === 'calendlyUrl')}
           />
           <p style={{ marginTop: 6, marginBottom: 0, fontSize: 13, color: 'var(--color-text-muted)' }}>
-            Add your Calendly link so employers can book meetings directly from your profile.
+            Add your booking link so employers can schedule a meeting with you. Works with Calendly, Zoom, Google Meet,
+            or any scheduling tool.
           </p>
         </div>
         <div className="field">

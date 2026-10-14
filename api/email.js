@@ -319,13 +319,13 @@ async function sendShortlistNotification(supabase, shortlistId) {
   )
   const candidateUser = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
 
-  // Nudges the candidate to add a Calendly link, but only if they don't
+  // Nudges the candidate to add a meeting link, but only if they don't
   // already have one — an employer who just shortlisted them may want to
   // book time directly, and this is the moment that's most likely to land.
   const calendlyNudge = candidate.calendly_url
     ? ''
-    : '<br><br>Make it easy for employers to reach you. Add your Calendly link to your profile so they can book a meeting with you directly.<br><br>' +
-      `<a href="${SITE_URL}/profile/edit#links-section" style="color:#005ef5;font-weight:700;text-decoration:none;">Add your Calendly link</a>`
+    : '<br><br>Make it easy for employers to reach you. Add your meeting link to your profile so they can book a meeting with you directly. Calendly, Zoom, Google Meet, or any scheduling tool works.<br><br>' +
+      `<a href="${SITE_URL}/profile/edit#links-section" style="color:#005ef5;font-weight:700;text-decoration:none;">Add your meeting link</a>`
 
   return sendEmail({
     to: candidateUser.email,
@@ -436,12 +436,12 @@ async function sendCustomStageNotification(supabase, applicationId) {
   const { email } = await getCandidateContact(supabase, application.candidate_id)
   const companyName = role.employer_profiles?.company_name || 'the company'
 
-  // Same Calendly nudge as sendShortlistNotification, and same reason —
+  // Same meeting-link nudge as sendShortlistNotification, and same reason —
   // only shown when the candidate doesn't already have one set.
   const calendlyNudge = candidate.calendly_url
     ? ''
-    : '<br><br>Make it easy for employers to reach you. Add your Calendly link to your profile so they can book a meeting with you directly.<br><br>' +
-      `<a href="${SITE_URL}/profile/edit#links-section" style="color:#005ef5;font-weight:700;text-decoration:none;">Add your Calendly link</a>`
+    : '<br><br>Make it easy for employers to reach you. Add your meeting link to your profile so they can book a meeting with you directly. Calendly, Zoom, Google Meet, or any scheduling tool works.<br><br>' +
+      `<a href="${SITE_URL}/profile/edit#links-section" style="color:#005ef5;font-weight:700;text-decoration:none;">Add your meeting link</a>`
 
   const emailHtml = renderEmailHtml({
     heading: 'Good news',

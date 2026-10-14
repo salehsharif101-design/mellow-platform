@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../../../lib/supabase.js'
 import { useDraftAutosave } from '../../../../lib/useDraftAutosave.js'
+import { isValidMeetingLink, MEETING_LINK_ERROR } from '../../../../lib/meetingLink.js'
 
 export default function Step4Links({ initial, onContinue, onBack, saving }) {
   const [linkedinUrl, setLinkedinUrl] = useState(initial.linkedin_url || '')
@@ -30,13 +31,11 @@ export default function Step4Links({ initial, onContinue, onBack, saving }) {
   function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    // Any https:// meeting or scheduling link is accepted — see
+    // src/lib/meetingLink.js for why that's safe for non-Calendly hosts.
     const trimmedCalendly = calendlyUrl.trim()
-    // A bare http(s):// check let anything through here — CalendlyModal
-    // iframes it verbatim with no further check of its own, so "Book a
-    // meeting" would frame whatever site was saved, not just an actual
-    // Calendly page.
-    if (trimmedCalendly && !/^https?:\/\/([a-z0-9-]+\.)?calendly\.com\//i.test(trimmedCalendly)) {
-      setError('Please enter a valid Calendly link (e.g. https://calendly.com/yourname)')
+    if (trimmedCalendly && !isValidMeetingLink(trimmedCalendly)) {
+      setError(MEETING_LINK_ERROR)
       return
     }
     const trimmedWebsite = websiteUrl.trim()
@@ -75,14 +74,19 @@ export default function Step4Links({ initial, onContinue, onBack, saving }) {
       </div>
 
       <div className="field">
-        <label htmlFor="calendly">Calendly link (optional)</label>
+        <h3 style={{ fontSize: 16 }}>Add your meeting link</h3>
+        <p style={{ marginTop: 4, marginBottom: 12, fontSize: 13, color: 'var(--color-text-muted)' }}>
+          Share a link where employers can book time with you — Calendly, Zoom, Google Meet, or any scheduling tool
+          works.
+        </p>
+        <label htmlFor="meeting-link">Meeting Link (optional)</label>
         <input
-          id="calendly"
+          id="meeting-link"
           className="input"
           type="url"
           value={calendlyUrl}
           onChange={(e) => setCalendlyUrl(e.target.value)}
-          placeholder="https://calendly.com/yourname"
+          placeholder="https://calendly.com/your-name"
         />
       </div>
 

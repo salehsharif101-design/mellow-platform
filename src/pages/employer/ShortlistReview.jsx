@@ -9,6 +9,7 @@ import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
 import QuickMessageModal from '../../components/QuickMessageModal.jsx'
 import CalendlyModal from '../../components/CalendlyModal.jsx'
+import { canEmbedMeetingLink, isSafeMeetingLink, openMeetingLinkInNewTab } from '../../lib/meetingLink.js'
 import CompanyLinkIcons from '../../components/CompanyLinkIcons.jsx'
 import MessageIconButton from '../../components/MessageIconButton.jsx'
 import BookMeetingButton from '../../components/BookMeetingButton.jsx'
@@ -164,7 +165,7 @@ export default function ShortlistReview() {
     }
   }, [roleParam, loading, employerId, entries, navigate])
 
-  // A message composed (or a Calendly link opened) for one candidate
+  // A message composed (or a meeting link opened) for one candidate
   // shouldn't carry over to whichever candidate the reviewer has since
   // navigated to — reset both open-modal flags on every index change.
   useEffect(() => {
@@ -339,7 +340,11 @@ export default function ShortlistReview() {
                           })()}
                         <ShareButton url={`${window.location.origin}/profile/${c.username || c.id}`} label="Share profile" size={19} />
                       </div>
-                      {c.calendly_url && <BookMeetingButton onClick={() => setShowCalendly(true)} />}
+                      {isSafeMeetingLink(c.calendly_url) && (
+                        <BookMeetingButton
+                          onClick={() => (canEmbedMeetingLink(c.calendly_url) ? setShowCalendly(true) : openMeetingLinkInNewTab(c.calendly_url))}
+                        />
+                      )}
                     </div>
                     <p style={{ marginTop: 6, fontSize: 16, color: 'var(--color-text-muted)' }}>
                       {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title}
@@ -596,7 +601,9 @@ export default function ShortlistReview() {
         </button>
       </div>
 
-      {showCalendly && c.calendly_url && <CalendlyModal calendlyUrl={c.calendly_url} onClose={() => setShowCalendly(false)} />}
+      {showCalendly && canEmbedMeetingLink(c.calendly_url) && (
+        <CalendlyModal calendlyUrl={c.calendly_url} onClose={() => setShowCalendly(false)} />
+      )}
 
       {showMessage && (
         <QuickMessageModal
