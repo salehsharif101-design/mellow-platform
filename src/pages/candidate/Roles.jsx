@@ -646,7 +646,7 @@ export default function BrowseRoles() {
     const skillTags = role.required_skills || []
     const workStyleLocation = [role.work_style, role.location].filter(Boolean).join(' · ')
     return (
-      <div key={role.id} className="card compact-card role-feed-card" style={{ cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
+      <div key={role.id} className="card compact-card" style={{ cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
         <div className="compact-card-actions" style={{ display: 'flex', gap: 6 }}>
           {employer?.intro_video_url && (
             <button

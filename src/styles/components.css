@@ -117,15 +117,6 @@
   position: relative;
 }
 
-/* Candidate roles feed cards — list (.role-card) and grid (.role-feed-card,
-   an opt-in class because .compact-card is shared with the employer talent
-   feed) share one off-white fill so both views separate from the white
-   page the same way. */
-.role-card,
-.compact-card.role-feed-card {
-  background: var(--color-card-soft);
-}
-
 /* Stacked list cards sit on a white page, so the default 12%-blue hairline
    alone lets them run together while scanning. A slightly firmer border
    plus a faint lift keeps each one reading as its own item. */
