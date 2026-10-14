@@ -119,8 +119,12 @@
 
 /* Stacked list cards sit on a white page, so the default 12%-blue hairline
    alone lets them run together while scanning. A slightly firmer border
-   plus a faint lift keeps each one reading as its own item. */
-.role-list > .role-card {
+   plus a faint lift keeps each one reading as its own item. Grid cards on
+   the candidate feed get the same treatment (via the opt-in
+   .role-feed-card class, since .compact-card is shared with the employer
+   talent feed) so the two views look alike. */
+.role-list > .role-card,
+.compact-card.role-feed-card {
   border-color: rgba(0, 94, 245, 0.2);
   box-shadow: 0 1px 3px rgba(10, 10, 10, 0.07);
 }
