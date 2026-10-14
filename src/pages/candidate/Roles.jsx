@@ -233,7 +233,7 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
         </div>
       </div>
       {employer?.intro_video_url && (
-        <div style={{ marginTop: 14 }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ marginTop: 14, maxWidth: 200 }} onClick={(e) => e.stopPropagation()}>
           <VideoPlayCard url={employer.intro_video_url} format="horizontal" style={{ margin: 0, maxWidth: 'none' }} />
         </div>
       )}
