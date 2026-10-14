@@ -99,7 +99,7 @@ function TruncatedTitle({ text }) {
   )
 }
 
-function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needsVideo, expanded, onToggleExpanded }) {
+function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needsVideo, onShowVideo, expanded, onToggleExpanded }) {
   const navigate = useNavigate()
   const textRef = useRef(null)
   const expandedRef = useRef(expanded)
@@ -144,8 +144,9 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
     .filter(Boolean)
     .join(' ')
 
-  // Header (title, company, metadata, tags, skills), then the team video
-  // when there is one, then the 3-line description with Show more.
+  // Header (title, company, metadata, tags, skills), then the 3-line
+  // description with Show more. The team video, when there is one, is a
+  // media row at the bottom of the card (see below).
   const textContent = (
     <>
       <div className={`role-card-header${employer?.logo_url ? '' : ' no-logo'}`}>
@@ -232,11 +233,6 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
           )}
         </div>
       </div>
-      {employer?.intro_video_url && (
-        <div style={{ marginTop: 14, maxWidth: 200 }} onClick={(e) => e.stopPropagation()}>
-          <VideoPlayCard url={employer.intro_video_url} format="horizontal" style={{ margin: 0, maxWidth: 'none' }} />
-        </div>
-      )}
       {bodyText && (
         <p
           ref={textRef}
@@ -294,6 +290,62 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
         </button>
       </div>
       {textContent}
+      {employer?.intro_video_url && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onShowVideo(employer)
+          }}
+          aria-label={`Watch ${employer.company_name} team`}
+          style={{
+            marginTop: 14,
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: 8,
+            textAlign: 'left',
+            cursor: 'pointer',
+            font: 'inherit',
+            color: 'var(--color-text)',
+            background: 'var(--color-bg-soft)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 10,
+          }}
+        >
+          <video
+            src={`${employer.intro_video_url}#t=0.1`}
+            preload="metadata"
+            muted
+            playsInline
+            aria-hidden="true"
+            tabIndex={-1}
+            style={{ width: 96, height: 54, objectFit: 'cover', borderRadius: 6, background: '#000', flexShrink: 0, pointerEvents: 'none' }}
+          />
+          <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            Watch {employer.company_name} team
+          </span>
+          <span
+            aria-hidden="true"
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              background: 'var(--color-primary)',
+              color: '#fff',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </span>
+        </button>
+      )}
       {needsVideo && (
         <div
           className="card"
@@ -589,6 +641,7 @@ export default function BrowseRoles() {
         onToggleSave={() => toggleSave(role)}
         onApply={() => apply(role.id)}
         needsVideo={needsVideoRoleId === role.id}
+        onShowVideo={setVideoModalEmployer}
         expanded={expandedIds.has(role.id)}
         onToggleExpanded={() => toggleExpanded(role.id)}
       />
