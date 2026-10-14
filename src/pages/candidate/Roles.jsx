@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
@@ -15,6 +15,17 @@ import SkillTags from '../../components/SkillTags.jsx'
 
 const MAX_RECOMMENDATIONS = 5
 const VIEW_MODE_KEY = 'mellow_roles_view_mode'
+
+// Same role + employer columns for the Browse feed and for the roles joined
+// onto saved_roles, so a card renders identically in both tabs. (Browse
+// additionally filters on employer_profiles.is_visible via its !inner join;
+// a saved role keeps showing even if the employer later hides themselves,
+// as it always has.)
+const ROLE_CARD_FIELDS =
+  'id, slug, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, created_at, work_style, is_urgent, required_skills, is_active, status'
+const EMPLOYER_CARD_FIELDS =
+  'company_name, company_slug, industry, company_size, culture_description, company_highlight, logo_url, intro_video_url, typical_roles, is_visible'
+const SAVED_ROLES_SELECT = `id, role_id, role_title, company_name, created_at, roles(${ROLE_CARD_FIELDS}, employer_profiles(${EMPLOYER_CARD_FIELDS}))`
 
 // List cards size to their content — no fixed height. Only the description
 // (with "what matters most" flowing on from it as one paragraph) is
@@ -120,19 +131,18 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
     }
   }, [role.description, role.what_matters, expanded])
 
-  // Description and "what matters most" are separate columns; they always
-  // render as two paragraphs with exactly one blank line between them. A
-  // literal "What matters most:" typed into the description itself also
-  // starts its own paragraph. Every break is two <br>s between parts (never
-  // the employer's raw newlines, which collapse), so a gap can't double up.
-  // Pure whitespace, so the 3-line clamp still applies.
-  const bodyParts = [
-    ...(role.description ? role.description.split(/\s+(?=What matters most:)/i) : []),
-    ...(role.what_matters ? [role.what_matters] : []),
+  // Description and "what matters most" are separate columns; the card
+  // shows them as one continuous paragraph. The description gets a full
+  // stop first if it doesn't already end a sentence, so the two don't run
+  // together as one unpunctuated sentence.
+  const descriptionText = (role.description || '').trim()
+  const mattersText = (role.what_matters || '').trim()
+  const bodyText = [
+    descriptionText && mattersText && !/[.!?]["')\u201d]*$/.test(descriptionText) ? `${descriptionText}.` : descriptionText,
+    mattersText,
   ]
-    .map((part) => part.trim())
     .filter(Boolean)
-  const bodyText = bodyParts.join(' ')
+    .join(' ')
 
   return (
     <div className="card role-card" style={{ padding: 24, cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
@@ -247,17 +257,7 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
               : { display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: DESCRIPTION_LINES, overflow: 'hidden' }),
           }}
         >
-          {bodyParts.map((part, i) => (
-            <Fragment key={i}>
-              {i > 0 && (
-                <>
-                  <br />
-                  <br />
-                </>
-              )}
-              {part}
-            </Fragment>
-          ))}
+          {bodyText}
         </p>
       )}
       {bodyText && overflowing && (
@@ -391,7 +391,7 @@ export default function BrowseRoles() {
           supabase
             .from('saved_roles')
             .select(
-              'id, role_id, role_title, company_name, created_at, roles(id, slug, title, location, role_type, deadline, salary_min, salary_max, salary_currency, is_active, status, employer_profiles(company_name, logo_url, company_slug))',
+              SAVED_ROLES_SELECT,
             )
             .eq('candidate_id', candidate.id)
             .order('created_at', { ascending: false }),
@@ -494,7 +494,7 @@ export default function BrowseRoles() {
         role_title: role.title,
         company_name: role.employer_profiles?.company_name || null,
       })
-      .select('id, role_id, role_title, company_name, created_at, roles(id, slug, title, location, role_type, deadline, salary_min, salary_max, salary_currency, is_active, status, employer_profiles(company_name, logo_url, company_slug))')
+      .select(SAVED_ROLES_SELECT)
       .single()
     if (!insertError) setSavedEntries((prev) => [data, ...prev])
     else setActionError('Could not save that role — please try again.')
@@ -556,6 +556,34 @@ export default function BrowseRoles() {
       <div className="section">
         <p className="form-error">{error}</p>
       </div>
+    )
+  }
+
+  function toggleExpanded(roleId) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(roleId)) next.delete(roleId)
+      else next.add(roleId)
+      return next
+    })
+  }
+
+  // One list-view card for Browse and Saved alike, so the two tabs can't
+  // drift apart.
+  function renderListRoleCard(role) {
+    return (
+      <RoleCard
+        key={role.id}
+        role={role}
+        applied={appliedRoleIds.has(role.id)}
+        applying={applyingId === role.id}
+        saved={savedRoleIds.has(role.id)}
+        onToggleSave={() => toggleSave(role)}
+        onApply={() => apply(role.id)}
+        needsVideo={needsVideoRoleId === role.id}
+        expanded={expandedIds.has(role.id)}
+        onToggleExpanded={() => toggleExpanded(role.id)}
+      />
     )
   }
 
@@ -797,62 +825,7 @@ export default function BrowseRoles() {
         </div>
       )
     }
-    const employer = role.employer_profiles
-    const deadlineLabel = formatDeadline(role.deadline)
-    const salaryLabel = formatSalary(role)
-    return (
-      <div key={entry.id} className="card role-card" style={{ padding: 20, cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
-        <div className="role-card-actions">
-          <SaveRoleButton saved onToggle={() => removeSaved(entry.id)} />
-        </div>
-        <div className={`role-card-header${employer?.logo_url ? '' : ' no-logo'}`}>
-          <h3 className="role-card-title" style={{ fontSize: 17 }}>{role.title}</h3>
-          {employer?.logo_url && (
-            employer.company_slug ? (
-              <Link
-                to={`/company/${employer.company_slug}`}
-                className="role-card-logo-area"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <img
-                  src={employer.logo_url}
-                  alt={employer.company_name}
-                  className="role-card-logo"
-                  style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
-                />
-              </Link>
-            ) : (
-              <img
-                src={employer.logo_url}
-                alt={employer.company_name}
-                className="role-card-logo role-card-logo-area"
-                style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, background: 'var(--color-bg-soft)' }}
-              />
-            )
-          )}
-          <p className="role-card-company" style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 4 }}>
-            {employer?.company_slug ? (
-              <Link
-                to={`/company/${employer.company_slug}`}
-                style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {employer?.company_name}
-              </Link>
-            ) : (
-              employer?.company_name
-            )}{' '}
-            · {role.location}
-          </p>
-          <div className="role-card-rest">
-            <div className="role-card-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-              {salaryLabel && <span className="tag" style={{ fontSize: 12 }}>{salaryLabel}</span>}
-              {deadlineLabel && <span className="tag" style={{ fontSize: 12 }}>Apply by {deadlineLabel}</span>}
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+    return renderListRoleCard(role)
   }
 
   return (
@@ -921,7 +894,7 @@ export default function BrowseRoles() {
             )}
           </div>
         ) : (
-          <div className="role-list" style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 28, maxWidth: 720 }}>
+          <div className="role-list" style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 28, maxWidth: 720 }}>
             {savedEntries.map(renderSavedEntry)}
           </div>
         )
@@ -957,27 +930,7 @@ export default function BrowseRoles() {
                 <div className="compact-grid">{recommended.map((role) => renderCompactRoleCard(role))}</div>
               ) : (
                 <div className="role-list" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                  {recommended.map((role) => (
-                    <RoleCard
-                      key={role.id}
-                      role={role}
-                      applied={appliedRoleIds.has(role.id)}
-                      applying={applyingId === role.id}
-                      saved={savedRoleIds.has(role.id)}
-                      onToggleSave={() => toggleSave(role)}
-                      onApply={() => apply(role.id)}
-                      needsVideo={needsVideoRoleId === role.id}
-                      expanded={expandedIds.has(role.id)}
-                      onToggleExpanded={() =>
-                        setExpandedIds((prev) => {
-                          const next = new Set(prev)
-                          if (next.has(role.id)) next.delete(role.id)
-                          else next.add(role.id)
-                          return next
-                        })
-                      }
-                    />
-                  ))}
+                  {recommended.map((role) => renderListRoleCard(role))}
                 </div>
               )}
             </div>
@@ -988,27 +941,7 @@ export default function BrowseRoles() {
               <div className="compact-grid">{remainingRoles.map((role) => renderCompactRoleCard(role))}</div>
             ) : (
               <div className="role-list" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                {remainingRoles.map((role) => (
-                  <RoleCard
-                    key={role.id}
-                    role={role}
-                    applied={appliedRoleIds.has(role.id)}
-                    applying={applyingId === role.id}
-                    saved={savedRoleIds.has(role.id)}
-                    onToggleSave={() => toggleSave(role)}
-                    onApply={() => apply(role.id)}
-                    needsVideo={needsVideoRoleId === role.id}
-                    expanded={expandedIds.has(role.id)}
-                    onToggleExpanded={() =>
-                      setExpandedIds((prev) => {
-                        const next = new Set(prev)
-                        if (next.has(role.id)) next.delete(role.id)
-                        else next.add(role.id)
-                        return next
-                      })
-                    }
-                  />
-                ))}
+                {remainingRoles.map((role) => renderListRoleCard(role))}
               </div>
             )}
           </div>
