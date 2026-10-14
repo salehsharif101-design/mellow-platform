@@ -125,13 +125,16 @@
   box-shadow: 0 1px 3px rgba(10, 10, 10, 0.07);
 }
 
-/* A role with a team video lays out as text (left, ~60%) beside the video
-   (right, ~40%), vertically centred; stacked below 768px. The header's
-   132px right reservation for the pinned Save/Apply actions isn't needed
-   here — those sit above the video column, not beside the text. */
+/* A role with a team video lays out as two columns: all the text on the
+   left (~60%), and on the right (~40%) the video pinned to the top —
+   level with the title row — with Save/Apply at the bottom-right, under
+   it, instead of the usual top-right corner. Below 768px it stacks: video
+   under the text and the actions back in the top-right corner. The
+   header's 132px right reservation for those actions isn't needed on
+   desktop here, as they no longer sit beside the text. */
 .role-card-split {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 24px;
 }
 
@@ -140,25 +143,39 @@
   min-width: 0;
 }
 
-.role-card-split-video {
+.role-card-split-side {
   flex: 2 1 0;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .role-card-split .role-card-header {
   padding-right: 0;
 }
 
+.role-card-split .role-card-actions {
+  position: static;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 14px;
+}
+
 @media (max-width: 768px) {
   .role-card-split {
     flex-direction: column;
-    align-items: stretch;
     gap: 14px;
   }
 
-  .role-card-split-video {
+  .role-card-split-side {
     flex: none;
     max-width: 320px;
+  }
+
+  .role-card-split .role-card-actions {
+    position: absolute;
+    margin-top: 0;
+    padding-top: 0;
   }
 }
 

@@ -272,32 +272,44 @@ function RoleCard({ role, applied, applying, saved, onToggleSave, onApply, needs
     </>
   )
 
+  // Save / Apply. Pinned top-right of the card; with a team video they
+  // instead sit at the bottom of the right column, under the video (see
+  // .role-card-split in components.css).
+  const actions = (
+    <div className="role-card-actions">
+      <SaveRoleButton saved={saved} onToggle={onToggleSave} />
+      <button
+        type="button"
+        className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
+        disabled={applied || applying}
+        onClick={(e) => {
+          e.stopPropagation()
+          onApply()
+        }}
+        style={{ whiteSpace: 'nowrap' }}
+      >
+        {applied ? 'Applied' : applying ? 'Applying…' : 'Apply'}
+      </button>
+    </div>
+  )
+
   return (
     <div className="card role-card" style={{ padding: 24, cursor: 'pointer' }} onClick={() => navigate(`/jobs/${role.slug}`)}>
-      <div className="role-card-actions">
-        <SaveRoleButton saved={saved} onToggle={onToggleSave} />
-        <button
-          type="button"
-          className={applied ? 'btn btn-ghost' : 'btn btn-primary'}
-          disabled={applied || applying}
-          onClick={(e) => {
-            e.stopPropagation()
-            onApply()
-          }}
-          style={{ whiteSpace: 'nowrap' }}
-        >
-          {applied ? 'Applied' : applying ? 'Applying…' : 'Apply'}
-        </button>
-      </div>
       {employer?.intro_video_url ? (
         <div className="role-card-split">
           <div className="role-card-split-text">{textContent}</div>
-          <div className="role-card-split-video" onClick={(e) => e.stopPropagation()}>
-            <VideoPlayCard url={employer.intro_video_url} format="horizontal" style={{ margin: 0, maxWidth: 'none' }} />
+          <div className="role-card-split-side">
+            <div onClick={(e) => e.stopPropagation()}>
+              <VideoPlayCard url={employer.intro_video_url} format="horizontal" style={{ margin: 0, maxWidth: 'none' }} />
+            </div>
+            {actions}
           </div>
         </div>
       ) : (
-        textContent
+        <>
+          {actions}
+          {textContent}
+        </>
       )}
       {needsVideo && (
         <div
