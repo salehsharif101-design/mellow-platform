@@ -72,11 +72,11 @@ function XIcon() {
 // height, radius and font size match the skill tags by construction; only
 // the colours differ, to read as "not a skill". The full list always lives
 // on the candidate's profile page.
-function SkillTags({ skills, max, gap, tagStyle }) {
+function SkillTags({ skills, max, gap, tagStyle, style }) {
   const visible = skills.slice(0, max)
   const hidden = skills.slice(max)
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap, ...style }}>
       {visible.map((s) => (
         <span key={s} className="tag" style={tagStyle}>
           {s}
@@ -469,13 +469,7 @@ export default function TalentFeed() {
                   <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>{swipeCandidate.location}</p>
                 )}
                 {swipeCandidate.skills?.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-                    {swipeCandidate.skills.slice(0, 3).map((s) => (
-                      <span key={s} className="tag" style={{ fontSize: 12 }}>
-                        {s}
-                      </span>
-                    ))}
-                  </div>
+                  <SkillTags skills={swipeCandidate.skills} max={3} gap={6} tagStyle={{ fontSize: 12 }} style={{ marginTop: 8 }} />
                 )}
               </div>
             </div>
