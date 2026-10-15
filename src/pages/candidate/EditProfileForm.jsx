@@ -624,6 +624,9 @@ function BasicsSection({
             placeholder="e.g. I turn messy briefs into campaigns people remember"
             maxLength={100}
           />
+          <p style={{ marginTop: 6, marginBottom: 0, fontSize: 13, color: 'var(--color-text-muted)' }}>
+            This appears on employer talent cards — summarise what you do in 1 sentence.
+          </p>
         </div>
         <div className="field">
           <label>What I'm most proud of (optional)</label>

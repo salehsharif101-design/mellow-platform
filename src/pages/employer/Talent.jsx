@@ -96,6 +96,29 @@ function CheckOption({ label, checked, onChange }) {
   )
 }
 
+// The candidate's one-sentence headline, as muted text clamped to `lines`
+// with an ellipsis. Renders nothing when they haven't written one.
+function Headline({ text, lines, fontSize, style }) {
+  const value = (text || '').trim()
+  if (!value) return null
+  return (
+    <p
+      style={{
+        fontSize,
+        lineHeight: 1.4,
+        color: 'var(--color-text-muted)',
+        display: '-webkit-box',
+        WebkitBoxOrient: 'vertical',
+        WebkitLineClamp: lines,
+        overflow: 'hidden',
+        ...style,
+      }}
+    >
+      {value}
+    </p>
+  )
+}
+
 export default function TalentFeed() {
   const { user } = useAuth()
 
@@ -159,7 +182,7 @@ export default function TalentFeed() {
           supabase
             .from('candidate_profiles')
             .select(
-              'id, user_id, username, full_name, job_title, current_company, years_of_experience, location, skills, availability, work_style, intro_video_url, avatar_url',
+              'id, user_id, username, full_name, headline, job_title, current_company, years_of_experience, location, skills, availability, work_style, intro_video_url, avatar_url',
             )
             .eq('is_live', true)
             .eq('is_open_to_opportunities', true)
@@ -490,6 +513,7 @@ export default function TalentFeed() {
                     </span>
                   )}
                 </div>
+                <Headline text={swipeCandidate.headline} lines={3} fontSize={13} style={{ marginTop: 4 }} />
                 <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>
                   {swipeCandidate.current_company ? `${swipeCandidate.job_title} at ${swipeCandidate.current_company}` : swipeCandidate.job_title}
                 </p>
@@ -714,6 +738,7 @@ export default function TalentFeed() {
                       {cardName(c.full_name)}
                     </h3>
                   </Link>
+                  <Headline text={c.headline} lines={2} fontSize={12} />
                   <p
                     style={{
                       fontSize: 12,
@@ -805,6 +830,7 @@ export default function TalentFeed() {
                   <Link to={`/profile/${c.username || c.id}`} style={{ textDecoration: 'none' }}>
                     <h3 style={{ fontSize: 17 }}>{cardName(c.full_name)}</h3>
                   </Link>
+                  <Headline text={c.headline} lines={3} fontSize={14} style={{ marginTop: 4 }} />
                   <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 2 }}>
                     {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title} · {c.location}
                   </p>
