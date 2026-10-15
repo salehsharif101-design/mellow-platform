@@ -10,7 +10,7 @@ const ACCEPTED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm']
 
 const PROMPTS = [
   'Who are you and what do you do?',
-  'Where have you worked and what did you do there?',
+  'Where have you worked and what were you responsible for?',
   'What are you genuinely great at?',
   'What kind of role or company are you looking for?',
 ]

@@ -125,7 +125,7 @@ export default function Guide() {
             <BulletList
               items={[
                 'Who you are and what you do — one or two sentences, no more.',
-                "A line on your background — where you've worked and what you did there.",
+                "A line on your background — where you've worked and what you were responsible for.",
                 "What you're genuinely great at — a specific skill, not a job title restated.",
                 "What you're looking for — the kind of role, team, or company that would be a good fit.",
                 'A closing line that feels like you — something a stranger would remember an hour later.',
