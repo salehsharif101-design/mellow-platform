@@ -10,6 +10,7 @@ const ACCEPTED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm']
 
 const PROMPTS = [
   'Who are you and what do you do?',
+  'Where have you worked or what have you built?',
   'What are you genuinely great at?',
   'What kind of role or company are you looking for?',
 ]
@@ -188,7 +189,7 @@ export default function Step5Video({ initial, userId, onFinish, onBack, onSaveFo
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div className="card" style={{ padding: '16px 20px', background: 'var(--color-bg-soft)', border: 'none' }}>
         <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: 4 }}>
-          While you record, cover these three prompts:
+          While you record, cover these four prompts:
         </p>
         <div>
           {PROMPTS.map((prompt, i) => (
