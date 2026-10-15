@@ -513,13 +513,13 @@ export default function TalentFeed() {
                     </span>
                   )}
                 </div>
-                <Headline text={swipeCandidate.headline} lines={3} fontSize={13} style={{ marginTop: 4 }} />
                 <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>
                   {swipeCandidate.current_company ? `${swipeCandidate.job_title} at ${swipeCandidate.current_company}` : swipeCandidate.job_title}
                 </p>
                 {swipeCandidate.location && (
                   <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>{swipeCandidate.location}</p>
                 )}
+                <Headline text={swipeCandidate.headline} lines={3} fontSize={13} style={{ marginTop: 6 }} />
                 {swipeCandidate.skills?.length > 0 && (
                   <SkillTags skills={swipeCandidate.skills} max={3} gap={6} tagStyle={{ fontSize: 12 }} style={{ marginTop: 8 }} />
                 )}
@@ -738,7 +738,6 @@ export default function TalentFeed() {
                       {cardName(c.full_name)}
                     </h3>
                   </Link>
-                  <Headline text={c.headline} lines={2} fontSize={12} />
                   <p
                     style={{
                       fontSize: 12,
@@ -765,6 +764,8 @@ export default function TalentFeed() {
                       {c.location}
                     </p>
                   )}
+
+                  <Headline text={c.headline} lines={2} fontSize={12} />
 
                   {(c.skills || []).length > 0 && (
                     <SkillTags skills={c.skills} max={2} gap={4} tagStyle={{ fontSize: 11, padding: '2px 8px' }} />
@@ -830,7 +831,6 @@ export default function TalentFeed() {
                   <Link to={`/profile/${c.username || c.id}`} style={{ textDecoration: 'none' }}>
                     <h3 style={{ fontSize: 17 }}>{cardName(c.full_name)}</h3>
                   </Link>
-                  <Headline text={c.headline} lines={3} fontSize={14} style={{ marginTop: 4 }} />
                   <p style={{ fontSize: 14, color: 'var(--color-text-muted)', marginTop: 2 }}>
                     {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title} · {c.location}
                   </p>
@@ -839,6 +839,7 @@ export default function TalentFeed() {
                       {c.years_of_experience} experience
                     </p>
                   )}
+                  <Headline text={c.headline} lines={3} fontSize={14} style={{ marginTop: 6 }} />
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
                     {score !== null && (
                       <span className="tag" style={{ fontSize: 12, background: 'var(--color-primary)', color: '#fff', fontWeight: 700 }}>
