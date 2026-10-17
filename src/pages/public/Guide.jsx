@@ -31,6 +31,8 @@ function SectionIcon({ emoji, color }) {
   )
 }
 
+const BODY_PARAGRAPH_STYLE = { fontSize: 15, lineHeight: 1.6, color: 'var(--color-text)', marginTop: 12 }
+
 function Section({ emoji, color, title, subtitle, children }) {
   return (
     <div className="card" style={{ padding: 28, display: 'flex', gap: 20, alignItems: 'flex-start' }}>
@@ -165,15 +167,36 @@ export default function Guide() {
             />
           </Section>
 
-          <Section emoji="🎬" color="#eef4ff" title="What to include in work videos" subtitle="These are separate from your intro — one topic each.">
+          <Section emoji="🎬" color="#eef4ff" title="Work videos">
+            <p style={BODY_PARAGRAPH_STYLE}>
+              Your work videos are your living portfolio — a collection that grows with your career, whether you're
+              looking for a new role or not. Every project you add is a permanent record of how you think and what
+              you've built. This is where your work lives.
+            </p>
+            <p style={BODY_PARAGRAPH_STYLE}>
+              Unlike a PDF portfolio or a CV line, a work video shows the thinking behind the outcome. That's what
+              employers actually want to see — not just what you made, but how you got there.
+            </p>
+            <p style={{ fontSize: 15, fontWeight: 700, marginTop: 20 }}>What to include</p>
+            <p style={BODY_PARAGRAPH_STYLE}>One project per video. Don't try to cram everything in.</p>
+            <p style={BODY_PARAGRAPH_STYLE}>
+              Walk through a real piece of work — what the problem was, how you approached it, and what came out of
+              it. Show your process, not just the polished result.
+            </p>
+            <p style={BODY_PARAGRAPH_STYLE}>Some examples of what this looks like in practice:</p>
             <BulletList
               items={[
-                'A screen recording or walkthrough of a real project you worked on.',
-                'The problem you were solving, your approach, and the outcome — in that order.',
-                'Your thinking, not just the polished result — how you got there matters as much as what you made.',
-                'Keep each video focused on one piece of work rather than a highlight reel of everything.',
+                'A designer breaking down a branding project — why they chose a particular colour palette, what the typeface is doing, how the visual system holds together across touchpoints',
+                "A developer walking through a technical decision — why they built it this way, what they had to figure out, what they'd do differently",
+                'A marketer unpacking a campaign — the brief, the insight they found, what they tested, what worked',
+                'A strategist explaining how they framed a problem — the research, the tension they identified, the recommendation and why',
+                'An ops person walking through a process they fixed — what was broken, how they diagnosed it, what they changed and what the result was',
               ]}
             />
+            <p style={{ ...BODY_PARAGRAPH_STYLE, marginTop: 16 }}>
+              The best work videos don't feel like presentations. They feel like a real conversation about work —
+              specific, honest, and focused on one thing.
+            </p>
           </Section>
         </div>
       </div>
