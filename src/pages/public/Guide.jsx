@@ -196,12 +196,6 @@ export default function Guide() {
               specific, honest, and focused on one thing.
             </p>
           </Section>
-
-          <p style={{ ...BODY_PARAGRAPH_STYLE, marginTop: 0, maxWidth: 560, marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
-            Mellow is built around video because a CV can't show you how someone thinks, communicates, or whether
-            they'd actually fit a team. A 60-second intro does. That's why your profile here starts with video — and
-            why employers on Mellow are watching before they're reading.
-          </p>
         </div>
       </div>
     </div>
