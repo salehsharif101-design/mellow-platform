@@ -187,9 +187,7 @@ export default function Guide() {
             <BulletList
               items={[
                 'A designer breaking down a branding project — why they chose a particular colour palette, what the typeface is doing, how the visual system holds together across touchpoints',
-                "A developer walking through a technical decision — why they built it this way, what they had to figure out, what they'd do differently",
                 'A marketer unpacking a campaign — the brief, the insight they found, what they tested, what worked',
-                'A strategist explaining how they framed a problem — the research, the tension they identified, the recommendation and why',
                 'An ops person walking through a process they fixed — what was broken, how they diagnosed it, what they changed and what the result was',
               ]}
             />
