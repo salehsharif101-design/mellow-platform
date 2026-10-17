@@ -109,6 +109,11 @@ export default function Guide() {
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
         <div style={{ textAlign: 'center' }}>
           <img src="/thinking2.png" alt="" style={{ width: '100%', maxWidth: 260, margin: '0 auto', display: 'block' }} />
+          <p style={{ ...BODY_PARAGRAPH_STYLE, marginTop: 20, maxWidth: 560, marginLeft: 'auto', marginRight: 'auto' }}>
+            Mellow is built around video because a CV can't show you how someone thinks, communicates, or whether
+            they'd actually fit a team. A 60-second intro does. That's why your profile here starts with video — and
+            why employers on Mellow are watching before they're reading.
+          </p>
           <h1 style={{ marginTop: 24, fontSize: 34 }}>How to record a video that gets you noticed</h1>
           <p style={{ marginTop: 12, fontSize: 16, color: 'var(--color-text-muted)', maxWidth: 560, margin: '12px auto 0' }}>
             You do not need fancy equipment or a script. You need to be clear, honest, and yourself. Here is
@@ -117,12 +122,6 @@ export default function Guide() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginTop: 40 }}>
-          <p style={{ ...BODY_PARAGRAPH_STYLE, marginTop: 0 }}>
-            Mellow is built around video because a CV can't show you how someone thinks, communicates, or whether
-            they'd actually fit a team. A 60-second intro does. That's why your profile here starts with video — and
-            why employers on Mellow are watching before they're reading.
-          </p>
-
           <Section
             emoji="🎤"
             color="#e3f9e9"
