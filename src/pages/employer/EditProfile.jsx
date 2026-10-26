@@ -8,6 +8,7 @@ import { COUNTRIES } from '../../lib/countries.js'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
 import HashScroll from '../../components/HashScroll.jsx'
 import PageLoading from '../../components/PageLoading.jsx'
+import { parseYearEstablished } from '../../lib/yearEstablished.js'
 
 const COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-500', '500+']
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']
@@ -114,6 +115,7 @@ function EditProfileFormBody({ profile, onUpdated }) {
   const [companySize, setCompanySize] = useState(profile.company_size || COMPANY_SIZES[0])
   const [country, setCountry] = useState(profile.country || '')
   const [headline, setHeadline] = useState(profile.headline || '')
+  const [yearEstablished, setYearEstablished] = useState(profile.year_established ? String(profile.year_established) : '')
   const [about, setAbout] = useState(profile.about || '')
   const [cultureDescription, setCultureDescription] = useState(profile.culture_description || '')
   const [companyHighlight, setCompanyHighlight] = useState(profile.company_highlight || '')
@@ -130,6 +132,7 @@ function EditProfileFormBody({ profile, onUpdated }) {
   const fieldRefs = {
     companyName: useRef(null),
     industry: useRef(null),
+    yearEstablished: useRef(null),
     about: useRef(null),
     linkedinUrl: useRef(null),
     websiteUrl: useRef(null),
@@ -138,6 +141,8 @@ function EditProfileFormBody({ profile, onUpdated }) {
   function validate() {
     if (!companyName.trim()) return { field: 'companyName', message: 'Company name is required.' }
     if (!industry.trim()) return { field: 'industry', message: 'Industry is required.' }
+    const yearCheck = parseYearEstablished(yearEstablished)
+    if (yearCheck.error) return { field: 'yearEstablished', message: yearCheck.error }
     if (!about.trim()) return { field: 'about', message: 'About your company is required.' }
     const trimmedLinkedin = linkedinUrl.trim()
     if (trimmedLinkedin && !/^https?:\/\//i.test(trimmedLinkedin)) {
@@ -177,6 +182,7 @@ function EditProfileFormBody({ profile, onUpdated }) {
         company_size: companySize,
         country: country || null,
         headline: headline.trim() || null,
+        year_established: parseYearEstablished(yearEstablished).value,
         about: about.trim() || null,
         culture_description: cultureDescription.trim() || null,
         company_highlight: companyHighlight.trim() || null,
@@ -223,6 +229,8 @@ function EditProfileFormBody({ profile, onUpdated }) {
         setCountry={setCountry}
         headline={headline}
         setHeadline={setHeadline}
+        yearEstablished={yearEstablished}
+        setYearEstablished={setYearEstablished}
         errorField={errorField}
         fieldRefs={fieldRefs}
       />
@@ -451,6 +459,8 @@ function CompanyInfoSection({
   setCountry,
   headline,
   setHeadline,
+  yearEstablished,
+  setYearEstablished,
   errorField,
   fieldRefs,
 }) {
@@ -511,6 +521,19 @@ function CompanyInfoSection({
             onChange={(e) => setHeadline(e.target.value)}
             placeholder="e.g. We're building the future of hiring"
             maxLength={100}
+          />
+        </div>
+        <div className="field" id="year-established-field">
+          <label>Year Established (optional)</label>
+          <input
+            ref={fieldRefs.yearEstablished}
+            className="input"
+            type="number"
+            inputMode="numeric"
+            value={yearEstablished}
+            onChange={(e) => setYearEstablished(e.target.value.slice(0, 4))}
+            placeholder="e.g. 2018"
+            style={fieldStyle(errorField === 'yearEstablished')}
           />
         </div>
       </div>

@@ -9,6 +9,7 @@ import { notify } from '../../lib/notify.js'
 import ConfirmModal from '../../components/ConfirmModal.jsx'
 import { deleteAccount } from '../../lib/deleteAccount.js'
 import { usePersistedState } from '../../lib/usePersistedState.js'
+import { parseYearEstablished } from '../../lib/yearEstablished.js'
 import OnboardingWelcome from './OnboardingWelcome.jsx'
 import OnboardingCelebration from './OnboardingCelebration.jsx'
 import PageLoading from '../../components/PageLoading.jsx'
@@ -55,6 +56,7 @@ export default function EmployerOnboarding() {
   const [companySize, setCompanySize] = useState(COMPANY_SIZES[0])
   const [country, setCountry] = useState('')
   const [headline, setHeadline] = useState('')
+  const [yearEstablished, setYearEstablished] = useState('')
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [about, setAbout] = useState('')
   const [cultureDescription, setCultureDescription] = useState('')
@@ -65,6 +67,7 @@ export default function EmployerOnboarding() {
   const [logoError, setLogoError] = useState('')
 
   const draftLoadedRef = useRef(false)
+  const yearInputRef = useRef(null)
 
   useEffect(() => {
     if (!user) return
@@ -115,6 +118,7 @@ export default function EmployerOnboarding() {
         setCompanySize(profile.company_size || COMPANY_SIZES[0])
         setCountry(profile.country || '')
         setHeadline(profile.headline || '')
+        setYearEstablished(profile.year_established ? String(profile.year_established) : '')
         setWebsiteUrl(profile.website_url || '')
         setAbout(profile.about || '')
         setCultureDescription(profile.culture_description || '')
@@ -167,6 +171,8 @@ export default function EmployerOnboarding() {
             company_size: companySize,
             country: country || null,
             headline: headline.trim() || null,
+            // A half-typed year is just left out of the draft; submit validates it.
+            year_established: parseYearEstablished(yearEstablished).value,
             website_url: websiteUrl.trim() || null,
             about: about.trim(),
             culture_description: cultureDescription.trim(),
@@ -176,7 +182,7 @@ export default function EmployerOnboarding() {
           { onConflict: 'user_id' },
         )
     },
-    [companyName, industry, companySize, country, headline, websiteUrl, about, cultureDescription, typicalRoles, companyHighlight],
+    [companyName, industry, companySize, country, headline, yearEstablished, websiteUrl, about, cultureDescription, typicalRoles, companyHighlight],
     { enabled: draftLoadedRef.current && !loading && !showWelcome && wasIncomplete },
   )
 
@@ -199,6 +205,12 @@ export default function EmployerOnboarding() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    const yearCheck = parseYearEstablished(yearEstablished)
+    if (yearCheck.error) {
+      setError(yearCheck.error)
+      yearInputRef.current?.focus()
+      return
+    }
     setSaving(true)
     try {
       // Same reasoning as loadProfile(): re-verify the current user right
@@ -229,6 +241,7 @@ export default function EmployerOnboarding() {
         company_size: companySize,
         country: country || null,
         headline: headline.trim() || null,
+        year_established: yearCheck.value,
         website_url: websiteUrl.trim() || null,
         about: about.trim(),
         culture_description: cultureDescription.trim(),
@@ -368,6 +381,19 @@ export default function EmployerOnboarding() {
                 onChange={(e) => setHeadline(e.target.value)}
                 placeholder="e.g. We're building the future of hiring"
                 maxLength={100}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="year_established">Year Established (optional)</label>
+              <input
+                id="year_established"
+                ref={yearInputRef}
+                className="input"
+                type="number"
+                inputMode="numeric"
+                value={yearEstablished}
+                onChange={(e) => setYearEstablished(e.target.value.slice(0, 4))}
+                placeholder="e.g. 2018"
               />
             </div>
             <div className="field">

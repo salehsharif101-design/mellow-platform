@@ -20,6 +20,7 @@ const PROFILE_STRENGTH_CHECKS = [
   { key: 'logo', label: 'Company logo uploaded', anchor: '#logo-section', tip: 'Add a company logo to look more credible to candidates.' },
   { key: 'about', label: 'About your company filled in', anchor: '#about-section', tip: 'Add a short description of your company.' },
   { key: 'culture', label: 'Company culture filled in', anchor: '#culture-section', tip: 'Describe what it is like to work at your company.' },
+  { key: 'yearEstablished', label: 'Year established added', anchor: '#year-established-field', tip: 'Add the year your company was established — it builds trust with candidates.' },
   { key: 'highlight', label: 'Company highlight filled in', anchor: '#highlight-section', tip: 'Add a highlight that makes your company stand out.' },
   { key: 'video', label: 'Company intro video uploaded', anchor: '#intro-video-section', tip: 'Add a company video to attract more applicants.' },
   { key: 'linkedin', label: 'LinkedIn link added', anchor: '#linkedin-field', tip: 'Add your LinkedIn company page to build trust.' },
@@ -107,7 +108,7 @@ export default function EmployerDashboard() {
         supabase
           .from('employer_profiles')
           .select(
-            'id, user_id, company_name, company_slug, logo_url, intro_video_url, about, culture_description, company_highlight, typical_roles, linkedin_url, website_url',
+            'id, user_id, company_name, company_slug, logo_url, intro_video_url, about, culture_description, company_highlight, year_established, typical_roles, linkedin_url, website_url',
           )
           .eq('id', employerId)
           .maybeSingle(),
@@ -474,6 +475,7 @@ export default function EmployerDashboard() {
     if (check.key === 'logo') complete = Boolean(employer.logo_url)
     else if (check.key === 'about') complete = Boolean(employer.about)
     else if (check.key === 'culture') complete = Boolean(employer.culture_description)
+    else if (check.key === 'yearEstablished') complete = Boolean(employer.year_established)
     else if (check.key === 'highlight') complete = Boolean(employer.company_highlight)
     else if (check.key === 'video') complete = Boolean(employer.intro_video_url)
     else if (check.key === 'linkedin') complete = Boolean(employer.linkedin_url)

@@ -32,7 +32,7 @@ export default function CompanyProfile() {
       const { data, error } = await supabase
         .from('employer_profiles')
         .select(
-          'id, user_id, company_name, logo_url, industry, company_size, country, headline, about, culture_description, company_highlight, typical_roles, linkedin_url, website_url, intro_video_url, is_visible',
+          'id, user_id, company_name, logo_url, industry, company_size, country, year_established, headline, about, culture_description, company_highlight, typical_roles, linkedin_url, website_url, intro_video_url, is_visible',
         )
         .eq('company_slug', slug)
         // Filtered server-side (not just checked after the fact) so a
@@ -87,7 +87,12 @@ export default function CompanyProfile() {
     )
   }
 
-  const sizeLine = [company.industry, company.company_size && `${company.company_size} employees`, company.country]
+  const sizeLine = [
+    company.industry,
+    company.company_size && `${company.company_size} employees`,
+    company.country,
+    company.year_established && `Est. ${company.year_established}`,
+  ]
     .filter(Boolean)
     .join(' · ')
 
