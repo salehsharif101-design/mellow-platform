@@ -10,6 +10,10 @@
 //       one-time re-engagement email (live, visible, not hired), and sends
 //       nothing.
 //
+//   node scripts/send-profile-link-emails.mjs blast --username <username> [--confirm]
+//       Same, but only that one candidate, skipping the 48-hour age rule
+//       (still live, visible, not hired, and not already emailed).
+//
 //   node scripts/send-profile-link-emails.mjs blast --confirm
 //       Actually sends it, once per eligible candidate who signed up more than
 //       48 hours ago and hasn't had a profile-link email yet.
@@ -46,18 +50,24 @@ const cutoff = new Date(Date.now() - AUDIENCE_AGE_HOURS * 60 * 60 * 1000).toISOS
 // exist, so nobody has been emailed and nobody has a went_live_at; fall back
 // to the other conditions alone (fine for counting and previewing, but
 // `blast --confirm` refuses to send in that state).
+const onlyUsername = valueOf('--username')
+
 async function loadAudience() {
   const base = 'id, user_id, username, full_name, is_live, is_open_to_opportunities, availability'
-  let { data, error } = await supabase
-    .from('candidate_profiles')
-    .select(`${base}, went_live_at, profile_link_email_sent_at`)
-    .eq('is_live', true)
-    .lte('created_at', cutoff)
-    .is('profile_link_email_sent_at', null)
+  // --username targets one candidate and skips the 48-hour age rule.
+  const scope = (query) => (onlyUsername ? query.eq('username', onlyUsername) : query.lte('created_at', cutoff))
+
+  let { data, error } = await scope(
+    supabase
+      .from('candidate_profiles')
+      .select(`${base}, went_live_at, profile_link_email_sent_at`)
+      .eq('is_live', true)
+      .is('profile_link_email_sent_at', null),
+  )
   let trackingColumns = true
   if (error && /profile_link_email_sent_at|went_live_at/.test(error.message)) {
     trackingColumns = false
-    ;({ data, error } = await supabase.from('candidate_profiles').select(base).eq('is_live', true).lte('created_at', cutoff))
+    ;({ data, error } = await scope(supabase.from('candidate_profiles').select(base).eq('is_live', true)))
   }
   const rows = unwrap({ data, error }).filter(
     (c) => isEligibleForLiveEmails(c) && (!c.went_live_at || c.went_live_at < LIVE_EMAILS_FROM),
