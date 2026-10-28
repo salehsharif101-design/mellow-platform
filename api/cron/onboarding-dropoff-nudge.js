@@ -9,19 +9,19 @@
 //
 // This is the second step after welcome-email-nudge.js, not a parallel
 // send: it requires welcome_email_sent = true (that cron already emailed
-// them) and a row at least 96h old. welcome-email-nudge.js fires on the
-// first daily run after 24h, so waiting until 96h guarantees this never
-// lands on the same day as that one.
+// them) and a row at least 24h old. welcome-email-nudge.js also fires on
+// the first daily run after 24h, so this can land on the same day as that
+// one (that cron runs earlier in the day).
 //
 // The query has no upper bound on row age, so a daily run still catches
-// everyone eventually, just with up to a day's extra delay past the 96h mark.
+// everyone eventually, just with up to a day's extra delay past the 24h mark.
 
 import { sendEmail } from '../_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from '../_lib/email-template.js'
 import { getServiceClient, unwrap } from '../_lib/db.js'
 
 const HOUR_MS = 60 * 60 * 1000
-const MIN_ROW_AGE_MS = 96 * HOUR_MS
+const MIN_ROW_AGE_MS = 24 * HOUR_MS
 const LAST_ONBOARDING_STEP = 5
 
 export default async function handler(req, res) {
@@ -64,36 +64,31 @@ export default async function handler(req, res) {
 
     let sent = 0
     for (const candidate of candidates) {
-      // Claims the send atomically before sending, so two overlapping runs
-      // can't both email the same candidate. is_live is re-checked here too:
-      // someone who finishes onboarding between the fetch above and this
-      // update shouldn't get a "finish your profile" email.
-      const { data: claimed } = await supabase
-        .from('candidate_profiles')
-        .update({ nudge_sent: true })
-        .eq('id', candidate.id)
-        .eq('nudge_sent', false)
-        .eq('is_live', false)
-        .select('id')
-        .maybeSingle()
-      if (!claimed) continue
+      // One candidate's failure (lookup or Resend) is logged and skipped so
+      // the rest of the run still goes out. nudge_sent is only written after
+      // the send succeeds, so a failed send is retried on the next run.
+      try {
+        const candidateUser = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
 
-      const candidateUser = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
+        await sendEmail({
+          to: candidateUser.email,
+          subject: 'Still thinking about it? Your Mellow profile is ready when you are',
+          html: renderEmailHtml({
+            heading: 'You are almost there',
+            bodyText:
+              'You started setting up your Mellow profile but did not quite finish. It only takes a few more minutes and once your video is live employers across Bahrain and the GCC can start finding you.',
+            ctaLabel: 'Complete my profile',
+            ctaUrl: `${SITE_URL}/onboarding`,
+            illustration: 'Easy_stuff.png',
+          }),
+        })
 
-      await sendEmail({
-        to: candidateUser.email,
-        subject: 'Still thinking about it? Your Mellow profile is ready when you are',
-        html: renderEmailHtml({
-          heading: 'You are almost there',
-          bodyText:
-            'You started setting up your Mellow profile but did not quite finish. It only takes a few more minutes and once your video is live employers across Bahrain and the GCC can start finding you.',
-          ctaLabel: 'Complete my profile',
-          ctaUrl: `${SITE_URL}/onboarding`,
-          illustration: 'Easy_stuff.png',
-        }),
-      })
+        unwrap(await supabase.from('candidate_profiles').update({ nudge_sent: true }).eq('id', candidate.id))
 
-      sent += 1
+        sent += 1
+      } catch (err) {
+        console.error(`onboarding-dropoff-nudge: skipped candidate ${candidate.id}:`, err.message)
+      }
     }
 
     res.statusCode = 200
