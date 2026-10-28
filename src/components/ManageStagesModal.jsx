@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import Modal from './Modal.jsx'
 import ConfirmModal from './ConfirmModal.jsx'
-import { STATUS_COLORS, statusForStage, shortlistedStageId } from '../lib/pipelineStages.js'
+import { STATUS_COLORS, statusForStage, shortlistedStageId, reviewingStageId } from '../lib/pipelineStages.js'
 
 // New and Rejected are the only two stages that are never rows in
 // role_pipeline_stages — they're fixed, hardcoded here to render locked at
@@ -118,7 +118,7 @@ export default function ManageStagesModal({ roleId, stages, applications, onClos
 
   function handleDeleteClick(stage) {
     setError('')
-    if (stage.id === shortlistedStageId(roleId)) return
+    if (stage.id === shortlistedStageId(roleId) || stage.id === reviewingStageId(roleId)) return
     const destination = destinationFor(stage)
     if (!destination) {
       setError('You need at least one other stage between New and Rejected before you can delete this one.')
@@ -162,6 +162,7 @@ export default function ManageStagesModal({ roleId, stages, applications, onClos
 
           {sorted.map((stage, index) => {
             const isShortlisted = stage.id === shortlistedStageId(roleId)
+            const isReviewing = stage.id === reviewingStageId(roleId)
             return (
             <div
               key={stage.id}
@@ -266,7 +267,7 @@ export default function ManageStagesModal({ roleId, stages, applications, onClos
                 )}
               </div>
 
-              {!isShortlisted && (
+              {!isShortlisted && !isReviewing && (
               <button
                 type="button"
                 onClick={() => handleDeleteClick(stage)}
