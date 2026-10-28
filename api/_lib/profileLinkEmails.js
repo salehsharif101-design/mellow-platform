@@ -59,19 +59,13 @@ function section(title, text) {
 
 export function renderProfileLinkWelcome({ fullName, profileUrl, previewNote }) {
   const body = [
-    "Welcome to Mellow. You’re one of the first people here, and that means something.",
-    'Your Mellow profile is yours to keep and share — not just for applying to roles on the platform. Here’s what you can do with it:',
+    'You’ve been on Mellow for a couple of days now, and we wanted to check in.',
+    'Most people think of Mellow as a place to apply for jobs. It’s that, but it’s also something you can carry with you everywhere.',
+    'Your profile link is yours:',
     profileLinkLine(profileUrl),
-    section(
-      'Share it anywhere:',
-      'Send it to a company you want to work for. Drop it in a LinkedIn message instead of a CV. Add it to your email signature. Share it in a WhatsApp group.',
-    ),
-    section(
-      'Show your actual work:',
-      'Record work videos alongside your profile — walk through a project, show a campaign you ran, demo something you built. Let employers see what you can do, not just read about it.',
-    ),
-    'One link. Everything an employer needs to know about you.',
-    'You’re not just early — you’re ahead.',
+    'Drop it in a LinkedIn message instead of attaching a CV. Add it to your email signature. Share it in a WhatsApp group. Send it directly to any company you want to work for.',
+    'Here’s what makes Mellow different from every other hiring platform. You can show your actual work, not just describe it. Record a short video walking through a project you built, a campaign you ran, or a problem you solved. Employers see how you think, how you communicate, and what you’re actually capable of. That’s something no CV or job application has ever been able to do.',
+    'One link. Everything an employer needs to actually understand what you bring.',
     '— The Mellow Team',
   ]
   return {

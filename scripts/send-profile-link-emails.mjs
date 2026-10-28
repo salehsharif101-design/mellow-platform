@@ -3,7 +3,8 @@
 //   node scripts/send-profile-link-emails.mjs preview --to someone@example.com
 //       Sends BOTH emails to that address (who must be a candidate), using
 //       their own profile link and a "preview copy" note, so nothing reaches
-//       a real user.
+//       a real user. Add `--only welcome` or `--only reengagement` to send
+//       just one of the two.
 //
 //   node scripts/send-profile-link-emails.mjs blast
 //       Dry run: prints how many existing candidates would receive the
@@ -100,9 +101,12 @@ if (mode === 'preview') {
       `this one-time email will go to ${rows.length} existing candidate${rows.length === 1 ? '' : 's'} (everyone with a live, visible, not-yet-hired profile who signed up more than ${AUDIENCE_AGE_HOURS} hours ago and hasn't received the welcome email).`,
     ),
   })
-  await sendEmail({ to, subject: welcome.subject, html: welcome.html })
-  await sendEmail({ to, subject: reengagement.subject, html: reengagement.html })
-  console.log(`Sent 2 preview emails to ${to}. Link used: ${profileUrl}`)
+  const only = valueOf('--only')
+  const sends = []
+  if (!only || only === 'welcome') sends.push(welcome)
+  if (!only || only === 'reengagement') sends.push(reengagement)
+  for (const email of sends) await sendEmail({ to, subject: email.subject, html: email.html })
+  console.log(`Sent ${sends.length} preview email(s) to ${to} (${sends.map((e) => e.subject).join(' | ')}). Link used: ${profileUrl}`)
   console.log(`One-time blast audience right now: ${rows.length}`)
 } else if (mode === 'blast') {
   const { rows, trackingColumn } = await loadAudience()
