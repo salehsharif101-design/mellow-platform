@@ -19,6 +19,8 @@
 import { sendEmail } from '../_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from '../_lib/email-template.js'
 import { getServiceClient, unwrap } from '../_lib/db.js'
+import { escapeHtml } from '../_lib/html.js'
+import { firstNameOf } from '../_lib/profileLinkEmails.js'
 
 const HOUR_MS = 60 * 60 * 1000
 const MIN_ROW_AGE_MS = 24 * HOUR_MS
@@ -53,7 +55,7 @@ export default async function handler(req, res) {
     const candidates = unwrap(
       await supabase
         .from('candidate_profiles')
-        .select('id, user_id')
+        .select('id, user_id, full_name')
         .eq('is_live', false)
         .eq('nudge_sent', false)
         .eq('welcome_email_sent', true)
@@ -72,11 +74,10 @@ export default async function handler(req, res) {
 
         await sendEmail({
           to: candidateUser.email,
-          subject: 'Still thinking about it? Your Mellow profile is ready when you are',
+          subject: 'You’re one step away',
           html: renderEmailHtml({
             heading: 'You are almost there',
-            bodyText:
-              'You started setting up your Mellow profile but did not quite finish. It only takes a few more minutes and once your video is live employers across Bahrain and the GCC can start finding you.',
+            bodyText: `Hey ${escapeHtml(firstNameOf(candidate.full_name))},<br /><br />You started setting up your Mellow profile but did not quite finish. It only takes a few more minutes and once your video is live employers can start finding you.`,
             ctaLabel: 'Complete my profile',
             ctaUrl: `${SITE_URL}/onboarding`,
             illustration: 'Easy_stuff.png',
