@@ -65,7 +65,7 @@ export function renderProfileLinkWelcome({ fullName, profileUrl, previewNote }) 
     profileLinkLine(profileUrl),
     'Drop it in a LinkedIn message instead of attaching a CV. Add it to your email signature. Share it in a WhatsApp group. Send it directly to any company you want to work for.',
     'Here’s what makes Mellow different from every other hiring platform. You can show your actual work, not just describe it. Record a short video walking through a project you built, a campaign you ran, or a problem you solved. Employers see how you think, how you communicate, and what you’re actually capable of. That’s something no CV or job application has ever been able to do.',
-    'One link. Everything an employer needs to actually understand what you bring.',
+    'One link. Everything an employer needs to understand what you bring.',
     'The Mellow Team',
   ]
   return {
