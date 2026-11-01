@@ -131,6 +131,9 @@ export default function Signup() {
   if (!userType) {
     return (
       <div className="section" style={{ maxWidth: 480, margin: '0 auto', textAlign: 'center' }}>
+        <Link to="/" style={{ display: 'inline-block', marginBottom: 32 }}>
+          <Logo size={28} />
+        </Link>
         <h1 style={{ fontSize: 32 }}>Join Mellow</h1>
         <p style={{ marginTop: 8, color: 'var(--color-text-muted)' }}>Are you looking for a role, or hiring?</p>
         <div style={{ display: 'flex', gap: 16, marginTop: 28 }}>
@@ -161,6 +164,9 @@ export default function Signup() {
 
   return (
     <div className="section" style={{ maxWidth: 420, margin: '0 auto' }}>
+      <Link to="/" style={{ display: 'inline-block', marginBottom: 24 }}>
+        <Logo size={28} />
+      </Link>
       <h1 style={{ fontSize: 28 }}>
         Sign up as {userType === 'employer' ? 'an employer' : 'talent'}
       </h1>
