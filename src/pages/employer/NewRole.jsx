@@ -195,11 +195,13 @@ export default function NewRole() {
               />
             </div>
             <div className="field">
-              <SkillsTagInput label="Skills required" value={requiredSkills} onChange={setRequiredSkills} required />
-              <p style={{ marginTop: 4, fontSize: 12, color: 'var(--color-text-muted)' }}>
-                Candidates in your talent feed are scored against these skills, so add at least one to see match
-                scores.
-              </p>
+              <SkillsTagInput
+                label="Skills required"
+                value={requiredSkills}
+                onChange={setRequiredSkills}
+                required
+                helperText="Candidates in your talent feed are scored against these skills, so add at least one to see match scores."
+              />
             </div>
             <div className="field">
               <label htmlFor="what_matters">What matters most in a hire?</label>

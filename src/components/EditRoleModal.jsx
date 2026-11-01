@@ -109,10 +109,13 @@ export default function EditRoleModal({ role, onClose, onSaved }) {
           </label>
         </div>
         <div className="field">
-          <SkillsTagInput label="Skills required" value={requiredSkills} onChange={setRequiredSkills} required />
-          <p style={{ marginTop: 4, fontSize: 12, color: 'var(--color-text-muted)' }}>
-            Candidates in your talent feed are scored against these skills, so add at least one to see match scores.
-          </p>
+          <SkillsTagInput
+            label="Skills required"
+            value={requiredSkills}
+            onChange={setRequiredSkills}
+            required
+            helperText="Candidates in your talent feed are scored against these skills, so add at least one to see match scores."
+          />
         </div>
         <div className="field">
           <label>What does the role involve?</label>

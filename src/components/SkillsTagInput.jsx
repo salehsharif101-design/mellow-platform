@@ -50,6 +50,7 @@ export default function SkillsTagInput({
   placeholder = 'Search and add skills',
   inputRef,
   inputStyle,
+  helperText,
 }) {
   const [query, setQuery] = useState('')
   const [knownSkills, setKnownSkills] = useState([])
@@ -135,6 +136,10 @@ export default function SkillsTagInput({
         autoComplete="off"
         style={inputStyle}
       />
+
+      {helperText && (
+        <p style={{ marginTop: 4, fontSize: 12, color: 'var(--color-text-muted)' }}>{helperText}</p>
+      )}
 
       {showSuggestions && suggestions.length > 0 && (
         <div
