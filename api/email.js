@@ -18,6 +18,7 @@ import { renderEmailHtml, SITE_URL } from './_lib/email-template.js'
 import { getServiceClient, unwrap, getCandidateContact, getEmployerContact, getEmployerEmails, getEmployerUserIds } from './_lib/db.js'
 import { escapeHtml } from './_lib/html.js'
 import { renderVideoLibraryEmail } from './_lib/profileLinkEmails.js'
+import { sendLiveWelcomeEmail } from './_lib/welcomeEmail.js'
 // Pure functions only (no supabase import, no env var reads) — safe to
 // import here unlike src/lib/employerAccess.js (see getCandidateContact's
 // own comment in db.js for why that one specifically can't be).
@@ -59,27 +60,6 @@ function readJsonBody(req) {
 // the first place (see ProfileEdit.jsx's upsert, which only ever runs once
 // an authenticated session exists), so scenario 3 — never sending to them —
 // falls out naturally rather than needing an explicit check here.
-// The live "Welcome to Mellow" email, sent to a candidate whose profile is
-// already live. The single copy of its content: the dashboard trigger below,
-// live-profile-emails.js's hourly backstop and welcome-email-nudge.js's daily
-// fallback all send it through here, so a wording change happens in one place.
-export async function sendLiveWelcomeEmail(to) {
-  await sendEmail({
-    to,
-    subject: 'Welcome to Mellow',
-    html: renderEmailHtml({
-      heading: 'Your living first impression starts here',
-      bodyText:
-        'Your profile is live and visible to employers. Start exploring open roles and apply with your video profile, no CV needed.',
-      ctaLabel: 'Browse roles',
-      ctaUrl: `${SITE_URL}/roles`,
-      secondaryCtaLabel: 'Go to my dashboard',
-      secondaryCtaUrl: `${SITE_URL}/dashboard`,
-      illustration: 'Flexible.PNG',
-    }),
-  })
-}
-
 async function sendCandidateWelcome(supabase, candidateId) {
   const candidate = unwrap(
     await supabase

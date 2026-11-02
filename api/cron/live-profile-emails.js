@@ -22,7 +22,7 @@
 // re-engagement send, so nobody can get both of those.
 import { sendEmail } from '../_lib/resend.js'
 import { getServiceClient, unwrap } from '../_lib/db.js'
-import { sendLiveWelcomeEmail } from '../email.js'
+import { sendLiveWelcomeEmail } from '../_lib/welcomeEmail.js'
 import {
   LIVE_EMAILS_FROM,
   isEligibleForLiveEmails,
@@ -81,7 +81,7 @@ async function runPhase(supabase, { sentColumn, kindValue, afterHours, render })
 }
 
 // The live "Welcome to Mellow" for live candidates who haven't had it yet and
-// went live more than an hour ago. The email itself is api/email.js's
+// went live more than an hour ago. The email itself is _lib/welcomeEmail.js's
 // sendLiveWelcomeEmail, shared with the dashboard trigger and
 // welcome-email-nudge.js's live pass. welcome_email_sent is claimed with a conditional update before
 // sending (and released if the send fails), so this, the dashboard trigger
