@@ -23,6 +23,11 @@ export default function WorkVideoTip({ candidateId, userId }) {
     navigate('/dashboard')
   }
 
+  function goToRoles() {
+    clearPersistedOnboardingState()
+    navigate('/roles')
+  }
+
   return (
     <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', padding: '48px 24px' }}>
       <div style={{ maxWidth: 520, textAlign: 'center' }}>
@@ -47,10 +52,10 @@ export default function WorkVideoTip({ candidateId, userId }) {
         <div style={{ marginTop: 18 }}>
           <button
             type="button"
-            onClick={goToDashboard}
+            onClick={goToRoles}
             style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
           >
-            Skip for now, go to my dashboard
+            Browse roles
           </button>
         </div>
       </div>

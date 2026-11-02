@@ -80,7 +80,7 @@ export default function OnboardingCelebration({ username, candidateId, userId })
             onClick={() => setShowTip(true)}
             style={{ padding: '14px 28px', fontSize: 15 }}
           >
-            Continue
+            Browse roles
           </button>
         </div>
       </div>
