@@ -282,12 +282,14 @@ async function sendApplicationNotification(supabase, applicationId) {
 
   const result = await sendEmail({
     to: emails,
-    subject: 'New application on Mellow',
+    subject: `New application for ${role.title}`,
     html: renderEmailHtml({
-      heading: 'New application received',
-      bodyText: `${escapeHtml(candidate.full_name)} applied to ${escapeHtml(role.title)}. View their profile to learn more.`,
+      heading: 'You have a new applicant',
+      bodyText: `${escapeHtml(candidate.full_name)} applied to ${escapeHtml(role.title)}. Watch their video profile and see if they’re the right fit.`,
       ctaLabel: 'View profile',
       ctaUrl: `${SITE_URL}/profile/${candidate.username || application.candidate_id}`,
+      secondaryCtaLabel: 'View hiring pipeline',
+      secondaryCtaUrl: `${SITE_URL}/employer/roles/${application.role_id}/applicants`,
       illustration: 'Flexible.PNG',
     }),
   })
