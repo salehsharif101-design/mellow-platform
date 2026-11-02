@@ -24,11 +24,13 @@
 // dashboard, so someone who goes live and leaves without ever opening it
 // would otherwise never get the email. The first loop below covers them: any
 // live candidate who still has welcome_email_sent = false an hour after
-// going live gets the live-profile version of the email (the same content
-// as api/email.js's sendCandidateWelcome — keep the two in sync).
+// going live gets the live-profile version of the email, sent through
+// api/email.js's sendLiveWelcomeEmail (the same one the dashboard trigger
+// and live-profile-emails.js use).
 import { sendEmail } from '../_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from '../_lib/email-template.js'
 import { getServiceClient, unwrap } from '../_lib/db.js'
+import { sendLiveWelcomeEmail } from '../email.js'
 
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json')
@@ -75,20 +77,7 @@ export default async function handler(req, res) {
       try {
         const candidateUser = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
 
-        await sendEmail({
-          to: candidateUser.email,
-          subject: 'Welcome to Mellow',
-          html: renderEmailHtml({
-            heading: 'Your living first impression starts here',
-            bodyText:
-              'Your profile is live and visible to employers. Start exploring open roles and apply with your video profile, no CV needed.',
-            ctaLabel: 'Browse roles',
-            ctaUrl: `${SITE_URL}/roles`,
-            secondaryCtaLabel: 'Go to my dashboard',
-            secondaryCtaUrl: `${SITE_URL}/dashboard`,
-            illustration: 'Flexible.PNG',
-          }),
-        })
+        await sendLiveWelcomeEmail(candidateUser.email)
 
         liveWelcomeEmailsSent += 1
       } catch (err) {

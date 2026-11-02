@@ -21,8 +21,8 @@
 // runs can't double-send. profile_link_email_sent_at is shared with the
 // re-engagement send, so nobody can get both of those.
 import { sendEmail } from '../_lib/resend.js'
-import { renderEmailHtml, SITE_URL } from '../_lib/email-template.js'
 import { getServiceClient, unwrap } from '../_lib/db.js'
+import { sendLiveWelcomeEmail } from '../email.js'
 import {
   LIVE_EMAILS_FROM,
   isEligibleForLiveEmails,
@@ -81,9 +81,9 @@ async function runPhase(supabase, { sentColumn, kindValue, afterHours, render })
 }
 
 // The live "Welcome to Mellow" for live candidates who haven't had it yet and
-// went live more than an hour ago. Same content as api/email.js's
-// sendCandidateWelcome and welcome-email-nudge.js's live pass — keep them in
-// sync. welcome_email_sent is claimed with a conditional update before
+// went live more than an hour ago. The email itself is api/email.js's
+// sendLiveWelcomeEmail, shared with the dashboard trigger and
+// welcome-email-nudge.js's live pass. welcome_email_sent is claimed with a conditional update before
 // sending (and released if the send fails), so this, the dashboard trigger
 // and the daily cron can't double-send.
 async function runLiveWelcome(supabase) {
@@ -112,20 +112,7 @@ async function runLiveWelcome(supabase) {
 
     try {
       const user = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
-      await sendEmail({
-        to: user.email,
-        subject: 'Welcome to Mellow',
-        html: renderEmailHtml({
-          heading: 'Your living first impression starts here',
-          bodyText:
-            'Your profile is live and visible to employers. Start exploring open roles and apply with your video profile, no CV needed.',
-          ctaLabel: 'Browse roles',
-          ctaUrl: `${SITE_URL}/roles`,
-          secondaryCtaLabel: 'Go to my dashboard',
-          secondaryCtaUrl: `${SITE_URL}/dashboard`,
-          illustration: 'Flexible.PNG',
-        }),
-      })
+      await sendLiveWelcomeEmail(user.email)
       sent += 1
     } catch (err) {
       failed += 1
