@@ -19,6 +19,13 @@
 // ever double-sending the same candidate, and is_live = false is what
 // keeps this one from firing for someone who already finished onboarding
 // (and so already got the email from the other trigger, or is about to).
+//
+// Scenario 1's trigger only fires when a live candidate actually loads their
+// dashboard, so someone who goes live and leaves without ever opening it
+// would otherwise never get the email. The first loop below covers them: any
+// live candidate who still has welcome_email_sent = false an hour after
+// going live gets the live-profile version of the email (the same content
+// as api/email.js's sendCandidateWelcome — keep the two in sync).
 import { sendEmail } from '../_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from '../_lib/email-template.js'
 import { getServiceClient, unwrap } from '../_lib/db.js'
@@ -37,6 +44,61 @@ export default async function handler(req, res) {
 
   const supabase = getServiceClient()
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const liveCutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+
+  let liveWelcomeEmailsSent = 0
+  try {
+    const liveCandidates = unwrap(
+      await supabase
+        .from('candidate_profiles')
+        .select('id, user_id')
+        .eq('is_live', true)
+        .eq('welcome_email_sent', false)
+        .lte('went_live_at', liveCutoff),
+    )
+
+    for (const candidate of liveCandidates) {
+      // Same atomic claim as below, and released again if the send fails so
+      // the candidate is retried on the next run instead of being marked as
+      // welcomed without ever getting the email. One candidate's failure is
+      // logged and skipped rather than stopping the rest.
+      const { data: claimed } = await supabase
+        .from('candidate_profiles')
+        .update({ welcome_email_sent: true })
+        .eq('id', candidate.id)
+        .eq('welcome_email_sent', false)
+        .eq('is_live', true)
+        .select('id')
+        .maybeSingle()
+      if (!claimed) continue
+
+      try {
+        const candidateUser = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
+
+        await sendEmail({
+          to: candidateUser.email,
+          subject: 'Welcome to Mellow',
+          html: renderEmailHtml({
+            heading: 'Your living first impression starts here',
+            bodyText:
+              'Your profile is live and visible to employers. Start exploring open roles and apply with your video profile, no CV needed.',
+            ctaLabel: 'Browse roles',
+            ctaUrl: `${SITE_URL}/roles`,
+            secondaryCtaLabel: 'Go to my dashboard',
+            secondaryCtaUrl: `${SITE_URL}/dashboard`,
+            illustration: 'Flexible.PNG',
+          }),
+        })
+
+        liveWelcomeEmailsSent += 1
+      } catch (err) {
+        console.error(`welcome-email-nudge: live welcome failed for candidate ${candidate.id}:`, err.message)
+        await supabase.from('candidate_profiles').update({ welcome_email_sent: false }).eq('id', candidate.id)
+      }
+    }
+  } catch (err) {
+    console.error('welcome-email-nudge: live welcome pass failed:', err.message)
+  }
 
   try {
     const candidates = unwrap(
@@ -93,7 +155,7 @@ export default async function handler(req, res) {
     }
 
     res.statusCode = 200
-    res.end(JSON.stringify({ success: true, welcomeEmailsSent: sent }))
+    res.end(JSON.stringify({ success: true, welcomeEmailsSent: sent, liveWelcomeEmailsSent }))
   } catch (err) {
     res.statusCode = 500
     res.end(JSON.stringify({ error: err.message }))

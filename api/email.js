@@ -99,9 +99,11 @@ async function sendCandidateWelcome(supabase, candidateId) {
     html: renderEmailHtml({
       heading: 'Your living first impression starts here',
       bodyText:
-        'Your profile is live and visible to employers. Keep it fresh, add a work video or two, and let the right opportunities find you.',
-      ctaLabel: 'Go to my dashboard',
-      ctaUrl: `${SITE_URL}/dashboard`,
+        'Your profile is live and visible to employers. Start exploring open roles and apply with your video profile, no CV needed.',
+      ctaLabel: 'Browse roles',
+      ctaUrl: `${SITE_URL}/roles`,
+      secondaryCtaLabel: 'Go to my dashboard',
+      secondaryCtaUrl: `${SITE_URL}/dashboard`,
       illustration: 'Flexible.PNG',
     }),
   })
