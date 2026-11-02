@@ -4,7 +4,11 @@
 // candidate_profiles.went_live_at (set by a trigger, migration 0091):
 //   hour 24  "Your profile is more than an intro" (work videos)
 //   hour 48  "Take Mellow with you — your profile link inside"
-// (hour 0 is the live "Welcome to Mellow" in api/email.js).
+// (hour 0 is the live "Welcome to Mellow" in api/email.js, sent when the
+// candidate first opens their dashboard. runLiveWelcome below is the backstop
+// for anyone who goes live and never does: an hour after going live they
+// still get it from here, instead of waiting for welcome-email-nudge.js's
+// daily run, which keeps the same pass as a fallback.)
 //
 // Eligibility, re-checked at send time: the profile is live right now, is not
 // hidden (is_open_to_opportunities), and the candidate hasn't been hired —
@@ -17,6 +21,7 @@
 // runs can't double-send. profile_link_email_sent_at is shared with the
 // re-engagement send, so nobody can get both of those.
 import { sendEmail } from '../_lib/resend.js'
+import { renderEmailHtml, SITE_URL } from '../_lib/email-template.js'
 import { getServiceClient, unwrap } from '../_lib/db.js'
 import {
   LIVE_EMAILS_FROM,
@@ -75,6 +80,62 @@ async function runPhase(supabase, { sentColumn, kindValue, afterHours, render })
   return { sent, failed }
 }
 
+// The live "Welcome to Mellow" for live candidates who haven't had it yet and
+// went live more than an hour ago. Same content as api/email.js's
+// sendCandidateWelcome and welcome-email-nudge.js's live pass — keep them in
+// sync. welcome_email_sent is claimed with a conditional update before
+// sending (and released if the send fails), so this, the dashboard trigger
+// and the daily cron can't double-send.
+async function runLiveWelcome(supabase) {
+  const cutoff = new Date(Date.now() - HOUR_MS).toISOString()
+  const due = unwrap(
+    await supabase
+      .from('candidate_profiles')
+      .select('id, user_id')
+      .eq('is_live', true)
+      .eq('welcome_email_sent', false)
+      .lte('went_live_at', cutoff),
+  )
+
+  let sent = 0
+  let failed = 0
+  for (const candidate of due) {
+    const { data: claimed } = await supabase
+      .from('candidate_profiles')
+      .update({ welcome_email_sent: true })
+      .eq('id', candidate.id)
+      .eq('welcome_email_sent', false)
+      .eq('is_live', true)
+      .select('id')
+      .maybeSingle()
+    if (!claimed) continue
+
+    try {
+      const user = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
+      await sendEmail({
+        to: user.email,
+        subject: 'Welcome to Mellow',
+        html: renderEmailHtml({
+          heading: 'Your living first impression starts here',
+          bodyText:
+            'Your profile is live and visible to employers. Start exploring open roles and apply with your video profile, no CV needed.',
+          ctaLabel: 'Browse roles',
+          ctaUrl: `${SITE_URL}/roles`,
+          secondaryCtaLabel: 'Go to my dashboard',
+          secondaryCtaUrl: `${SITE_URL}/dashboard`,
+          illustration: 'Flexible.PNG',
+        }),
+      })
+      sent += 1
+    } catch (err) {
+      failed += 1
+      await supabase.from('candidate_profiles').update({ welcome_email_sent: false }).eq('id', candidate.id)
+      console.error('live-profile-emails (welcome) send failed:', candidate.id, err.message)
+    }
+  }
+  return { sent, failed }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json')
 
@@ -88,6 +149,14 @@ export default async function handler(req, res) {
   }
 
   const supabase = getServiceClient()
+
+  // Its own try/catch so a failure here can't stop the 24h/48h emails below.
+  let welcome = { sent: 0, failed: 0 }
+  try {
+    welcome = await runLiveWelcome(supabase)
+  } catch (err) {
+    console.error('live-profile-emails (welcome) pass failed:', err.message)
+  }
 
   try {
     const videoLibrary = await runPhase(supabase, {
@@ -104,7 +173,7 @@ export default async function handler(req, res) {
     })
 
     res.statusCode = 200
-    res.end(JSON.stringify({ success: true, videoLibrary, profileLink }))
+    res.end(JSON.stringify({ success: true, welcome, videoLibrary, profileLink }))
   } catch (err) {
     res.statusCode = 500
     res.end(JSON.stringify({ error: err.message }))
