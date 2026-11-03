@@ -7,11 +7,10 @@
 // null — those candidates are already covered by video-reminder.js's own
 // sequence). nudge_sent (migration 0082) keeps it to once per candidate.
 //
-// This is the second step after welcome-email-nudge.js, not a parallel
-// send: it requires welcome_email_sent = true (that cron already emailed
-// them) and a row at least 24h old. welcome-email-nudge.js also fires on
-// the first daily run after 24h, so this can land on the same day as that
-// one (that cron runs earlier in the day).
+// This is the only email an incomplete candidate gets from the welcome
+// flow: welcome-email-nudge.js and the dashboard trigger only ever send
+// "Welcome to Mellow" to candidates who are already live. It needs just a row
+// at least 24h old.
 //
 // The query has no upper bound on row age, so a daily run still catches
 // everyone eventually, just with up to a day's extra delay past the 24h mark.
@@ -58,7 +57,6 @@ export default async function handler(req, res) {
         .select('id, user_id, full_name')
         .eq('is_live', false)
         .eq('nudge_sent', false)
-        .eq('welcome_email_sent', true)
         .lte('onboarding_step', LAST_ONBOARDING_STEP)
         .is('video_reminder_started_at', null)
         .lte('created_at', cutoff),

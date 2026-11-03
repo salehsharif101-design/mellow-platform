@@ -47,19 +47,15 @@ function readJsonBody(req) {
   })
 }
 
-// Fires the candidate "Welcome to Mellow" email exactly once. Two triggers
-// call this, both re-verifying eligibility here rather than trusting the
-// caller: Dashboard.jsx's candidate-welcome notify(), fired the first time
-// a candidate with a fully live profile lands on their dashboard (see
-// scenario 1), and api/cron/welcome-email-nudge.js, a daily nudge for
-// anyone who confirmed their email but never made it back to finish
-// onboarding (scenario 2) — that one calls sendEmail directly with the
-// same content rather than importing this, matching how this codebase's
-// other cron jobs are self-contained (see work-video-nudge.js). Someone
-// who never confirms their email never gets a candidate_profiles row in
-// the first place (see ProfileEdit.jsx's upsert, which only ever runs once
-// an authenticated session exists), so scenario 3 — never sending to them —
-// falls out naturally rather than needing an explicit check here.
+// Fires the candidate "Welcome to Mellow" email exactly once, and only for a
+// candidate whose profile is live. Three triggers send it, all through
+// _lib/welcomeEmail.js's sendLiveWelcomeEmail and all re-verifying eligibility
+// rather than trusting the caller: Dashboard.jsx's candidate-welcome notify(),
+// fired the first time a live candidate lands on their dashboard, and the
+// hourly api/cron/live-profile-emails.js and daily api/cron/welcome-email-nudge.js,
+// which cover live candidates who never open the dashboard. welcome_email_sent
+// keeps the three from ever double-sending. Candidates who haven't finished
+// onboarding get no welcome email; their nudge is onboarding-dropoff-nudge.js.
 async function sendCandidateWelcome(supabase, candidateId) {
   const candidate = unwrap(
     await supabase
@@ -86,15 +82,22 @@ async function sendCandidateWelcome(supabase, candidateId) {
     .maybeSingle()
   if (!claimed) return { skipped: true }
 
-  const user = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
+  // The claim above is released again if anything below fails, so the flag
+  // never says "welcomed" for someone who never got the email — the hourly
+  // and daily crons then pick them up on a later run. Same pattern as
+  // live-profile-emails.js and welcome-email-nudge.js.
+  try {
+    const user = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
 
-  // This function only ever fires once is_live is already true (the check
-  // above), unlike welcome-email-nudge.js's own copy of this email (a
-  // near-identical string, deliberately NOT shared with this function —
-  // see the comment above it) for candidates who haven't finished
-  // onboarding yet. Telling an already-live candidate to "complete your
-  // profile, upload your video" describes the one thing they just did.
-  await sendLiveWelcomeEmail(user.email)
+    // This function only ever fires once is_live is already true (the check
+    // above); candidates who haven't finished onboarding never get this
+    // email. Telling an already-live candidate to "complete your profile,
+    // upload your video" would describe the one thing they just did.
+    await sendLiveWelcomeEmail(user.email)
+  } catch (err) {
+    await supabase.from('candidate_profiles').update({ welcome_email_sent: false }).eq('id', candidate.id)
+    throw err
+  }
 
   return { sent: true }
 }

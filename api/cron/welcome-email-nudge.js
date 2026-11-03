@@ -1,34 +1,14 @@
-// Vercel Cron target — see the "crons" entry in vercel.json (runs daily;
-// Vercel's Hobby plan caps crons at once per day, so this can't run
-// hourly — the uncapped "created_at <= cutoff" query below means a daily
-// check still catches everyone eventually, just with up to a day's extra
-// delay past the 24h mark instead of within the hour, same tradeoff as
-// this codebase's other daily crons).
+// Vercel Cron target — see the "crons" entry in vercel.json (runs daily). It is
+// the daily fallback for the live-candidate welcome email: the primary triggers
+// are the dashboard load (api/email.js's candidate-welcome case) and the
+// hourly api/cron/live-profile-emails.js, and this catches anyone both missed.
 //
-// Scenario 2 of the candidate welcome email: a candidate who confirmed
-// their email but never made it back to finish onboarding gets the same
-// "Welcome to Mellow" email as a gentle nudge, once, 24h after they first
-// showed up. A candidate_profiles row only ever exists once its owner has
-// an authenticated session — see ProfileEdit.jsx's upsert — and for a
-// normal signup that requires confirming their email first, so this row's
-// created_at doubles as "confirmed their email at" without needing to
-// touch auth.users directly. Scenario 1 (finishing onboarding and landing
-// on /dashboard) is handled separately by the candidate-welcome case in
-// api/email.js, which sends the identical content — keep the two in sync
-// if either changes. welcome_email_sent is what keeps both triggers from
-// ever double-sending the same candidate, and is_live = false is what
-// keeps this one from firing for someone who already finished onboarding
-// (and so already got the email from the other trigger, or is about to).
-//
-// Scenario 1's trigger only fires when a live candidate actually loads their
-// dashboard, so someone who goes live and leaves without ever opening it
-// would otherwise never get the email. The first loop below covers them: any
-// live candidate who still has welcome_email_sent = false an hour after
-// going live gets the live-profile version of the email, sent through
-// _lib/welcomeEmail.js's sendLiveWelcomeEmail (the same one the dashboard trigger
-// and live-profile-emails.js use).
-import { sendEmail } from '../_lib/resend.js'
-import { renderEmailHtml, SITE_URL } from '../_lib/email-template.js'
+// Only ever emails candidates whose profile is live: any live candidate who
+// still has welcome_email_sent = false an hour after going live gets the
+// email, sent through _lib/welcomeEmail.js's sendLiveWelcomeEmail (the same
+// one the dashboard trigger and live-profile-emails.js use). Candidates who
+// haven't finished onboarding get no "Welcome to Mellow" email; their nudge is
+// onboarding-dropoff-nudge.js's "You are almost there".
 import { getServiceClient, unwrap } from '../_lib/db.js'
 import { sendLiveWelcomeEmail } from '../_lib/welcomeEmail.js'
 
@@ -45,7 +25,6 @@ export default async function handler(req, res) {
   }
 
   const supabase = getServiceClient()
-  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
   const liveCutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString()
 
   let liveWelcomeEmailsSent = 0
@@ -60,8 +39,10 @@ export default async function handler(req, res) {
     )
 
     for (const candidate of liveCandidates) {
-      // Same atomic claim as below, and released again if the send fails so
-      // the candidate is retried on the next run instead of being marked as
+      // Claims the send atomically before sending, so overlapping runs (or the
+      // dashboard trigger and the hourly cron) can't both email the same
+      // candidate, and releases the claim again if the send fails so the
+      // candidate is retried on the next run instead of being marked as
       // welcomed without ever getting the email. One candidate's failure is
       // logged and skipped rather than stopping the rest.
       const { data: claimed } = await supabase
@@ -89,64 +70,6 @@ export default async function handler(req, res) {
     console.error('welcome-email-nudge: live welcome pass failed:', err.message)
   }
 
-  try {
-    const candidates = unwrap(
-      await supabase
-        .from('candidate_profiles')
-        .select('id, user_id')
-        .eq('welcome_email_sent', false)
-        .eq('is_live', false)
-        // Excludes anyone already in video-reminder.js's own multi-step
-        // sequence (set once a candidate uses "save for later" at the
-        // video step) — without this, a candidate could get both this
-        // cron's welcome nudge AND that cron's own reminder on the same
-        // day, both saying some version of "come finish your profile."
-        // video-reminder.js is the more specific nudge for that segment,
-        // so this one is reserved for someone who never even reached that
-        // step.
-        .is('video_reminder_started_at', null)
-        .lte('created_at', cutoff),
-    )
-
-    let sent = 0
-    for (const candidate of candidates) {
-      // Claims the send atomically before sending, rather than sending
-      // first and writing welcome_email_sent afterward — two overlapping
-      // runs of this same cron (a slow run plus a retry, or a manual
-      // re-trigger) would otherwise both see welcome_email_sent = false in
-      // the query above and both send. Only the request whose update
-      // actually matches a row (still false at that instant) proceeds.
-      const { data: claimed } = await supabase
-        .from('candidate_profiles')
-        .update({ welcome_email_sent: true })
-        .eq('id', candidate.id)
-        .eq('welcome_email_sent', false)
-        .select('id')
-        .maybeSingle()
-      if (!claimed) continue
-
-      const candidateUser = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
-
-      await sendEmail({
-        to: candidateUser.email,
-        subject: 'Welcome to Mellow',
-        html: renderEmailHtml({
-          heading: 'Your living first impression starts here',
-          bodyText:
-            'You are one step away from showing employers exactly who you are. Complete your profile, upload your 60-second video, and let the right opportunities find you.',
-          ctaLabel: 'Complete my profile',
-          ctaUrl: `${SITE_URL}/dashboard`,
-          illustration: 'Flexible.PNG',
-        }),
-      })
-
-      sent += 1
-    }
-
-    res.statusCode = 200
-    res.end(JSON.stringify({ success: true, welcomeEmailsSent: sent, liveWelcomeEmailsSent }))
-  } catch (err) {
-    res.statusCode = 500
-    res.end(JSON.stringify({ error: err.message }))
-  }
+  res.statusCode = 200
+  res.end(JSON.stringify({ success: true, liveWelcomeEmailsSent }))
 }
