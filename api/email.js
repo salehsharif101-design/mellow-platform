@@ -18,7 +18,7 @@ import { renderEmailHtml, SITE_URL } from './_lib/email-template.js'
 import { getServiceClient, unwrap, getCandidateContact, getEmployerContact, getEmployerEmails, getEmployerUserIds } from './_lib/db.js'
 import { escapeHtml } from './_lib/html.js'
 import { renderVideoLibraryEmail } from './_lib/profileLinkEmails.js'
-import { sendLiveWelcomeEmail } from './_lib/welcomeEmail.js'
+import { sendLiveWelcomeEmail, renderEmployerWelcomeEmail } from './_lib/welcomeEmail.js'
 // Pure functions only (no supabase import, no env var reads) — safe to
 // import here unlike src/lib/employerAccess.js (see getCandidateContact's
 // own comment in db.js for why that one specifically can't be).
@@ -104,7 +104,7 @@ async function sendCandidateWelcome(supabase, candidateId) {
 
 async function sendEmployerWelcome(supabase, userId) {
   const employer = unwrap(
-    await supabase.from('employer_profiles').select('id, welcome_email_sent').eq('user_id', userId).single(),
+    await supabase.from('employer_profiles').select('id, welcome_email_sent, company_name').eq('user_id', userId).single(),
   )
   if (employer.welcome_email_sent) return { skipped: true }
 
@@ -122,18 +122,8 @@ async function sendEmployerWelcome(supabase, userId) {
 
   const user = unwrap(await supabase.from('users').select('email').eq('id', userId).single())
 
-  return sendEmail({
-    to: user.email,
-    subject: 'Welcome to Mellow',
-    html: renderEmailHtml({
-      heading: 'Start meeting people, not documents',
-      bodyText:
-        'Browse real talent, post your first role, and find the right person without reading a single CV. Your talent feed is ready and waiting.',
-      ctaLabel: 'Browse the talent feed',
-      ctaUrl: `${SITE_URL}/employer/talent`,
-      illustration: 'Client_to_creative.png',
-    }),
-  })
+  const { subject, html } = renderEmployerWelcomeEmail({ companyName: employer.company_name })
+  return sendEmail({ to: user.email, subject, html })
 }
 
 // Fires once per role posted, in one of two variants. The fuller "make it
