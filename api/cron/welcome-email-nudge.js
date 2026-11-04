@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     const liveCandidates = unwrap(
       await supabase
         .from('candidate_profiles')
-        .select('id, user_id')
+        .select('id, user_id, full_name')
         .eq('is_live', true)
         .eq('welcome_email_sent', false)
         .lte('went_live_at', liveCutoff),
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
       try {
         const candidateUser = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
 
-        await sendLiveWelcomeEmail(candidateUser.email)
+        await sendLiveWelcomeEmail(candidateUser.email, candidate.full_name)
 
         liveWelcomeEmailsSent += 1
       } catch (err) {

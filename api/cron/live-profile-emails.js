@@ -91,7 +91,7 @@ async function runLiveWelcome(supabase) {
   const due = unwrap(
     await supabase
       .from('candidate_profiles')
-      .select('id, user_id')
+      .select('id, user_id, full_name')
       .eq('is_live', true)
       .eq('welcome_email_sent', false)
       .lte('went_live_at', cutoff),
@@ -112,7 +112,7 @@ async function runLiveWelcome(supabase) {
 
     try {
       const user = unwrap(await supabase.from('users').select('email').eq('id', candidate.user_id).single())
-      await sendLiveWelcomeEmail(user.email)
+      await sendLiveWelcomeEmail(user.email, candidate.full_name)
       sent += 1
     } catch (err) {
       failed += 1

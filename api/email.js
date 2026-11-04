@@ -60,7 +60,7 @@ async function sendCandidateWelcome(supabase, candidateId) {
   const candidate = unwrap(
     await supabase
       .from('candidate_profiles')
-      .select('id, user_id, is_live, welcome_email_sent')
+      .select('id, user_id, full_name, is_live, welcome_email_sent')
       .eq('id', candidateId)
       .single(),
   )
@@ -93,7 +93,7 @@ async function sendCandidateWelcome(supabase, candidateId) {
     // above); candidates who haven't finished onboarding never get this
     // email. Telling an already-live candidate to "complete your profile,
     // upload your video" would describe the one thing they just did.
-    await sendLiveWelcomeEmail(user.email)
+    await sendLiveWelcomeEmail(user.email, candidate.full_name)
   } catch (err) {
     await supabase.from('candidate_profiles').update({ welcome_email_sent: false }).eq('id', candidate.id)
     throw err
