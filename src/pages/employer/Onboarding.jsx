@@ -58,6 +58,7 @@ export default function EmployerOnboarding() {
   const [headline, setHeadline] = useState('')
   const [yearEstablished, setYearEstablished] = useState('')
   const [websiteUrl, setWebsiteUrl] = useState('')
+  const [linkedinUrl, setLinkedinUrl] = useState('')
   const [about, setAbout] = useState('')
   const [cultureDescription, setCultureDescription] = useState('')
   const [typicalRoles, setTypicalRoles] = useState('')
@@ -68,6 +69,7 @@ export default function EmployerOnboarding() {
 
   const draftLoadedRef = useRef(false)
   const yearInputRef = useRef(null)
+  const linkedinInputRef = useRef(null)
 
   useEffect(() => {
     if (!user) return
@@ -120,6 +122,7 @@ export default function EmployerOnboarding() {
         setHeadline(profile.headline || '')
         setYearEstablished(profile.year_established ? String(profile.year_established) : '')
         setWebsiteUrl(profile.website_url || '')
+        setLinkedinUrl(profile.linkedin_url || '')
         setAbout(profile.about || '')
         setCultureDescription(profile.culture_description || '')
         setTypicalRoles(profile.typical_roles || '')
@@ -174,6 +177,7 @@ export default function EmployerOnboarding() {
             // A half-typed year is just left out of the draft; submit validates it.
             year_established: parseYearEstablished(yearEstablished).value,
             website_url: websiteUrl.trim() || null,
+            linkedin_url: linkedinUrl.trim() || null,
             about: about.trim(),
             culture_description: cultureDescription.trim(),
             typical_roles: typicalRoles.trim() || null,
@@ -182,7 +186,7 @@ export default function EmployerOnboarding() {
           { onConflict: 'user_id' },
         )
     },
-    [companyName, industry, companySize, country, headline, yearEstablished, websiteUrl, about, cultureDescription, typicalRoles, companyHighlight],
+    [companyName, industry, companySize, country, headline, yearEstablished, websiteUrl, linkedinUrl, about, cultureDescription, typicalRoles, companyHighlight],
     { enabled: draftLoadedRef.current && !loading && !showWelcome && wasIncomplete },
   )
 
@@ -209,6 +213,12 @@ export default function EmployerOnboarding() {
     if (yearCheck.error) {
       setError(yearCheck.error)
       yearInputRef.current?.focus()
+      return
+    }
+    const trimmedLinkedin = linkedinUrl.trim()
+    if (trimmedLinkedin && !/^https?:\/\//i.test(trimmedLinkedin)) {
+      setError('LinkedIn URL must start with https:// or http://')
+      linkedinInputRef.current?.focus()
       return
     }
     setSaving(true)
@@ -243,6 +253,7 @@ export default function EmployerOnboarding() {
         headline: headline.trim() || null,
         year_established: yearCheck.value,
         website_url: websiteUrl.trim() || null,
+        linkedin_url: linkedinUrl.trim() || null,
         about: about.trim(),
         culture_description: cultureDescription.trim(),
         typical_roles: typicalRoles.trim() || null,
@@ -405,6 +416,18 @@ export default function EmployerOnboarding() {
                 value={websiteUrl}
                 onChange={(e) => setWebsiteUrl(e.target.value)}
                 placeholder="https://acme.com"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="linkedin_url">LinkedIn Company Page (optional)</label>
+              <input
+                id="linkedin_url"
+                ref={linkedinInputRef}
+                className="input"
+                type="text"
+                value={linkedinUrl}
+                onChange={(e) => setLinkedinUrl(e.target.value)}
+                placeholder="https://linkedin.com/company/yourcompany"
               />
             </div>
             <div className="field">
