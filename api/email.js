@@ -17,7 +17,6 @@ import { sendEmail } from './_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from './_lib/email-template.js'
 import { getServiceClient, unwrap, getCandidateContact, getEmployerContact, getEmployerEmails, getEmployerUserIds } from './_lib/db.js'
 import { escapeHtml } from './_lib/html.js'
-import { renderVideoLibraryEmail } from './_lib/profileLinkEmails.js'
 import { sendLiveWelcomeEmail, renderEmployerWelcomeEmail } from './_lib/welcomeEmail.js'
 // Pure functions only (no supabase import, no env var reads) — safe to
 // import here unlike src/lib/employerAccess.js (see getCandidateContact's
@@ -120,10 +119,18 @@ async function sendEmployerWelcome(supabase, userId) {
     .maybeSingle()
   if (!claimed) return { skipped: true }
 
-  const user = unwrap(await supabase.from('users').select('email').eq('id', userId).single())
+  // The claim above is released again if anything below fails, so the flag
+  // never says "welcomed" for an employer who never got the email — the next
+  // trigger retries. Same pattern as sendCandidateWelcome.
+  try {
+    const user = unwrap(await supabase.from('users').select('email').eq('id', userId).single())
 
-  const { subject, html } = renderEmployerWelcomeEmail({ companyName: employer.company_name })
-  return sendEmail({ to: user.email, subject, html })
+    const { subject, html } = renderEmployerWelcomeEmail({ companyName: employer.company_name })
+    return await sendEmail({ to: user.email, subject, html })
+  } catch (err) {
+    await supabase.from('employer_profiles').update({ welcome_email_sent: false }).eq('id', employer.id)
+    throw err
+  }
 }
 
 // Fires once per role posted, in one of two variants. The fuller "make it
@@ -521,12 +528,6 @@ async function sendRoleStatusChangeNotification(supabase, roleId) {
   })
 }
 
-async function sendVideoLibraryNotification(supabase, candidateId) {
-  const { email } = await getCandidateContact(supabase, candidateId)
-  const { subject, html } = renderVideoLibraryEmail()
-  return sendEmail({ to: email, subject, html })
-}
-
 async function sendQuestionAskedNotification(supabase, questionId) {
   const question = unwrap(
     await supabase.from('video_questions').select('answer_token, role_id, employer_id, candidate_id').eq('id', questionId).single(),
@@ -613,9 +614,6 @@ export default async function handler(req, res) {
         break
       case 'custom-stage-notification':
         await sendCustomStageNotification(supabase, body.applicationId)
-        break
-      case 'video-library-notification':
-        await sendVideoLibraryNotification(supabase, body.candidateId)
         break
       case 'question-asked':
         await sendQuestionAskedNotification(supabase, body.questionId)

@@ -73,10 +73,16 @@ export default async function handler(req, res) {
   }
 
   // Best-effort storage — a transient DB hiccup shouldn't stop someone
-  // from getting their thank-you email. Duplicate signups just no-op
-  // (email column is unique) rather than erroring.
+  // from getting their thank-you email. A duplicate address (email column is
+  // unique, Postgres code 23505) was already thanked on its first signup, so
+  // it gets the same success response without a second email.
   try {
-    await getServiceClient().from('waitlist_signups').insert({ email })
+    const { error } = await getServiceClient().from('waitlist_signups').insert({ email })
+    if (error?.code === '23505') {
+      res.statusCode = 200
+      res.end(JSON.stringify({ success: true }))
+      return
+    }
   } catch {
     // ignored — storage is secondary to actually sending the email
   }
