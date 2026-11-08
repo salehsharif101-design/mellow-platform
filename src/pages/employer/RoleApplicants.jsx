@@ -501,8 +501,8 @@ export default function RoleApplicants() {
           }}
         >
           <p style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>
-            Want to know more about a candidate? Ask them a video question directly on Mellow — they record their
-            answer and you watch it when you are ready.
+            Want to know more about a candidate? Ask them a video question — they record their answer and you watch
+            it when you’re ready.
           </p>
           <button
             type="button"
