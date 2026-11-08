@@ -170,14 +170,14 @@ async function sendEmployerDigests(supabase, since) {
       supabase.from('company_views').select('id', { count: 'exact', head: true }).eq('employer_id', employer.id).gte('viewed_at', since),
     ])
 
-    if ((newApplicants || 0) === 0 && (messagesThisWeek || 0) === 0 && (companyViews || 0) === 0) continue
-
     // A new candidate counts once if their skills overlap the required_skills
     // of any of this employer's active roles — the same exact-skill signal
     // as src/lib/roleFormat.js's countMatchedSkills.
     const openRoles = unwrap(await supabase.from('roles').select('required_skills').eq('employer_id', employer.id).eq('is_active', true))
     const requiredSkills = new Set(openRoles.flatMap((r) => r.required_skills || []).map((s) => s.toLowerCase()))
     const matchedCandidates = newCandidates.filter((c) => (c.skills || []).some((s) => requiredSkills.has(s.toLowerCase()))).length
+
+    if ((newApplicants || 0) === 0 && (messagesThisWeek || 0) === 0 && (companyViews || 0) === 0 && matchedCandidates === 0) continue
 
     const parts = []
     if (newApplicants > 0) parts.push(`${newApplicants} new applicant${newApplicants === 1 ? '' : 's'} across all roles`)
@@ -206,7 +206,7 @@ async function sendEmployerDigests(supabase, since) {
       subject: 'Your Mellow hiring update',
       html: renderEmailHtml({
         heading: 'Here is what happened this week',
-        bodyText: `${summary} Log in to review your applicants and keep your pipeline moving.`,
+        bodyText: `${summary} Log in to review your applicants, browse new talent and keep your pipeline moving.`,
         ctaLabel: 'View my dashboard',
         ctaUrl: `${SITE_URL}/employer/dashboard`,
         secondaryCtaLabel: 'Browse talent',
