@@ -125,6 +125,19 @@ async function sendEmployerDigests(supabase, since) {
   )
   if (employers.length === 0) return 0
 
+  // Candidates who went live this week and are actually visible in the talent
+  // feed (open to opportunities, intro video uploaded) — the pool each
+  // employer's "matched candidates" count is drawn from.
+  const newCandidates = unwrap(
+    await supabase
+      .from('candidate_profiles')
+      .select('id, skills')
+      .eq('is_live', true)
+      .eq('is_open_to_opportunities', true)
+      .not('intro_video_url', 'is', null)
+      .gte('went_live_at', since),
+  )
+
   const dedupCutoffIso = new Date(Date.now() - DEDUP_GUARD_MS).toISOString()
 
   let sent = 0
@@ -159,8 +172,16 @@ async function sendEmployerDigests(supabase, since) {
 
     if ((newApplicants || 0) === 0 && (messagesThisWeek || 0) === 0 && (companyViews || 0) === 0) continue
 
+    // A new candidate counts once if their skills overlap the required_skills
+    // of any of this employer's active roles — the same exact-skill signal
+    // as src/lib/roleFormat.js's countMatchedSkills.
+    const openRoles = unwrap(await supabase.from('roles').select('required_skills').eq('employer_id', employer.id).eq('is_active', true))
+    const requiredSkills = new Set(openRoles.flatMap((r) => r.required_skills || []).map((s) => s.toLowerCase()))
+    const matchedCandidates = newCandidates.filter((c) => (c.skills || []).some((s) => requiredSkills.has(s.toLowerCase()))).length
+
     const parts = []
     if (newApplicants > 0) parts.push(`${newApplicants} new applicant${newApplicants === 1 ? '' : 's'} across all roles`)
+    if (matchedCandidates > 0) parts.push(`${matchedCandidates} new candidate${matchedCandidates === 1 ? '' : 's'} matched your open roles`)
     if (unreadMessages > 0) parts.push(`${unreadMessages} unread message${unreadMessages === 1 ? '' : 's'}`)
     if (companyViews > 0) parts.push(`${companyViews} talent${companyViews === 1 ? '' : 's'} viewed your company profile`)
     const summary = parts.length > 0 ? `This week: ${parts.join(', ')}.` : ''
@@ -188,6 +209,8 @@ async function sendEmployerDigests(supabase, since) {
         bodyText: `${summary} Log in to review your applicants and keep your pipeline moving.`,
         ctaLabel: 'View my dashboard',
         ctaUrl: `${SITE_URL}/employer/dashboard`,
+        secondaryCtaLabel: 'Browse talent',
+        secondaryCtaUrl: `${SITE_URL}/employer/talent`,
         illustration: 'Collaborate2.png',
       }),
     })
