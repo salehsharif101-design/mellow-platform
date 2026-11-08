@@ -353,7 +353,7 @@ async function sendRejectionNotification(supabase, applicationId) {
     html: renderEmailHtml({
       heading: 'Thank you for applying',
       bodyText: `We really appreciate you taking the time to apply for ${escapeHtml(role.title)} at ${escapeHtml(companyName)} and for putting yourself out there. After careful consideration we have decided not to move forward with your application. We wish you all the best and hope the right opportunity finds you soon on Mellow.`,
-      illustration: 'Flexible.PNG',
+      illustration: 'thinking2.png',
     }),
   })
 }

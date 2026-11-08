@@ -23,7 +23,7 @@ const REMINDERS = [
     heading: 'You are 90% there',
     bodyText: 'You are 90% there. Record a quick 60-second video and your profile goes live immediately. Employers are already browsing.',
     ctaLabel: 'Add my video',
-    illustration: 'Floating_girl.PNG',
+    illustration: 'Flexible.PNG',
   },
   {
     delayMs: 3 * DAY_MS,
