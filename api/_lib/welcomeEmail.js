@@ -19,7 +19,7 @@ export async function sendLiveWelcomeEmail(to, fullName) {
       ctaUrl: `${SITE_URL}/roles`,
       secondaryCtaLabel: 'Go to my dashboard',
       secondaryCtaUrl: `${SITE_URL}/dashboard`,
-      illustration: 'Home_Page.png',
+      illustration: 'Floating_girl.PNG',
     }),
   })
 }
