@@ -149,7 +149,7 @@ export default async function handler(req, res) {
     const videoLibrary = await runPhase(supabase, {
       sentColumn: 'video_library_email_sent_at',
       afterHours: 24,
-      render: () => renderVideoLibraryEmail(),
+      render: (candidate) => renderVideoLibraryEmail({ fullName: candidate.full_name }),
     })
     const profileLink = await runPhase(supabase, {
       sentColumn: 'profile_link_email_sent_at',

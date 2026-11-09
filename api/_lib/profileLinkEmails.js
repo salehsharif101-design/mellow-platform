@@ -109,12 +109,13 @@ export function renderProfileLinkReengagement({ fullName, profileUrl, previewNot
 // after a candidate goes live; the body was written for the (previously
 // never-triggered) video-library notification in api/email.js, which now
 // uses this too.
-export function renderVideoLibraryEmail() {
+export function renderVideoLibraryEmail({ fullName } = {}) {
   return {
     subject: 'Your profile is more than an intro',
     html: renderEmailHtml({
       heading: 'Show employers how you actually work',
       bodyText:
+        `Hey ${escapeHtml(firstNameOf(fullName))},<br><br>` +
         'Your Mellow profile starts with your 60-second intro video. But top talent goes further. The work video library lets you upload additional videos that show employers exactly how you think and what you are capable of, before the first interview.<br><br>' +
         'Here are a few ideas to get you started:<br><br>' +
         '🎨 Designer? Walk through a recent project, the brief, your thinking, the final result.<br><br>' +
