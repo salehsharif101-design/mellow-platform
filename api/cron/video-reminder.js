@@ -38,7 +38,7 @@ const REMINDERS = [
   {
     delayMs: 7 * DAY_MS,
     subject: 'Your Mellow profile is waiting for you',
-    heading: 'Your Mellow profile is waiting for you',
+    heading: 'One step away from being discovered',
     bodyText: 'You set up your profile on Mellow but never went live. Roles are being posted and employers are actively looking for talent. Do not miss out.',
     ctaLabel: 'Go live now',
     illustration: 'thinking2.png',
