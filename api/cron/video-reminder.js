@@ -8,6 +8,8 @@
 import { sendEmail } from '../_lib/resend.js'
 import { renderEmailHtml, SITE_URL } from '../_lib/email-template.js'
 import { getServiceClient, unwrap, getCandidateContact } from '../_lib/db.js'
+import { escapeHtml } from '../_lib/html.js'
+import { firstNameOf } from '../_lib/profileLinkEmails.js'
 
 const HOUR_MS = 60 * 60 * 1000
 const DAY_MS = 24 * HOUR_MS
@@ -40,6 +42,7 @@ const REMINDERS = [
     bodyText: 'You set up your profile on Mellow but never went live. Roles are being posted and employers are actively looking for talent. Do not miss out.',
     ctaLabel: 'Go live now',
     illustration: 'thinking2.png',
+    greeting: true,
   },
 ]
 
@@ -84,14 +87,16 @@ export default async function handler(req, res) {
         .maybeSingle()
       if (!claimed) continue
 
-      const { email } = await getCandidateContact(supabase, candidate.id)
+      const { email, fullName } = await getCandidateContact(supabase, candidate.id)
 
       await sendEmail({
         to: email,
         subject: reminder.subject,
         html: renderEmailHtml({
           heading: reminder.heading,
-          bodyText: reminder.bodyText,
+          bodyText: reminder.greeting
+            ? `Hey ${escapeHtml(firstNameOf(fullName))},<br /><br />${reminder.bodyText}`
+            : reminder.bodyText,
           ctaLabel: reminder.ctaLabel,
           ctaUrl: `${SITE_URL}/profile/edit#video-section`,
           illustration: reminder.illustration,
