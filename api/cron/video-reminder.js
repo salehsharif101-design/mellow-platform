@@ -23,7 +23,7 @@ const REMINDERS = [
     delayMs: 24 * HOUR_MS,
     subject: 'Your Mellow profile is one video away',
     heading: 'You are 90% there',
-    bodyText: 'You are 90% there. Record a quick 60-second video and your profile goes live immediately. Employers are already browsing.',
+    bodyText: 'Record a quick 60-second video and your profile goes live immediately. Employers are already browsing.',
     ctaLabel: 'Add my video',
     illustration: 'Flexible.PNG',
     greeting: true,
