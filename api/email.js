@@ -18,6 +18,7 @@ import { renderEmailHtml, SITE_URL } from './_lib/email-template.js'
 import { getServiceClient, unwrap, getCandidateContact, getEmployerContact, getEmployerEmails, getEmployerUserIds } from './_lib/db.js'
 import { escapeHtml } from './_lib/html.js'
 import { sendLiveWelcomeEmail, renderEmployerWelcomeEmail } from './_lib/welcomeEmail.js'
+import { firstNameOf } from './_lib/profileLinkEmails.js'
 // Pure functions only (no supabase import, no env var reads) — safe to
 // import here unlike src/lib/employerAccess.js (see getCandidateContact's
 // own comment in db.js for why that one specifically can't be).
@@ -344,7 +345,7 @@ async function sendRejectionNotification(supabase, applicationId) {
       .eq('id', application.role_id)
       .single(),
   )
-  const { email } = await getCandidateContact(supabase, application.candidate_id)
+  const { email, fullName } = await getCandidateContact(supabase, application.candidate_id)
   const companyName = role.employer_profiles?.company_name || 'the company'
 
   return sendEmail({
@@ -352,7 +353,7 @@ async function sendRejectionNotification(supabase, applicationId) {
     subject: `Update on your application to ${companyName}`,
     html: renderEmailHtml({
       heading: 'Thank you for applying',
-      bodyText: `We really appreciate you taking the time to apply for ${escapeHtml(role.title)} at ${escapeHtml(companyName)} and for putting yourself out there. After careful consideration we have decided not to move forward with your application. We wish you all the best and hope the right opportunity finds you soon on Mellow.`,
+      bodyText: `Hey ${escapeHtml(firstNameOf(fullName))},<br /><br />We really appreciate you taking the time to apply for ${escapeHtml(role.title)} at ${escapeHtml(companyName)} and for putting yourself out there. After careful consideration we have decided not to move forward with your application. We wish you all the best and hope the right opportunity finds you soon on Mellow.`,
       illustration: 'plant.PNG',
     }),
   })
