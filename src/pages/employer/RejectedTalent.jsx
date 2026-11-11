@@ -151,7 +151,7 @@ export default function RejectedTalent() {
                       Rejected {formatRelativeTime(entry.status_changed_at || entry.applied_at)}
                     </p>
 
-                    <Link to={`/profile/${c.username || c.id}`} className="btn btn-primary" style={{ textAlign: 'center' }}>
+                    <Link to={`/profile/${c.username || c.id}`} className="btn btn-primary" style={{ textAlign: 'center', marginTop: 'auto' }}>
                       View profile
                     </Link>
                   </div>
