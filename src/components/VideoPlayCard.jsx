@@ -42,6 +42,7 @@ export default function VideoPlayCard({ url, style, format = 'vertical', objectF
         ref={videoRef}
         src={url}
         controls={playing}
+        controlsList="nodownload"
         playsInline
         webkit-playsinline="true"
         onLoadedMetadata={handleLoadedMetadata}
