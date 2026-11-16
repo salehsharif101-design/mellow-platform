@@ -43,8 +43,14 @@ function buildDailyBuckets(applications) {
 // client-side, and average time to hire compares each hires.confirmed_at
 // against that candidate's applied_at for this role — only shown once at
 // least one hire is confirmed, per the spec, rather than as a misleading 0.
-export default function RoleAnalyticsPanel({ role, applications, hires }) {
+export default function RoleAnalyticsPanel({ role, applications: allApplications, hires }) {
   const views = role.view_count || 0
+  // Only applicants with a live candidate profile — employers can't read
+  // non-live profiles, so those applications never show in the pipeline.
+  const applications = useMemo(
+    () => allApplications.filter((a) => a.candidate_profiles && a.candidate_profiles.is_live !== false),
+    [allApplications],
+  )
   const totalApplicants = applications.length
   const conversion = views > 0 ? Math.round((totalApplicants / views) * 100) : null
 

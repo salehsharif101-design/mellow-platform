@@ -215,7 +215,7 @@ export default function EmployerDashboard() {
           .order('created_at', { ascending: false }),
         supabase
           .from('applications')
-          .select('id, status, role_id, applied_at, viewed_at, candidate_profiles(id, username, full_name, avatar_url, job_title), roles!inner(employer_id)')
+          .select('id, status, role_id, applied_at, viewed_at, candidate_profiles(id, username, full_name, avatar_url, job_title, is_live), roles!inner(employer_id)')
           .eq('roles.employer_id', emp.id),
         // Excludes rejected entries — Shortlist Review moves a candidate to
         // status 'rejected' rather than deleting the row (so the history
@@ -500,7 +500,9 @@ export default function EmployerDashboard() {
   const pipelineRoles = roles.filter((r) => r.status === 'open' || r.status === 'paused')
 
   const pipeline = pipelineRoles.map((role) => {
-    const roleApps = applications.filter((a) => a.role_id === role.id)
+    // Only applicants with a live candidate profile — employers can't read
+    // non-live profiles, so those applications never show in the pipeline.
+    const roleApps = applications.filter((a) => a.role_id === role.id && a.candidate_profiles && a.candidate_profiles.is_live !== false)
     const total = roleApps.length
     const unviewed = roleApps.filter((a) => !a.viewed_at).length
     const shortlistedCount = roleApps.filter((a) => a.status === 'shortlisted').length
