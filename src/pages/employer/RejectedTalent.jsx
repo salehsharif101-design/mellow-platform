@@ -7,6 +7,7 @@ import { formatRelativeTime } from '../../lib/roleFormat.js'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
 import PageLoading from '../../components/PageLoading.jsx'
+import SkillTags from '../../components/SkillTags.jsx'
 
 export default function RejectedTalent() {
   const { user } = useAuth()
@@ -128,15 +129,7 @@ export default function RejectedTalent() {
                       </div>
                     </div>
 
-                    {c.skills?.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        {c.skills.map((s) => (
-                          <span key={s} className="tag" style={{ fontSize: 12 }}>
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    {c.skills?.length > 0 && <SkillTags skills={c.skills} max={2} gap={6} tagStyle={{ fontSize: 12 }} />}
 
                     <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
                       Applied for{' '}
@@ -150,10 +143,6 @@ export default function RejectedTalent() {
                     <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
                       Rejected {formatRelativeTime(entry.status_changed_at || entry.applied_at)}
                     </p>
-
-                    <Link to={`/profile/${c.username || c.id}`} className="btn btn-primary" style={{ textAlign: 'center', marginTop: 'auto' }}>
-                      View profile
-                    </Link>
                   </div>
                 )
               })}
