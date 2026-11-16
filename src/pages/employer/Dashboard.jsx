@@ -499,6 +499,10 @@ export default function EmployerDashboard() {
   // temporarily not accepting new ones — only closed roles drop out.
   const pipelineRoles = roles.filter((r) => r.status === 'open' || r.status === 'paused')
 
+  // Applications from candidates with a live profile — employers can't read
+  // non-live profiles, so those applications never show in the pipeline.
+  const liveApplications = applications.filter((a) => a.candidate_profiles && a.candidate_profiles.is_live !== false)
+
   const pipeline = pipelineRoles.map((role) => {
     // Only applicants with a live candidate profile — employers can't read
     // non-live profiles, so those applications never show in the pipeline.
@@ -611,8 +615,8 @@ export default function EmployerDashboard() {
               </span>
             )}
           </h3>
-          <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10, color: applications.length > 0 ? '#005ef5' : undefined }}>
-            {applications.length}
+          <p style={{ fontSize: 32, fontWeight: 700, marginTop: 10, color: liveApplications.length > 0 ? '#005ef5' : undefined }}>
+            {liveApplications.length}
           </p>
         </Link>
         <Link to="/employer/shortlist" className="card stat-card-link" style={{ padding: 24 }}>
