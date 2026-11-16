@@ -77,7 +77,13 @@ export default function EmployerRoles() {
     const roleIds = myRoles.map((r) => r.id)
     let counts = {}
     if (roleIds.length > 0) {
-      const { data: apps } = await supabase.from('applications').select('role_id').in('role_id', roleIds)
+      // Only applicants whose candidate profile is live: employers can't read
+      // non-live profiles, so those applications never show in the pipeline.
+      const { data: apps } = await supabase
+        .from('applications')
+        .select('role_id, candidate_profiles!inner(is_live)')
+        .eq('candidate_profiles.is_live', true)
+        .in('role_id', roleIds)
       ;(apps || []).forEach((a) => {
         counts[a.role_id] = (counts[a.role_id] || 0) + 1
       })
