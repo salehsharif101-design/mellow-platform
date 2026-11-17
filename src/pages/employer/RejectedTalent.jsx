@@ -8,12 +8,24 @@ import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
 import PageLoading from '../../components/PageLoading.jsx'
 import SkillTags from '../../components/SkillTags.jsx'
+import FilterPopover from '../../components/FilterPopover.jsx'
+
+// Same single-choice row as the Match dropdown on the talent feed.
+function RadioOption({ label, checked, onChange }) {
+  return (
+    <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 4px', fontSize: 14, cursor: 'pointer' }}>
+      <input type="radio" name="rejected-role" checked={checked} onChange={onChange} />
+      {label}
+    </label>
+  )
+}
 
 export default function RejectedTalent() {
   const { user } = useAuth()
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [selectedRoleId, setSelectedRoleId] = useState(null)
 
   useEffect(() => {
     if (!user) return
@@ -67,6 +79,10 @@ export default function RejectedTalent() {
     group.entries.push(entry)
   })
 
+  // The dropdown lists every role that has rejected candidates; the first is
+  // the default until another is picked.
+  const selectedGroup = groups.find((g) => g.key === selectedRoleId) || groups[0]
+
   return (
     <div className="section">
       <h1 style={{ fontSize: 28 }}>Rejected talent</h1>
@@ -78,77 +94,77 @@ export default function RejectedTalent() {
           illustration="/plant.PNG"
         />
       ) : (
-        groups.map((group) => (
-          <div key={group.key} style={{ marginTop: 32 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-              <h2 style={{ fontSize: 19, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                {group.role?.title || 'Untitled role'}
-                {(group.role?.status === 'paused' || group.role?.status === 'closed') && (
-                  <span
-                    className="tag"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      background: group.role.status === 'paused' ? '#fff6e0' : 'var(--color-bg-soft)',
-                      color: group.role.status === 'paused' ? '#8a6100' : 'var(--color-text-muted)',
-                    }}
-                  >
-                    {group.role.status === 'paused' ? 'Paused' : 'Closed'}
-                  </span>
-                )}
-              </h2>
-              <Link to={`/employer/roles/${group.key}/applicants`} className="btn btn-primary">
-                View applicants
-              </Link>
-            </div>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                gap: 20,
-                marginTop: 16,
-              }}
-            >
-              {group.entries.map((entry) => {
-                const c = entry.candidate_profiles
-                if (!c) return null
-                return (
-                  <div key={entry.id} className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                      <Link to={`/profile/${c.username || c.id}`} style={{ flexShrink: 0, lineHeight: 0 }}>
-                        <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={48} />
-                      </Link>
-                      <div style={{ minWidth: 0 }}>
-                        <Link to={`/profile/${c.username || c.id}`} style={{ textDecoration: 'none' }}>
-                          <h3 style={{ fontSize: 16 }}>{c.full_name}</h3>
-                        </Link>
-                        <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>
-                          {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title}
-                          {c.location && ` · ${c.location}`}
-                        </p>
-                      </div>
-                    </div>
-
-                    {c.skills?.length > 0 && <SkillTags skills={c.skills} max={2} gap={6} tagStyle={{ fontSize: 12 }} />}
-
-                    <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-                      Applied for{' '}
-                      <Link
-                        to={`/employer/roles/${entry.role_id}/applicants`}
-                        style={{ color: 'var(--color-primary)', fontWeight: 600 }}
-                      >
-                        {entry.roles?.title}
-                      </Link>
-                    </p>
-                    <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-                      Rejected {formatRelativeTime(entry.status_changed_at || entry.applied_at)}
-                    </p>
-                  </div>
-                )
-              })}
-            </div>
+        <div style={{ marginTop: 32 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+            <FilterPopover label={selectedGroup.role?.title || 'Untitled role'} maxLabelWidth={200} panelWidth={260}>
+              {({ close }) => (
+                <>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: 6 }}>Show rejected for</p>
+                  {groups.map((g) => (
+                    <RadioOption
+                      key={g.key}
+                      label={`${g.role?.title || 'Untitled role'}${g.role?.status === 'paused' ? ' · Paused' : g.role?.status === 'closed' ? ' · Closed' : ''}`}
+                      checked={g.key === selectedGroup.key}
+                      onChange={() => {
+                        setSelectedRoleId(g.key)
+                        close()
+                      }}
+                    />
+                  ))}
+                </>
+              )}
+            </FilterPopover>
+            <Link to={`/employer/roles/${selectedGroup.key}/applicants`} className="btn btn-primary">
+              View applicants
+            </Link>
           </div>
-        ))
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+              gap: 20,
+              marginTop: 16,
+            }}
+          >
+            {selectedGroup.entries.map((entry) => {
+              const c = entry.candidate_profiles
+              if (!c) return null
+              return (
+                <div key={entry.id} className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <Link to={`/profile/${c.username || c.id}`} style={{ flexShrink: 0, lineHeight: 0 }}>
+                      <CandidateAvatar avatarUrl={c.avatar_url} fullName={c.full_name} size={48} />
+                    </Link>
+                    <div style={{ minWidth: 0 }}>
+                      <Link to={`/profile/${c.username || c.id}`} style={{ textDecoration: 'none' }}>
+                        <h3 style={{ fontSize: 16 }}>{c.full_name}</h3>
+                      </Link>
+                      <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                        {c.current_company ? `${c.job_title} at ${c.current_company}` : c.job_title}
+                        {c.location && ` · ${c.location}`}
+                      </p>
+                    </div>
+                  </div>
+
+                  {c.skills?.length > 0 && <SkillTags skills={c.skills} max={2} gap={6} tagStyle={{ fontSize: 12 }} />}
+
+                  <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+                    Applied for{' '}
+                    <Link
+                      to={`/employer/roles/${entry.role_id}/applicants`}
+                      style={{ color: 'var(--color-primary)', fontWeight: 600 }}
+                    >
+                      {entry.roles?.title}
+                    </Link>
+                  </p>
+                  <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+                    Rejected {formatRelativeTime(entry.status_changed_at || entry.applied_at)}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       )}
     </div>
   )
