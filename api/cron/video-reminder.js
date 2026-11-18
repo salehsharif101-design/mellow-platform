@@ -30,11 +30,12 @@ const REMINDERS = [
   },
   {
     delayMs: 3 * DAY_MS,
-    subject: 'Employers are looking, is your profile ready?',
-    heading: 'Employers are looking, is your profile ready?',
-    bodyText: 'Your profile is saved but not yet visible to employers. It only takes 60 seconds to go live.',
+    subject: 'One video is all it takes',
+    heading: 'Employers are looking for someone like you',
+    bodyText: 'Your profile is saved but not yet visible to employers. All it takes is a video to go live.',
     ctaLabel: 'Complete my profile',
     illustration: 'Easy_stuff.png',
+    greeting: true,
   },
   {
     delayMs: 7 * DAY_MS,
