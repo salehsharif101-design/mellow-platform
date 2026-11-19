@@ -1,9 +1,15 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { pauseOtherVideos, videoPreloadMode } from '../lib/videoPlayback.js'
 
 export default function VideoPlayCard({ url, style, format = 'vertical', objectFit = 'contain' }) {
   const videoRef = useRef(null)
+  const containerRef = useRef(null)
   const [playing, setPlaying] = useState(false)
   const [naturalSize, setNaturalSize] = useState(null)
+  const [preload] = useState(videoPreloadMode)
+  // Only cards near the viewport get a src, so scrolling a long feed never
+  // makes the browser fetch every video at once.
+  const [nearViewport, setNearViewport] = useState(false)
 
   const auto = format === 'auto'
   const horizontal = format === 'horizontal'
@@ -16,6 +22,44 @@ export default function VideoPlayCard({ url, style, format = 'vertical', objectF
     }
   }
 
+  // Observes the video's wrapper (not the video, which has no src while off
+  // screen). Leaving the 200px margin pauses the video and drops its src to
+  // free memory; coming back re-attaches it.
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return undefined
+    if (typeof IntersectionObserver === 'undefined') {
+      setNearViewport(true)
+      return undefined
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setNearViewport(true)
+          return
+        }
+        const v = videoRef.current
+        if (v) {
+          v.pause()
+          v.removeAttribute('src')
+          v.load()
+        }
+        setPlaying(false)
+        setNearViewport(false)
+      },
+      { rootMargin: '200px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  function handlePlayClick(e) {
+    // Keep the tap from also reaching the native <video> underneath.
+    e.stopPropagation()
+    const p = videoRef.current?.play()
+    if (p && typeof p.catch === 'function') p.catch(() => {})
+  }
+
   // "auto" reads the video's own dimensions once metadata loads and sizes
   // the container to match, rather than assuming an orientation — used for
   // intro videos, which candidates can record either way. Until metadata is
@@ -26,6 +70,7 @@ export default function VideoPlayCard({ url, style, format = 'vertical', objectF
 
   return (
     <div
+      ref={containerRef}
       style={{
         position: 'relative',
         borderRadius: 10,
@@ -40,20 +85,24 @@ export default function VideoPlayCard({ url, style, format = 'vertical', objectF
     >
       <video
         ref={videoRef}
-        src={url}
+        src={nearViewport ? url : undefined}
+        preload={preload}
         controls={playing}
         controlsList="nodownload"
         playsInline
         webkit-playsinline="true"
         onLoadedMetadata={handleLoadedMetadata}
-        onPlay={() => setPlaying(true)}
+        onPlay={(e) => {
+          setPlaying(true)
+          pauseOtherVideos(e.currentTarget)
+        }}
         onPause={() => setPlaying(false)}
         style={{ width: '100%', height: '100%', display: 'block', objectFit, background: '#000' }}
       />
       {!playing && (
         <button
           type="button"
-          onClick={() => videoRef.current?.play()}
+          onClick={handlePlayClick}
           aria-label="Play video"
           style={{
             position: 'absolute',

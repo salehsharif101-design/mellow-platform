@@ -8,6 +8,7 @@ import { getCachedPage, setCachedPage } from '../../lib/dashboardCache.js'
 import { calculateMatchScore } from '../../lib/matchScore.js'
 import EmptyState from '../../components/EmptyState.jsx'
 import VideoPlayCard from '../../components/VideoPlayCard.jsx'
+import { pauseOtherVideos } from '../../lib/videoPlayback.js'
 import CandidateAvatar from '../../components/CandidateAvatar.jsx'
 import ListPageSkeleton from '../../components/ListPageSkeleton.jsx'
 import QuickMessageModal from '../../components/QuickMessageModal.jsx'
@@ -497,7 +498,7 @@ export default function TalentFeed() {
             <div className="swipe-card" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
               <div className="swipe-card-media">
                 {swipeCandidate.intro_video_url ? (
-                  <video key={swipeCandidate.id} src={swipeCandidate.intro_video_url} autoPlay muted loop playsInline controls controlsList="nodownload" />
+                  <video key={swipeCandidate.id} src={swipeCandidate.intro_video_url} autoPlay muted loop playsInline preload="none" controls controlsList="nodownload" onPlay={(e) => pauseOtherVideos(e.currentTarget)} />
                 ) : (
                   <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg-soft)' }}>
                     <CandidateAvatar avatarUrl={swipeCandidate.avatar_url} fullName={swipeCandidate.full_name} size={120} style={{ fontSize: 42 }} />
