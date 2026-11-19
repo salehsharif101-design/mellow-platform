@@ -93,7 +93,7 @@ export default async function handler(req, res) {
           subject: 'You’re one step away from hiring on Mellow',
           html: renderEmailHtml({
             heading: 'Complete your profile to start hiring',
-            bodyText: `Hey ${name ? escapeHtml(name) : 'there'},<br /><br />You’ve created your Mellow account but haven’t finished setting up your company profile yet. It only takes a few minutes — once you’re done, you’ll be able to browse video profiles from candidates across Bahrain and the MENA region, send them questions, and start hiring faster.`,
+            bodyText: `Hey ${name ? escapeHtml(name) : 'there'},<br /><br />You've created your Mellow account but haven't finished setting up your company profile yet. It only takes a few minutes. Once you're done, you'll be able to browse video profiles from candidates across Bahrain and the MENA region, send them questions and get video answers back, and start hiring faster.`,
             ctaLabel: 'Complete your profile',
             ctaUrl: `${SITE_URL}/employer/onboarding`,
             illustration: 'Easy_stuff.png',
