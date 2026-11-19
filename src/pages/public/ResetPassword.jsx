@@ -4,6 +4,7 @@ import { supabase, previousSession } from '../../lib/supabase.js'
 import { useHideChrome } from '../../components/Layout.jsx'
 import WrongAccountNotice from '../../components/WrongAccountNotice.jsx'
 import PageLoading from '../../components/PageLoading.jsx'
+import PasswordInput from '../../components/PasswordInput.jsx'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
@@ -140,10 +141,8 @@ export default function ResetPassword() {
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 24 }}>
         <div className="field">
           <label htmlFor="password">New password</label>
-          <input
+          <PasswordInput
             id="password"
-            className="input"
-            type="password"
             required
             minLength={6}
             value={password}
@@ -152,10 +151,8 @@ export default function ResetPassword() {
         </div>
         <div className="field">
           <label htmlFor="confirm_password">Confirm new password</label>
-          <input
+          <PasswordInput
             id="confirm_password"
-            className="input"
-            type="password"
             required
             minLength={6}
             value={confirmPassword}

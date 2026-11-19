@@ -10,6 +10,7 @@ import Logo from '../../components/Logo.jsx'
 import ResendConfirmationButton from '../../components/ResendConfirmationButton.jsx'
 import WrongAccountNotice from '../../components/WrongAccountNotice.jsx'
 import PageLoading from '../../components/PageLoading.jsx'
+import PasswordInput from '../../components/PasswordInput.jsx'
 
 export default function Login() {
   const [searchParams] = useSearchParams()
@@ -404,10 +405,8 @@ export default function Login() {
         </div>
         <div className="field">
           <label htmlFor="password">Password</label>
-          <input
+          <PasswordInput
             id="password"
-            className="input"
-            type="password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}

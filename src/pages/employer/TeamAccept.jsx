@@ -6,6 +6,7 @@ import { useHideChrome } from '../../components/Layout.jsx'
 import ResendConfirmationButton from '../../components/ResendConfirmationButton.jsx'
 import WrongAccountNotice from '../../components/WrongAccountNotice.jsx'
 import PageLoading from '../../components/PageLoading.jsx'
+import PasswordInput from '../../components/PasswordInput.jsx'
 
 const PASSWORD_REQUIREMENT_MESSAGE = 'Password must be at least 8 characters and include a number or special character'
 
@@ -223,10 +224,8 @@ export default function TeamAccept() {
         </div>
         <div className="field">
           <label htmlFor="password">Password</label>
-          <input
+          <PasswordInput
             id="password"
-            className="input"
-            type="password"
             required
             minLength={8}
             value={password}
