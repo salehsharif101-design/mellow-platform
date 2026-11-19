@@ -6,6 +6,10 @@
 // completed_at is still null, and the row is more than 96h old.
 // employer_nudge_sent (migration 0083) keeps it to once per employer.
 //
+// onboarding_reminder_sent (migration 0094) is excluded too: that's the
+// 24-hour version of the same message (employer-onboarding-reminder.js), and
+// an employer it already emailed shouldn't get a second near-identical one.
+//
 // Doesn't overlap with the employer emails that already exist: the welcome
 // email and work-video-nudge.js both only apply once onboarding_completed_at
 // is set, which is exactly what this excludes.
@@ -52,6 +56,7 @@ export default async function handler(req, res) {
         .select('id, user_id')
         .is('onboarding_completed_at', null)
         .eq('employer_nudge_sent', false)
+        .eq('onboarding_reminder_sent', false)
         .lte('created_at', cutoff),
     )
 
@@ -66,6 +71,7 @@ export default async function handler(req, res) {
         .update({ employer_nudge_sent: true })
         .eq('id', employer.id)
         .eq('employer_nudge_sent', false)
+        .eq('onboarding_reminder_sent', false)
         .is('onboarding_completed_at', null)
         .select('id')
         .maybeSingle()
