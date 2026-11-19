@@ -329,7 +329,7 @@ async function sendShortlistNotification(supabase, shortlistId) {
       bodyText: `An employer shortlisted your Mellow profile. Keep it up to date — they may reach out soon.${calendlyNudge}`,
       ctaLabel: 'View my profile',
       ctaUrl: `${SITE_URL}/profile/${candidate.username || shortlist.candidate_id}`,
-      illustration: 'Your_Requested_Is_Posted.png',
+      illustration: 'Your_Requested_Is_Posted_v3.png',
     }),
   })
 }

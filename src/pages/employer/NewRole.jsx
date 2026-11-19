@@ -274,7 +274,7 @@ export default function NewRole() {
             padding: 32,
           }}
         >
-          <img src="/Your_Requested_Is_Posted.png" alt="" style={{ width: '100%', maxWidth: 220 }} />
+          <img src="/email-illustrations/Your_Requested_Is_Posted_v3.png" alt="" style={{ width: '100%', maxWidth: 220 }} />
           <p style={{ marginTop: 16, fontSize: 14, color: 'var(--color-text-muted)' }}>
             Once posted, your role goes live and talents can start applying immediately.
           </p>
