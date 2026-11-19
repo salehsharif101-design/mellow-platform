@@ -14,7 +14,7 @@ import PageLoading from '../../components/PageLoading.jsx'
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const ROLE_SELECT =
-  'id, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, required_skills, work_style, status, employer_profiles(company_name, company_slug, logo_url, headline, linkedin_url, website_url, about, intro_video_url, user_id, is_visible)'
+  'id, title, location, role_type, description, what_matters, deadline, salary_min, salary_max, salary_currency, required_skills, work_style, status, employer_profiles(company_name, company_slug, logo_url, headline, linkedin_url, website_url, about, intro_video_url, intro_video_width, intro_video_height, user_id, is_visible)'
 
 export default function RolePublic() {
   const { slug } = useParams()
@@ -352,7 +352,12 @@ export default function RolePublic() {
           {employer?.intro_video_url && (
             <div style={{ marginTop: 28 }}>
               <h2 style={{ fontSize: 16, marginBottom: 12 }}>Meet the team</h2>
-              <VideoPlayCard url={employer.intro_video_url} format="auto" />
+              <VideoPlayCard
+                url={employer.intro_video_url}
+                format="auto"
+                width={employer.intro_video_width}
+                height={employer.intro_video_height}
+              />
             </div>
           )}
 

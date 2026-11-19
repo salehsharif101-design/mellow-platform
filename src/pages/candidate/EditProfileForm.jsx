@@ -40,6 +40,11 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
   const [calendlyUrl, setCalendlyUrl] = useState(profile.calendly_url || '')
   const [websiteUrl, setWebsiteUrl] = useState(profile.website_url || '')
   const [introVideoUrl, setIntroVideoUrl] = useState(profile.intro_video_url || null)
+  const [introVideoSize, setIntroVideoSize] = useState(
+    profile.intro_video_width && profile.intro_video_height
+      ? { width: profile.intro_video_width, height: profile.intro_video_height }
+      : null,
+  )
 
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
@@ -155,6 +160,8 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
         calendly_url: calendlyUrl.trim() || null,
         website_url: websiteUrl.trim() || null,
         intro_video_url: introVideoUrl || null,
+        intro_video_width: introVideoUrl ? introVideoSize?.width ?? null : null,
+        intro_video_height: introVideoUrl ? introVideoSize?.height ?? null : null,
         is_live: wasHired ? false : Boolean(introVideoUrl),
       })
       .eq('id', profile.id)
@@ -188,6 +195,7 @@ export default function EditProfileForm({ profile, userId, onUpdated }) {
         userId={userId}
         introVideoUrl={introVideoUrl}
         setIntroVideoUrl={setIntroVideoUrl}
+        setIntroVideoSize={setIntroVideoSize}
         originalIntroVideoUrl={profile.intro_video_url || null}
       />
 
@@ -856,7 +864,7 @@ function LinkedInSection({
   )
 }
 
-function VideoSection({ userId, introVideoUrl, setIntroVideoUrl, originalIntroVideoUrl }) {
+function VideoSection({ userId, introVideoUrl, setIntroVideoUrl, setIntroVideoSize, originalIntroVideoUrl }) {
   const [localPreviewUrl, setLocalPreviewUrl] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -910,7 +918,7 @@ function VideoSection({ userId, introVideoUrl, setIntroVideoUrl, originalIntroVi
         return
       }
       setLocalPreviewUrl(objectUrl)
-      handleUpload(selected)
+      handleUpload(selected, probe.videoWidth && probe.videoHeight ? { width: probe.videoWidth, height: probe.videoHeight } : null)
     }
 
     probe.onloadedmetadata = () => {
@@ -946,7 +954,7 @@ function VideoSection({ userId, introVideoUrl, setIntroVideoUrl, originalIntroVi
     processFile(recordedFile)
   }
 
-  async function handleUpload(file) {
+  async function handleUpload(file, size) {
     setUploading(true)
     setError('')
     try {
@@ -963,6 +971,7 @@ function VideoSection({ userId, introVideoUrl, setIntroVideoUrl, originalIntroVi
       if (uploadError) throw uploadError
       const { data } = supabase.storage.from('candidate-videos').getPublicUrl(path)
       setIntroVideoUrl(`${data.publicUrl}?t=${Date.now()}`)
+      setIntroVideoSize(size)
       setLocalPreviewUrl(null)
     } catch (err) {
       setError(err.message)
@@ -973,6 +982,7 @@ function VideoSection({ userId, introVideoUrl, setIntroVideoUrl, originalIntroVi
 
   function handleRemove() {
     setIntroVideoUrl(null)
+    setIntroVideoSize(null)
     setLocalPreviewUrl(null)
   }
 

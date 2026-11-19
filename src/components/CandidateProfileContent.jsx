@@ -62,7 +62,13 @@ export default function CandidateProfileContent({ profile, videos = [], isOwner 
 
       <div style={{ marginTop: 40, display: 'flex', justifyContent: 'center' }}>
         {profile.intro_video_url ? (
-          <VideoPlayCard url={profile.intro_video_url} format="auto" style={{ width: '100%' }} />
+          <VideoPlayCard
+            url={profile.intro_video_url}
+            format="auto"
+            width={profile.intro_video_width}
+            height={profile.intro_video_height}
+            style={{ width: '100%' }}
+          />
         ) : (
           <div
             style={{

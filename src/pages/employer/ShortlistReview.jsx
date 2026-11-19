@@ -51,7 +51,7 @@ function parseStageValue(rawValue, roleId, stages) {
 }
 
 const CANDIDATE_SELECT =
-  'id, user_id, username, full_name, job_title, current_company, location, bio, headline, proud_of, skills, languages, availability, work_style, years_of_experience, intro_video_url, avatar_url, education_level, field_of_study, institution_name, graduation_year, linkedin_url, calendly_url, website_url'
+  'id, user_id, username, full_name, job_title, current_company, location, bio, headline, proud_of, skills, languages, availability, work_style, years_of_experience, intro_video_url, intro_video_width, intro_video_height, avatar_url, education_level, field_of_study, institution_name, graduation_year, linkedin_url, calendly_url, website_url'
 
 export default function ShortlistReview() {
   const { user } = useAuth()
@@ -379,7 +379,13 @@ export default function ShortlistReview() {
 
             <div style={{ marginTop: 40, display: 'flex', justifyContent: 'center' }}>
               {c.intro_video_url ? (
-                <VideoPlayCard url={c.intro_video_url} format="auto" style={{ width: '100%' }} />
+                <VideoPlayCard
+                  url={c.intro_video_url}
+                  format="auto"
+                  width={c.intro_video_width}
+                  height={c.intro_video_height}
+                  style={{ width: '100%' }}
+                />
               ) : (
                 <div
                   style={{

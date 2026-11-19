@@ -32,7 +32,7 @@ export default function CompanyProfile() {
       const { data, error } = await supabase
         .from('employer_profiles')
         .select(
-          'id, user_id, company_name, logo_url, industry, company_size, country, year_established, headline, about, culture_description, company_highlight, typical_roles, linkedin_url, website_url, intro_video_url, is_visible',
+          'id, user_id, company_name, logo_url, industry, company_size, country, year_established, headline, about, culture_description, company_highlight, typical_roles, linkedin_url, website_url, intro_video_url, intro_video_width, intro_video_height, is_visible',
         )
         .eq('company_slug', slug)
         // Filtered server-side (not just checked after the fact) so a
@@ -140,7 +140,13 @@ export default function CompanyProfile() {
           {company.intro_video_url && (
             <div style={{ marginTop: 32 }}>
               <h2 style={SECTION_TITLE_STYLE}>Meet the team</h2>
-              <VideoPlayCard url={company.intro_video_url} format="auto" style={{ width: '100%' }} />
+              <VideoPlayCard
+                url={company.intro_video_url}
+                format="auto"
+                width={company.intro_video_width}
+                height={company.intro_video_height}
+                style={{ width: '100%' }}
+              />
             </div>
           )}
 

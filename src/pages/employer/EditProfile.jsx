@@ -123,6 +123,11 @@ function EditProfileFormBody({ profile, onUpdated }) {
   const [linkedinUrl, setLinkedinUrl] = useState(profile.linkedin_url || '')
   const [websiteUrl, setWebsiteUrl] = useState(profile.website_url || '')
   const [introVideoUrl, setIntroVideoUrl] = useState(profile.intro_video_url || null)
+  const [introVideoSize, setIntroVideoSize] = useState(
+    profile.intro_video_width && profile.intro_video_height
+      ? { width: profile.intro_video_width, height: profile.intro_video_height }
+      : null,
+  )
 
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
@@ -190,6 +195,8 @@ function EditProfileFormBody({ profile, onUpdated }) {
         linkedin_url: linkedinUrl.trim() || null,
         website_url: websiteUrl.trim() || null,
         intro_video_url: introVideoUrl || null,
+        intro_video_width: introVideoUrl ? introVideoSize?.width ?? null : null,
+        intro_video_height: introVideoUrl ? introVideoSize?.height ?? null : null,
       })
       .eq('user_id', profile.user_id)
       .select()
@@ -216,7 +223,7 @@ function EditProfileFormBody({ profile, onUpdated }) {
 
       <LogoSection profile={profile} onUpdated={onUpdated} />
 
-      <IntroVideoSection introVideoUrl={introVideoUrl} setIntroVideoUrl={setIntroVideoUrl} />
+      <IntroVideoSection introVideoUrl={introVideoUrl} setIntroVideoUrl={setIntroVideoUrl} setIntroVideoSize={setIntroVideoSize} />
 
       <CompanyInfoSection
         companyName={companyName}
@@ -663,7 +670,7 @@ function LinksSection({ linkedinUrl, setLinkedinUrl, websiteUrl, setWebsiteUrl, 
   )
 }
 
-function IntroVideoSection({ introVideoUrl, setIntroVideoUrl }) {
+function IntroVideoSection({ introVideoUrl, setIntroVideoUrl, setIntroVideoSize }) {
   const [localPreviewUrl, setLocalPreviewUrl] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -710,7 +717,7 @@ function IntroVideoSection({ introVideoUrl, setIntroVideoUrl }) {
         return
       }
       setLocalPreviewUrl(objectUrl)
-      handleUpload(selected)
+      handleUpload(selected, probe.videoWidth && probe.videoHeight ? { width: probe.videoWidth, height: probe.videoHeight } : null)
     }
 
     probe.onloadedmetadata = () => {
@@ -735,7 +742,7 @@ function IntroVideoSection({ introVideoUrl, setIntroVideoUrl }) {
     probe.src = objectUrl
   }
 
-  async function handleUpload(file) {
+  async function handleUpload(file, size) {
     setUploading(true)
     setError('')
     try {
@@ -755,6 +762,7 @@ function IntroVideoSection({ introVideoUrl, setIntroVideoUrl }) {
       if (uploadError) throw uploadError
       const { data } = supabase.storage.from('company-videos').getPublicUrl(path)
       setIntroVideoUrl(`${data.publicUrl}?t=${Date.now()}`)
+      setIntroVideoSize(size)
       setLocalPreviewUrl(null)
     } catch (err) {
       setError(err.message)
@@ -765,6 +773,7 @@ function IntroVideoSection({ introVideoUrl, setIntroVideoUrl }) {
 
   function handleRemove() {
     setIntroVideoUrl(null)
+    setIntroVideoSize(null)
     setLocalPreviewUrl(null)
   }
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { pauseOtherVideos, videoPreloadMode } from '../lib/videoPlayback.js'
 
-export default function VideoPlayCard({ url, style, format = 'vertical', objectFit = 'contain' }) {
+export default function VideoPlayCard({ url, style, format = 'vertical', objectFit = 'contain', width, height }) {
   const videoRef = useRef(null)
   const containerRef = useRef(null)
   const [playing, setPlaying] = useState(false)
@@ -65,8 +65,16 @@ export default function VideoPlayCard({ url, style, format = 'vertical', objectF
   // intro videos, which candidates can record either way. Until metadata is
   // available it falls back to the portrait box the intro video used
   // before, so there's no layout jump on the common case.
-  const isPortrait = auto ? (naturalSize ? naturalSize.height > naturalSize.width : true) : !horizontal
-  const aspectRatio = auto && naturalSize ? `${naturalSize.width} / ${naturalSize.height}` : isPortrait ? '9 / 16' : '16 / 9'
+  //
+  // On touch devices preload is "none", so no metadata arrives until the
+  // user plays and the box would start as that portrait default then snap to
+  // the real shape. The stored `width` / `height` props (saved at upload)
+  // size it correctly up front instead; they're ignored on desktop, where
+  // metadata loads before the user does anything.
+  const storedSize = preload === 'none' && width > 0 && height > 0 ? { width, height } : null
+  const knownSize = naturalSize || storedSize
+  const isPortrait = auto ? (knownSize ? knownSize.height > knownSize.width : true) : !horizontal
+  const aspectRatio = auto && knownSize ? `${knownSize.width} / ${knownSize.height}` : isPortrait ? '9 / 16' : '16 / 9'
 
   return (
     <div

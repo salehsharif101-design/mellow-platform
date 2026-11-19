@@ -66,6 +66,9 @@ export default function Step5Video({ initial, userId, onFinish, onBack, onSaveFo
   // scratch.
   const [showTips, setShowTips] = usePersistedState('mellow_onboarding_candidate_show_video_tips', true)
   const [file, setFile] = useState(null)
+  // Pixel size of the selected video, read from its metadata and saved with
+  // the upload so profile pages can size the player before it loads.
+  const [videoSize, setVideoSize] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(initial.intro_video_url || null)
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -124,6 +127,7 @@ export default function Step5Video({ initial, userId, onFinish, onBack, onSaveFo
         return
       }
       setFile(selected)
+      setVideoSize(probe.videoWidth && probe.videoHeight ? { width: probe.videoWidth, height: probe.videoHeight } : null)
       setPreviewUrl(objectUrl)
     }
 
@@ -177,7 +181,11 @@ export default function Step5Video({ initial, userId, onFinish, onBack, onSaveFo
       if (uploadError) throw uploadError
 
       const { data } = supabase.storage.from('candidate-videos').getPublicUrl(path)
-      await onFinish({ intro_video_url: data.publicUrl })
+      await onFinish({
+        intro_video_url: data.publicUrl,
+        intro_video_width: videoSize?.width ?? null,
+        intro_video_height: videoSize?.height ?? null,
+      })
     } catch (err) {
       setError(err.message)
     } finally {
