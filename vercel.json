@@ -66,6 +66,7 @@
     { "path": "/api/cron/live-profile-emails", "schedule": "30 * * * *" },
     { "path": "/api/cron/rejection-followup", "schedule": "15 * * * *" },
     { "path": "/api/cron/removed-video-reminder", "schedule": "20 * * * *" },
-    { "path": "/api/cron/employer-onboarding-reminder", "schedule": "0 10 * * *" }
+    { "path": "/api/cron/employer-onboarding-reminder", "schedule": "0 10 * * *" },
+    { "path": "/api/cron/employer-no-role-reminder", "schedule": "0 11 * * *" }
   ]
 }
