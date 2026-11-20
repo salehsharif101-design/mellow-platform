@@ -382,6 +382,7 @@ export default function ShortlistReview() {
                 <VideoPlayCard
                   url={c.intro_video_url}
                   format="auto"
+                  preloadMetadata
                   width={c.intro_video_width}
                   height={c.intro_video_height}
                   style={{ width: '100%' }}

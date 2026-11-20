@@ -14,6 +14,13 @@ export default function VideoPlayCard({ url, style, format = 'vertical', objectF
   // makes the browser fetch every video at once.
   const [nearViewport, setNearViewport] = useState(false)
 
+  // iOS Safari (and every browser on iOS) ignores preload, so a video with no
+  // src fragment stays a black box until played. Starting the media fragment
+  // at 0.001s makes iOS seek to, and show, the first frame. Only for
+  // preloadMetadata cards: on feed cards it would make iOS fetch data for
+  // every card, which is what preload="none" is there to prevent.
+  const videoSrc = nearViewport && url ? (preloadMetadata && !url.includes('#') ? `${url}#t=0.001` : url) : undefined
+
   const auto = format === 'auto'
   const horizontal = format === 'horizontal'
 
@@ -96,7 +103,7 @@ export default function VideoPlayCard({ url, style, format = 'vertical', objectF
     >
       <video
         ref={videoRef}
-        src={nearViewport ? url : undefined}
+        src={videoSrc}
         preload={preload}
         controls={playing}
         controlsList="nodownload"
