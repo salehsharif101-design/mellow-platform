@@ -355,7 +355,6 @@ export default function RolePublic() {
               <VideoPlayCard
                 url={employer.intro_video_url}
                 format="auto"
-                preloadMetadata
                 width={employer.intro_video_width}
                 height={employer.intro_video_height}
               />

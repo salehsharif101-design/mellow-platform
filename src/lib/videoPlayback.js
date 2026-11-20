@@ -8,11 +8,7 @@ export function pauseOtherVideos(current) {
   })
 }
 
-// Touch devices (phones, tablets) load nothing until the user plays, which
-// keeps a long feed from fetching many large videos at once. Pointer-and-
-// hover devices only fetch metadata, enough to show the first frame as a
-// preview and to size the card to the video, without the full download.
-export function videoPreloadMode() {
-  const touch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
-  return touch ? 'none' : 'metadata'
+// Phones and tablets (primary pointer is a finger).
+export function isTouchDevice() {
+  return typeof window !== 'undefined' && Boolean(window.matchMedia?.('(pointer: coarse)').matches)
 }

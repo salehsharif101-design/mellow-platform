@@ -1,25 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
-import { pauseOtherVideos, videoPreloadMode } from '../lib/videoPlayback.js'
+import { pauseOtherVideos, isTouchDevice } from '../lib/videoPlayback.js'
 
-export default function VideoPlayCard({ url, style, format = 'vertical', objectFit = 'contain', width, height, preloadMetadata = false }) {
+export default function VideoPlayCard({ url, style, format = 'vertical', objectFit = 'contain', width, height }) {
   const videoRef = useRef(null)
   const containerRef = useRef(null)
   const [playing, setPlaying] = useState(false)
   const [naturalSize, setNaturalSize] = useState(null)
-  // preloadMetadata is for pages showing a single video (not a feed), where
-  // fetching just the metadata on touch devices is cheap and gives a first
-  // frame instead of a black box.
-  const [preload] = useState(() => (preloadMetadata ? 'metadata' : videoPreloadMode()))
+  const [touch] = useState(isTouchDevice)
   // Only cards near the viewport get a src, so scrolling a long feed never
   // makes the browser fetch every video at once.
   const [nearViewport, setNearViewport] = useState(false)
 
   // iOS Safari (and every browser on iOS) ignores preload, so a video with no
   // src fragment stays a black box until played. Starting the media fragment
-  // at 0.001s makes iOS seek to, and show, the first frame. Only for
-  // preloadMetadata cards: on feed cards it would make iOS fetch data for
-  // every card, which is what preload="none" is there to prevent.
-  const videoSrc = nearViewport && url ? (preloadMetadata && !url.includes('#') ? `${url}#t=0.001` : url) : undefined
+  // at 0.001s makes iOS seek to, and show, the first frame. Only cards near
+  // the viewport have a src at all (see nearViewport), so this loads
+  // metadata for a handful of cards, never the whole feed.
+  const videoSrc = nearViewport && url ? (url.includes('#') ? url : `${url}#t=0.001`) : undefined
 
   const auto = format === 'auto'
   const horizontal = format === 'horizontal'
@@ -76,12 +73,12 @@ export default function VideoPlayCard({ url, style, format = 'vertical', objectF
   // available it falls back to the portrait box the intro video used
   // before, so there's no layout jump on the common case.
   //
-  // On touch devices preload is "none", so no metadata arrives until the
-  // user plays and the box would start as that portrait default then snap to
-  // the real shape. The stored `width` / `height` props (saved at upload)
-  // size it correctly up front instead; they're ignored on desktop, where
-  // metadata loads before the user does anything.
-  const storedSize = preload === 'none' && width > 0 && height > 0 ? { width, height } : null
+  // On touch devices metadata can arrive late (iOS ignores preload), so the
+  // box would start as that portrait default then snap to the real shape.
+  // The stored `width` / `height` props (saved at upload) size it correctly
+  // up front instead; they're ignored on desktop, where metadata loads
+  // before the user does anything.
+  const storedSize = touch && width > 0 && height > 0 ? { width, height } : null
   const knownSize = naturalSize || storedSize
   const isPortrait = auto ? (knownSize ? knownSize.height > knownSize.width : true) : !horizontal
   const aspectRatio = auto && knownSize ? `${knownSize.width} / ${knownSize.height}` : isPortrait ? '9 / 16' : '16 / 9'
@@ -104,7 +101,7 @@ export default function VideoPlayCard({ url, style, format = 'vertical', objectF
       <video
         ref={videoRef}
         src={videoSrc}
-        preload={preload}
+        preload="metadata"
         controls={playing}
         controlsList="nodownload"
         playsInline
