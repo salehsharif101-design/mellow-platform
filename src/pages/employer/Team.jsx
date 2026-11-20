@@ -276,23 +276,28 @@ export default function Team() {
                 You have reached the maximum of {MAX_TEAM_MEMBERS} team members.
               </p>
             ) : (
-              <form onSubmit={handleInvite} style={{ marginTop: 28, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                <div className="field" style={{ flex: 1, marginBottom: 0 }}>
+              <form onSubmit={handleInvite} style={{ marginTop: 28 }}>
+                <div className="field" style={{ marginBottom: 0 }}>
                   <label htmlFor="invite-email">Invite a team member by email</label>
-                  <input
-                    id="invite-email"
-                    className="input"
-                    type="email"
-                    required
-                    placeholder="teammate@company.com"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                  />
+                  {/* Input and button share one stretch-aligned row, so the
+                      button is always exactly the input's height. */}
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'stretch' }}>
+                    <input
+                      id="invite-email"
+                      className="input"
+                      type="email"
+                      required
+                      placeholder="teammate@company.com"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      style={{ flex: 1, width: 'auto', minWidth: 0 }}
+                    />
+                    <button className="btn btn-primary" type="submit" disabled={inviting}>
+                      {inviting ? 'Sending…' : 'Invite'}
+                    </button>
+                  </div>
                   {inviteError && <p className="form-error" style={{ marginTop: 6 }}>{inviteError}</p>}
                 </div>
-                <button className="btn btn-primary" type="submit" disabled={inviting} style={{ marginTop: 24 }}>
-                  {inviting ? 'Sending…' : 'Invite'}
-                </button>
               </form>
             )}
           </>

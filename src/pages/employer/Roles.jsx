@@ -231,7 +231,7 @@ export default function EmployerRoles() {
                     value={role.status}
                     disabled={updatingStatusId === role.id}
                     onChange={(e) => changeStatus(role, e.target.value)}
-                    style={{ width: 'auto', padding: '8px 12px' }}
+                    style={{ width: 'auto', height: 32, padding: '0 10px', fontSize: 13, fontWeight: 600, color: 'var(--color-primary)', cursor: 'pointer' }}
                   >
                     {STATUSES.map((s) => (
                       <option key={s} value={s}>

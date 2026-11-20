@@ -604,7 +604,8 @@ export default function CandidateDashboard() {
     <div className="section">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <h1 style={{ fontSize: 28 }}>Your dashboard</h1>
-        <div style={{ display: 'flex', gap: 10 }}>
+        {/* Equal-width columns: both buttons size to the wider label. */}
+        <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '1fr', gap: 10 }}>
           <Link to="/profile/edit" className="btn btn-primary">
             Edit profile
           </Link>
