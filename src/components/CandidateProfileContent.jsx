@@ -134,14 +134,7 @@ export default function CandidateProfileContent({ profile, videos = [], isOwner 
           )}
 
           {videos.length > 0 && (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                gap: 16,
-                marginTop: 16,
-              }}
-            >
+            <div className="work-videos-grid">
               {videos.map((v) => (
                 <div key={v.id}>
                   <VideoPlayCard url={v.video_url} format="horizontal" />

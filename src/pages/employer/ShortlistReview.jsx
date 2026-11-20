@@ -411,14 +411,7 @@ export default function ShortlistReview() {
             {workVideos.length > 0 && (
               <div style={{ marginTop: 48 }}>
                 <h2 style={SECTION_TITLE_STYLE}>Watch me work</h2>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                    gap: 16,
-                    marginTop: 16,
-                  }}
-                >
+                <div className="work-videos-grid">
                   {workVideos.map((v) => (
                     <div key={v.id}>
                       <VideoPlayCard url={v.video_url} format="horizontal" />

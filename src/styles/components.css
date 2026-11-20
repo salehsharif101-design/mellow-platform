@@ -810,6 +810,21 @@ textarea.input:focus {
   gap: 8px;
 }
 
+/* "Watch me work" videos on a candidate's profile: two columns on desktop
+   and tablet, one on phones. A lone video fills just the first column. */
+.work-videos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+@media (max-width: 640px) {
+  .work-videos-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .profile-card {
     padding: 20px;
