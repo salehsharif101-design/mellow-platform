@@ -65,6 +65,7 @@ export default function CandidateProfileContent({ profile, videos = [], isOwner 
           <VideoPlayCard
             url={profile.intro_video_url}
             format="auto"
+            preloadMetadata
             width={profile.intro_video_width}
             height={profile.intro_video_height}
             style={{ width: '100%' }}

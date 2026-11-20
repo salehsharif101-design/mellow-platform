@@ -143,6 +143,7 @@ export default function CompanyProfile() {
               <VideoPlayCard
                 url={company.intro_video_url}
                 format="auto"
+                preloadMetadata
                 width={company.intro_video_width}
                 height={company.intro_video_height}
                 style={{ width: '100%' }}

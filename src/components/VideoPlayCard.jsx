@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { pauseOtherVideos, videoPreloadMode } from '../lib/videoPlayback.js'
 
-export default function VideoPlayCard({ url, style, format = 'vertical', objectFit = 'contain', width, height }) {
+export default function VideoPlayCard({ url, style, format = 'vertical', objectFit = 'contain', width, height, preloadMetadata = false }) {
   const videoRef = useRef(null)
   const containerRef = useRef(null)
   const [playing, setPlaying] = useState(false)
   const [naturalSize, setNaturalSize] = useState(null)
-  const [preload] = useState(videoPreloadMode)
+  // preloadMetadata is for pages showing a single video (not a feed), where
+  // fetching just the metadata on touch devices is cheap and gives a first
+  // frame instead of a black box.
+  const [preload] = useState(() => (preloadMetadata ? 'metadata' : videoPreloadMode()))
   // Only cards near the viewport get a src, so scrolling a long feed never
   // makes the browser fetch every video at once.
   const [nearViewport, setNearViewport] = useState(false)
