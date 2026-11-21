@@ -96,6 +96,7 @@ export default async function handler(req, res) {
             bodyText: `Hey ${name ? escapeHtml(name) : 'there'},<br /><br />You've created your Mellow account but haven't finished setting up your company profile yet. It only takes a few minutes. Once you're done, you'll be able to browse video profiles from candidates across Bahrain and the MENA region, send them questions and get video answers back, and start hiring faster.`,
             ctaLabel: 'Complete your profile',
             ctaUrl: `${SITE_URL}/employer/onboarding`,
+            signOff: true,
             illustration: 'Easy_stuff.png',
           }),
         })

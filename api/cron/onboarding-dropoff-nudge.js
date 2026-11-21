@@ -78,6 +78,7 @@ export default async function handler(req, res) {
             bodyText: `Hey ${escapeHtml(firstNameOf(candidate.full_name))},<br /><br />You started setting up your Mellow profile but did not quite finish. It only takes a few more minutes and once your video is live employers can start finding you.`,
             ctaLabel: 'Complete my profile',
             ctaUrl: `${SITE_URL}/onboarding`,
+            signOff: true,
             illustration: 'Easy_stuff.png',
           }),
         })

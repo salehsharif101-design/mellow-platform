@@ -19,6 +19,7 @@ export async function sendLiveWelcomeEmail(to, fullName) {
       ctaUrl: `${SITE_URL}/roles`,
       secondaryCtaLabel: 'Go to my dashboard',
       secondaryCtaUrl: `${SITE_URL}/dashboard`,
+      signOff: true,
       illustration: 'Floating_girl_v2.PNG',
     }),
   })
@@ -50,6 +51,7 @@ export function renderEmployerWelcomeEmail({ companyName } = {}) {
       ctaUrl: `${SITE_URL}/employer/talent`,
       secondaryCtaLabel: 'Post a role',
       secondaryCtaUrl: `${SITE_URL}/employer/roles/new`,
+      signOff: true,
       illustration: 'Client_to_creative.png',
     }),
   }

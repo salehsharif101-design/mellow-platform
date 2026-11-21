@@ -88,6 +88,7 @@ export default async function handler(req, res) {
             'You started setting up your Mellow company profile but did not quite finish. Complete your profile and post your roles free — it takes less than 5 minutes. Talent across Bahrain and the GCC are waiting to hear from you.',
           ctaLabel: 'Complete my profile',
           ctaUrl: `${SITE_URL}/employer/onboarding`,
+          signOff: true,
           illustration: 'Easy_stuff.png',
         }),
       })

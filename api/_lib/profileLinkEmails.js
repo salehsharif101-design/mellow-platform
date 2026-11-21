@@ -66,13 +66,13 @@ export function renderProfileLinkWelcome({ fullName, profileUrl, previewNote }) 
     'Drop it in a LinkedIn message instead of attaching a CV. Add it to your email signature. Share it in a WhatsApp group. Send it directly to any company you want to work for.',
     'Here’s what makes Mellow different from every other hiring platform. You can show your actual work, not just describe it. Record a short video walking through a project you built, a campaign you ran, or a problem you solved. Employers see how you think, how you communicate, and what you’re actually capable of. That’s something no CV or job application has ever been able to do.',
     'One link. Everything an employer needs to understand what you bring.',
-    'The Mellow Team',
   ]
   return {
     subject: WELCOME_SUBJECT,
     html: renderEmailHtml({
       heading: `Hey ${escapeHtml(firstNameOf(fullName))},`,
       bodyText: (previewNote ? [previewNote, ...body] : body).join('<br /><br />'),
+      signOff: true,
       illustration: 'Client_to_creative.png',
     }),
   }
@@ -93,13 +93,13 @@ export function renderProfileLinkReengagement({ fullName, profileUrl, previewNot
     ),
     'One link. Everything an employer needs to see.',
     'Thanks for being here early.',
-    '— The Mellow Team',
   ]
   return {
     subject: REENGAGEMENT_SUBJECT,
     html: renderEmailHtml({
       heading: `Hey ${escapeHtml(firstNameOf(fullName))},`,
       bodyText: (previewNote ? [previewNote, ...body] : body).join('<br /><br />'),
+      signOff: true,
       illustration: 'Client_to_creative.png',
     }),
   }
@@ -125,6 +125,7 @@ export function renderVideoLibraryEmail({ fullName } = {}) {
         'Each video can be 60 seconds or longer. Label it clearly so employers know what they are looking at. The more you show, the more they know.',
       ctaLabel: 'Add a work video',
       ctaUrl: `${SITE_URL}/profile/edit`,
+      signOff: true,
       illustration: 'working.png',
     }),
   }

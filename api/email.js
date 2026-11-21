@@ -291,6 +291,7 @@ async function sendApplicationNotification(supabase, applicationId) {
       ctaUrl: `${SITE_URL}/profile/${candidate.username || application.candidate_id}`,
       secondaryCtaLabel: 'View hiring pipeline',
       secondaryCtaUrl: `${SITE_URL}/employer/roles/${application.role_id}/applicants`,
+      signOff: true,
       illustration: 'Flexible.PNG',
     }),
   })

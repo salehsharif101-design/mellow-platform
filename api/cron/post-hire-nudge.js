@@ -63,6 +63,7 @@ export default async function handler(req, res) {
             'We hope you are settling in well. Your Mellow profile is currently set to hidden. If you are ever open to freelance work or future opportunities you can turn it back on anytime from your dashboard.',
           ctaLabel: 'Go to my dashboard',
           ctaUrl: `${SITE_URL}/dashboard`,
+          signOff: true,
           illustration: 'Client_to_creative.png',
         }),
       })

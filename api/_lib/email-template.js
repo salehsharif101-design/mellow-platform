@@ -31,11 +31,18 @@ export function renderEmailHtml({
   // and lighter still, for a lower-emphasis follow-on action.
   extraCtaLabel,
   extraCtaUrl,
+  // Optional closing line, plain text under the button(s) and above the
+  // footer. `true` renders "Best, The Mellow Team"; a string is used as-is
+  // (raw HTML, like bodyText) for a different sign-off.
+  signOff,
   illustration,
   illustrationWidth = 340,
   footerDomain = 'beta.joinmellow.xyz',
 }) {
   const hasExtraCta = Boolean(extraCtaLabel && extraCtaUrl)
+  const signOffHtml = signOff === true ? 'Best,<br />The Mellow Team' : signOff || ''
+  // Space left under the last button: tighter when a sign-off follows it.
+  const ctaGap = signOffHtml ? 28 : 40
   return `<!doctype html>
 <html>
   <body style="margin:0;padding:0;background:#ffffff;font-family:'Inter',Helvetica,Arial,sans-serif;">
@@ -75,7 +82,7 @@ export function renderEmailHtml({
             ${
               ctaLabel && ctaUrl
                 ? `<tr>
-              <td style="padding-bottom:${hasExtraCta ? 16 : 40}px;">
+              <td style="padding-bottom:${hasExtraCta ? 16 : ctaGap}px;">
                 <table role="presentation" cellpadding="0" cellspacing="0"><tr>
                   <td>
                     <a
@@ -103,12 +110,21 @@ export function renderEmailHtml({
             ${
               hasExtraCta
                 ? `<tr>
-              <td style="padding-bottom:40px;">
+              <td style="padding-bottom:${ctaGap}px;">
                 <a
                   href="${extraCtaUrl}"
                   style="display:inline-block;background:#ffffff;color:#005ef5;text-decoration:none;font-weight:700;font-size:13px;padding:9px 18px;border-radius:7px;border:1.5px solid #005ef5;"
                   >${extraCtaLabel}</a
                 >
+              </td>
+            </tr>`
+                : ''
+            }
+            ${
+              signOffHtml
+                ? `<tr>
+              <td style="padding-bottom:32px;">
+                <p style="margin:0;font-size:15px;line-height:1.6;color:#444444;">${signOffHtml}</p>
               </td>
             </tr>`
                 : ''

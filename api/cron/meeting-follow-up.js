@@ -191,6 +191,7 @@ async function sendTalentNudges(supabase) {
         bodyText: 'Keep going. Your profile is live and employers are still finding you. Stay active and keep your profile updated.',
         ctaLabel: 'View my dashboard',
         ctaUrl: `${SITE_URL}/dashboard`,
+        signOff: true,
         illustration: 'Easy_stuff.png',
       }),
     })

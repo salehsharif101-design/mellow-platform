@@ -94,6 +94,7 @@ export default async function handler(req, res) {
               bodyText: `Hey ${escapeHtml(firstNameOf(fullName))},<br /><br />Getting a no is never easy, but it’s part of the journey. The good news is there are other great roles on Mellow that you might be a perfect fit for. We’re actively adding new companies and roles, so keep your profile active and keep applying. The right opportunity might be closer than you think.`,
               ctaLabel: 'Browse open roles',
               ctaUrl: `${SITE_URL}/jobs`,
+              signOff: true,
               illustration: 'Quality.PNG',
             }),
           })

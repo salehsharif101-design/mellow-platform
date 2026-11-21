@@ -106,6 +106,7 @@ export default async function handler(req, res) {
             bodyText: `Hey ${name ? escapeHtml(name) : 'there'},<br /><br />Your company profile is live on Mellow. All that’s missing is a role. Post your first role and you’ll be able to browse video profiles from candidates across Bahrain and the MENA region, send them questions and get video answers back, and shortlist the ones you like. You can also invite your team to collaborate on hiring.`,
             ctaLabel: 'Post a role',
             ctaUrl: `${SITE_URL}/employer/roles/new`,
+            signOff: true,
             illustration: 'Your_Requested_Is_Posted_v3.png',
           }),
         })

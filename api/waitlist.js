@@ -99,6 +99,7 @@ export default async function handler(req, res) {
           'If you are hiring, browse real people instead of CVs, shortlist, ask video questions, and book meetings all in one place. Post your roles for free in 5 minutes.',
         ctaLabel: 'Join Mellow now',
         ctaUrl: 'https://beta.joinmellow.xyz',
+        signOff: true,
         illustration: 'Client_to_creative.png',
       }),
     })

@@ -101,6 +101,7 @@ export default async function handler(req, res) {
             : reminder.bodyText,
           ctaLabel: reminder.ctaLabel,
           ctaUrl: `${SITE_URL}/profile/edit#video-section`,
+          signOff: true,
           illustration: reminder.illustration,
         }),
       })
