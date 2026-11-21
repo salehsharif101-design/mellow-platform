@@ -40,6 +40,11 @@ export function renderEmailHtml({
   footerDomain = 'beta.joinmellow.xyz',
 }) {
   const hasExtraCta = Boolean(extraCtaLabel && extraCtaUrl)
+  // Two side-by-side buttons share one fixed-layout table with two equal
+  // columns (the 12px spacer is the only fixed one), and the button look sits
+  // on the cells themselves, so they are always the same width and the same
+  // height whatever their labels say.
+  const hasPair = Boolean(ctaLabel && ctaUrl && secondaryCtaLabel && secondaryCtaUrl)
   const signOffHtml = signOff === true ? 'Best,<br />The Mellow Team' : signOff || ''
   // Space left under the last button: tighter when a sign-off follows it.
   const ctaGap = signOffHtml ? 28 : 40
@@ -83,7 +88,26 @@ export function renderEmailHtml({
               ctaLabel && ctaUrl
                 ? `<tr>
               <td style="padding-bottom:${hasExtraCta ? 16 : ctaGap}px;">
-                <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                ${
+                  hasPair
+                    ? `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width:100%;max-width:416px;table-layout:fixed;"><tr>
+                  <td valign="middle" align="center" style="background:#005ef5;border:1.5px solid #005ef5;border-radius:7px;">
+                    <a
+                      href="${ctaUrl}"
+                      style="display:block;text-align:center;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;line-height:20px;padding:12px;"
+                      >${ctaLabel}</a
+                    >
+                  </td>
+                  <td width="12" style="width:12px;font-size:0;line-height:0;">&nbsp;</td>
+                  <td valign="middle" align="center" style="background:#ffffff;border:1.5px solid #005ef5;border-radius:7px;">
+                    <a
+                      href="${secondaryCtaUrl}"
+                      style="display:block;text-align:center;color:#005ef5;text-decoration:none;font-weight:700;font-size:14px;line-height:20px;padding:12px;"
+                      >${secondaryCtaLabel}</a
+                    >
+                  </td>
+                </tr></table>`
+                    : `<table role="presentation" cellpadding="0" cellspacing="0"><tr>
                   <td>
                     <a
                       href="${ctaUrl}"
@@ -91,18 +115,8 @@ export function renderEmailHtml({
                       >${ctaLabel}</a
                     >
                   </td>
-                  ${
-                    secondaryCtaLabel && secondaryCtaUrl
-                      ? `<td style="padding-left:12px;">
-                    <a
-                      href="${secondaryCtaUrl}"
-                      style="display:inline-block;background:#ffffff;color:#005ef5;text-decoration:none;font-weight:700;font-size:14px;padding:12px 24px;border-radius:7px;border:1.5px solid #005ef5;"
-                      >${secondaryCtaLabel}</a
-                    >
-                  </td>`
-                      : ''
-                  }
-                </tr></table>
+                </tr></table>`
+                }
               </td>
             </tr>`
                 : ''
