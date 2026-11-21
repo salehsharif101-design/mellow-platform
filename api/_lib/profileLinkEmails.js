@@ -118,10 +118,10 @@ export function renderVideoLibraryEmail({ fullName } = {}) {
         `Hey ${escapeHtml(firstNameOf(fullName))},<br><br>` +
         'Your Mellow profile starts with your 60-second intro video. But top talent goes further. The work video library lets you upload additional videos that show employers exactly how you think and what you are capable of, before the first interview.<br><br>' +
         'Here are a few ideas to get you started:<br><br>' +
-        '🎨 Designer? Walk through a recent project, the brief, your thinking, the final result.<br><br>' +
-        '💻 Developer? Screen record yourself solving a problem or building a feature and talk through your decisions.<br><br>' +
-        '📊 Marketer? Break down a campaign you ran, the strategy, the execution, the results.<br><br>' +
-        '🎙️ Presenter or communicator? Record yourself pitching an idea or explaining a complex topic simply.<br><br>' +
+        'Designer? Walk through a recent project, the brief, your thinking, the final result.<br><br>' +
+        'Developer? Screen record yourself solving a problem or building a feature and talk through your decisions.<br><br>' +
+        'Marketer? Break down a campaign you ran, the strategy, the execution, the results.<br><br>' +
+        'Presenter or communicator? Record yourself pitching an idea or explaining a complex topic simply.<br><br>' +
         'Each video can be 60 seconds or longer. Label it clearly so employers know what they are looking at. The more you show, the more they know.',
       ctaLabel: 'Add a work video',
       ctaUrl: `${SITE_URL}/profile/edit`,
