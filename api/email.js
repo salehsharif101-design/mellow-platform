@@ -285,8 +285,8 @@ async function sendApplicationNotification(supabase, applicationId) {
     to: emails,
     subject: `New application for ${role.title}`,
     html: renderEmailHtml({
-      heading: 'You have a new applicant',
-      bodyText: `${escapeHtml(candidate.full_name)} applied to ${escapeHtml(role.title)}. Watch their video profile and see if they’re the right fit.`,
+      heading: `${escapeHtml(firstNameOf(candidate.full_name))} is ready to meet you`,
+      bodyText: `A new application just came in for ${escapeHtml(role.title)}. Watch their video profile and see if they’re the right fit.`,
       ctaLabel: 'View profile',
       ctaUrl: `${SITE_URL}/profile/${candidate.username || application.candidate_id}`,
       secondaryCtaLabel: 'View hiring pipeline',
