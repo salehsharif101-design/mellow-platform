@@ -92,7 +92,7 @@ async function sendTalentDigests(supabase, since) {
     if (profileViews > 0) parts.push(`${profileViews} employer${profileViews === 1 ? '' : 's'} viewed your profile`)
     if (matchingRoles > 0) parts.push(`${matchingRoles} new role${matchingRoles === 1 ? '' : 's'} matched your skills`)
     if (statusUpdateCount > 0) parts.push(`${statusUpdateCount} application update${statusUpdateCount === 1 ? '' : 's'}`)
-    const summary = parts.length > 0 ? `This week: ${parts.join(', ')}.` : ''
+    const summary = parts.length > 0 ? `${parts.join(', ')}.` : ''
 
     const { email } = await getCandidateContact(supabase, candidate.id)
 
@@ -104,6 +104,7 @@ async function sendTalentDigests(supabase, since) {
         bodyText: `${summary} Keep your profile updated and your next opportunity could be one view away.`,
         ctaLabel: 'View my dashboard',
         ctaUrl: `${SITE_URL}/dashboard`,
+        signOff: true,
         illustration: 'Collaborate2.png',
       }),
     })
