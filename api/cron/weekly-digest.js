@@ -185,7 +185,7 @@ async function sendEmployerDigests(supabase, since) {
     if (matchedCandidates > 0) parts.push(`${matchedCandidates} new candidate${matchedCandidates === 1 ? '' : 's'} matched your open roles`)
     if (unreadMessages > 0) parts.push(`${unreadMessages} unread message${unreadMessages === 1 ? '' : 's'}`)
     if (companyViews > 0) parts.push(`${companyViews} talent${companyViews === 1 ? '' : 's'} viewed your company profile`)
-    const summary = parts.length > 0 ? `This week: ${parts.join(', ')}.` : ''
+    const summary = parts.length > 0 ? `${parts.join(', ')}.` : ''
 
     const emails = await getEmployerEmails(supabase, employer.id)
     if (emails.length === 0) continue
@@ -212,6 +212,7 @@ async function sendEmployerDigests(supabase, since) {
         ctaUrl: `${SITE_URL}/employer/dashboard`,
         secondaryCtaLabel: 'Browse talent',
         secondaryCtaUrl: `${SITE_URL}/employer/talent`,
+        signOff: true,
         illustration: 'Collaborate2.png',
       }),
     })
