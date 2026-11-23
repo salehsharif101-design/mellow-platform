@@ -3,7 +3,7 @@
 // The two emails that follow a candidate's live welcome, both timed from
 // candidate_profiles.went_live_at (set by a trigger, migration 0091):
 //   hour 24  "Your profile is more than an intro" (work videos)
-//   hour 48  "Take Mellow with you — your profile link inside"
+//   hour 48  "Take Mellow with you"
 // (hour 0 is the live "Welcome to Mellow" in api/email.js, sent when the
 // candidate first opens their dashboard. runLiveWelcome below is the backstop
 // for anyone who goes live and never does: an hour after going live they
