@@ -20,7 +20,7 @@ import { escapeHtml } from './html.js'
 // run would send the new-signup emails to every existing live candidate.
 export const LIVE_EMAILS_FROM = '2026-10-27T09:46:00.000Z'
 
-export const WELCOME_SUBJECT = 'Take Mellow with you — your profile link inside'
+export const WELCOME_SUBJECT = 'Take Mellow with you'
 export const REENGAGEMENT_SUBJECT = 'Something we should have told you sooner 👋'
 
 // Both emails point at the candidate's public profile, which only exists
