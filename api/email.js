@@ -308,7 +308,7 @@ async function sendShortlistNotification(supabase, shortlistId) {
   const candidate = unwrap(
     await supabase
       .from('candidate_profiles')
-      .select('user_id, username, calendly_url')
+      .select('user_id, username, calendly_url, full_name')
       .eq('id', shortlist.candidate_id)
       .single(),
   )
@@ -319,17 +319,21 @@ async function sendShortlistNotification(supabase, shortlistId) {
   // book time directly, and this is the moment that's most likely to land.
   const calendlyNudge = candidate.calendly_url
     ? ''
-    : '<br><br>Make it easy for employers to reach you. Add your meeting link to your profile so they can book a meeting with you directly. Calendly, Zoom, Google Meet, or any scheduling tool works.<br><br>' +
-      `<a href="${SITE_URL}/profile/edit#links-section" style="color:#005ef5;font-weight:700;text-decoration:none;">Add your meeting link</a>`
+    : '<br><br>Make it easy for employers to reach you. Add your meeting link to your profile so they can book a meeting with you directly. Calendly, Zoom, Google Meet, or any scheduling tool works.'
 
   return sendEmail({
     to: candidateUser.email,
-    subject: 'You were shortlisted on Mellow',
+    subject: "You've been shortlisted",
     html: renderEmailHtml({
-      heading: "You've been shortlisted",
-      bodyText: `An employer shortlisted your Mellow profile. Keep it up to date — they may reach out soon.${calendlyNudge}`,
-      ctaLabel: 'View my profile',
-      ctaUrl: `${SITE_URL}/profile/${candidate.username || shortlist.candidate_id}`,
+      heading: 'An employer noticed you',
+      bodyText: `Hey ${escapeHtml(firstNameOf(candidate.full_name))},<br /><br />Your Mellow profile caught someone’s attention. Keep it up to date — they may reach out soon.${calendlyNudge}`,
+      // The button is the meeting-link prompt, so it only applies when the
+      // candidate has no link yet; otherwise it stays "View my profile".
+      ctaLabel: candidate.calendly_url ? 'View my profile' : 'Add your meeting link',
+      ctaUrl: candidate.calendly_url
+        ? `${SITE_URL}/profile/${candidate.username || shortlist.candidate_id}`
+        : `${SITE_URL}/profile/edit#links-section`,
+      signOff: true,
       illustration: 'Your_Requested_Is_Posted_v3.png',
     }),
   })
