@@ -65,6 +65,7 @@ export default async function handler(req, res) {
             bodyText: `Hey ${escapeHtml(firstNameOf(fullName))},<br /><br />You’ve applied to a role on Mellow, but it looks like your profile video has been removed. Employers can only see applications with a video profile, so your application is currently hidden. Re-add your video to be considered for the role. If you’d prefer not to be discovered by other employers while you job search, you can hide your profile from your dashboard or profile settings.`,
             ctaLabel: 'Add your video',
             ctaUrl: `${SITE_URL}/profile/edit#video-section`,
+            signOff: true,
             illustration: 'Easy_stuff.png',
           }),
         })
