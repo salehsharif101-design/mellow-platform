@@ -141,6 +141,7 @@ export default function CompanyProfile() {
             <div style={{ marginTop: 32 }}>
               <h2 style={SECTION_TITLE_STYLE}>Meet the team</h2>
               <VideoPlayCard
+                keepPlayingOffscreen
                 url={company.intro_video_url}
                 format="auto"
                 width={company.intro_video_width}
