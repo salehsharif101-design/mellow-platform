@@ -1,10 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
 import { pauseOtherVideos, isTouchDevice } from '../lib/videoPlayback.js'
 
-export default function VideoPlayCard({ url, style, format = 'vertical', objectFit = 'contain', width, height }) {
+export default function VideoPlayCard({
+  url,
+  style,
+  format = 'vertical',
+  objectFit = 'contain',
+  width,
+  height,
+  keepPlayingOffscreen = false,
+}) {
   const videoRef = useRef(null)
   const containerRef = useRef(null)
-  const [playing, setPlaying] = useState(false)
+  // True from the first play until the source is unloaded. Deliberately not
+  // reset on pause: browsers pause the video themselves while the user drags
+  // the progress bar and resume on release, and taking the native controls
+  // away during that pause leaves the video stuck paused.
+  const [started, setStarted] = useState(false)
   const [naturalSize, setNaturalSize] = useState(null)
   const [touch] = useState(isTouchDevice)
   // Only cards near the viewport get a src, so scrolling a long feed never
@@ -31,7 +43,9 @@ export default function VideoPlayCard({ url, style, format = 'vertical', objectF
 
   // Observes the video's wrapper (not the video, which has no src while off
   // screen). Leaving the 200px margin pauses the video and drops its src to
-  // free memory; coming back re-attaches it.
+  // free memory; coming back re-attaches it. With keepPlayingOffscreen (a
+  // profile page) the src is still attached lazily but never taken away, so
+  // playback carries on while the user scrolls.
   useEffect(() => {
     const el = containerRef.current
     if (!el) return undefined
@@ -45,20 +59,21 @@ export default function VideoPlayCard({ url, style, format = 'vertical', objectF
           setNearViewport(true)
           return
         }
+        if (keepPlayingOffscreen) return
         const v = videoRef.current
         if (v) {
           v.pause()
           v.removeAttribute('src')
           v.load()
         }
-        setPlaying(false)
+        setStarted(false)
         setNearViewport(false)
       },
       { rootMargin: '200px' },
     )
     observer.observe(el)
     return () => observer.disconnect()
-  }, [])
+  }, [keepPlayingOffscreen])
 
   function handlePlayClick(e) {
     // Keep the tap from also reaching the native <video> underneath.
@@ -102,19 +117,20 @@ export default function VideoPlayCard({ url, style, format = 'vertical', objectF
         ref={videoRef}
         src={videoSrc}
         preload="metadata"
-        controls={playing}
+        controls={started}
         controlsList="nodownload"
         playsInline
         webkit-playsinline="true"
         onLoadedMetadata={handleLoadedMetadata}
         onPlay={(e) => {
-          setPlaying(true)
+          setStarted(true)
           pauseOtherVideos(e.currentTarget)
         }}
-        onPause={() => setPlaying(false)}
+        // Fires when the source is removed or replaced: back to the play button.
+        onEmptied={() => setStarted(false)}
         style={{ width: '100%', height: '100%', display: 'block', objectFit, background: '#000' }}
       />
-      {!playing && (
+      {!started && (
         <button
           type="button"
           onClick={handlePlayClick}

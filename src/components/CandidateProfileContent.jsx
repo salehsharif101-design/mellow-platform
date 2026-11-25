@@ -63,6 +63,7 @@ export default function CandidateProfileContent({ profile, videos = [], isOwner 
       <div style={{ marginTop: 40, display: 'flex', justifyContent: 'center' }}>
         {profile.intro_video_url ? (
           <VideoPlayCard
+            keepPlayingOffscreen
             url={profile.intro_video_url}
             format="auto"
             width={profile.intro_video_width}
@@ -137,7 +138,7 @@ export default function CandidateProfileContent({ profile, videos = [], isOwner 
             <div className="work-videos-grid">
               {videos.map((v) => (
                 <div key={v.id}>
-                  <VideoPlayCard url={v.video_url} format="horizontal" />
+                  <VideoPlayCard url={v.video_url} format="horizontal" keepPlayingOffscreen />
                   <p style={{ marginTop: 8, fontSize: 13, fontWeight: 600 }}>{v.label}</p>
                   {v.description && <p style={{ marginTop: 2, fontSize: 12, color: 'var(--color-text-muted)' }}>{v.description}</p>}
                 </div>
