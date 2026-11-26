@@ -193,22 +193,62 @@ async function sendRoleLiveNotification(supabase, roleId) {
   })
 }
 
+// The name the recipient knows the sender by, matching the in-app inbox: a
+// candidate's full name, or the company name for anyone sending on a
+// company's behalf (the owner or an active teammate).
+async function getMessageSenderName(supabase, senderId, recipientType) {
+  if (recipientType === 'employer') {
+    const candidate = unwrap(
+      await supabase.from('candidate_profiles').select('full_name').eq('user_id', senderId).maybeSingle(),
+    )
+    return candidate?.full_name?.trim() || 'Someone'
+  }
+
+  const owned = unwrap(
+    await supabase.from('employer_profiles').select('company_name').eq('user_id', senderId).maybeSingle(),
+  )
+  if (owned?.company_name) return owned.company_name.trim()
+
+  const membership = unwrap(
+    await supabase
+      .from('employer_team_members')
+      .select('employer_profiles(company_name)')
+      .eq('user_id', senderId)
+      .eq('status', 'active')
+      .limit(1)
+      .maybeSingle(),
+  )
+  return membership?.employer_profiles?.company_name?.trim() || 'Someone'
+}
+
 async function sendMessageNotification(supabase, messageId) {
   const message = unwrap(
-    await supabase.from('messages').select('recipient_id').eq('id', messageId).single(),
+    await supabase.from('messages').select('sender_id, recipient_id').eq('id', messageId).single(),
   )
   const recipient = unwrap(
     await supabase.from('users').select('email, user_type').eq('id', message.recipient_id).single(),
   )
 
+  const senderName = await getMessageSenderName(supabase, message.sender_id, recipient.user_type)
+
+  // Only candidates have a personal name on file; employer accounts (owners
+  // and teammates) just have a company name, so they're greeted "Hey there".
+  const recipientProfile =
+    recipient.user_type === 'candidate'
+      ? unwrap(
+          await supabase.from('candidate_profiles').select('full_name').eq('user_id', message.recipient_id).maybeSingle(),
+        )
+      : null
+
   return sendEmail({
     to: recipient.email,
-    subject: 'You have a new message on Mellow',
+    subject: 'You have a new message',
     html: renderEmailHtml({
-      heading: 'You have a new message',
-      bodyText: 'You have a new message on Mellow — log in to reply.',
+      heading: `${escapeHtml(senderName)} sent you a message`,
+      bodyText: `Hey ${escapeHtml(firstNameOf(recipientProfile?.full_name))},<br /><br />Don’t keep them waiting.`,
       ctaLabel: 'Reply now',
       ctaUrl: `${SITE_URL}${recipient.user_type === 'employer' ? '/employer/messages' : '/messages'}`,
+      signOff: true,
       illustration: 'connection.png',
     }),
   })
