@@ -193,9 +193,29 @@ async function sendRoleLiveNotification(supabase, roleId) {
   })
 }
 
+// The company a user acts for, as its owner or an active teammate; null if
+// neither.
+async function getCompanyNameForUser(supabase, userId) {
+  const owned = unwrap(
+    await supabase.from('employer_profiles').select('company_name').eq('user_id', userId).maybeSingle(),
+  )
+  if (owned?.company_name) return owned.company_name.trim()
+
+  const membership = unwrap(
+    await supabase
+      .from('employer_team_members')
+      .select('employer_profiles(company_name)')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .limit(1)
+      .maybeSingle(),
+  )
+  return membership?.employer_profiles?.company_name?.trim() || null
+}
+
 // The name the recipient knows the sender by, matching the in-app inbox: a
 // candidate's full name, or the company name for anyone sending on a
-// company's behalf (the owner or an active teammate).
+// company's behalf.
 async function getMessageSenderName(supabase, senderId, recipientType) {
   if (recipientType === 'employer') {
     const candidate = unwrap(
@@ -204,21 +224,7 @@ async function getMessageSenderName(supabase, senderId, recipientType) {
     return candidate?.full_name?.trim() || 'Someone'
   }
 
-  const owned = unwrap(
-    await supabase.from('employer_profiles').select('company_name').eq('user_id', senderId).maybeSingle(),
-  )
-  if (owned?.company_name) return owned.company_name.trim()
-
-  const membership = unwrap(
-    await supabase
-      .from('employer_team_members')
-      .select('employer_profiles(company_name)')
-      .eq('user_id', senderId)
-      .eq('status', 'active')
-      .limit(1)
-      .maybeSingle(),
-  )
-  return membership?.employer_profiles?.company_name?.trim() || 'Someone'
+  return (await getCompanyNameForUser(supabase, senderId)) || 'Someone'
 }
 
 async function sendMessageNotification(supabase, messageId) {
@@ -231,21 +237,24 @@ async function sendMessageNotification(supabase, messageId) {
 
   const senderName = await getMessageSenderName(supabase, message.sender_id, recipient.user_type)
 
-  // Only candidates have a personal name on file; employer accounts (owners
-  // and teammates) just have a company name, so they're greeted "Hey there".
-  const recipientProfile =
-    recipient.user_type === 'candidate'
-      ? unwrap(
-          await supabase.from('candidate_profiles').select('full_name').eq('user_id', message.recipient_id).maybeSingle(),
-        )
-      : null
+  // Candidates are greeted by first name; employers (owners and teammates)
+  // by company name, like the other employer emails.
+  let greetingName
+  if (recipient.user_type === 'employer') {
+    greetingName = (await getCompanyNameForUser(supabase, message.recipient_id)) || 'there'
+  } else {
+    const profile = unwrap(
+      await supabase.from('candidate_profiles').select('full_name').eq('user_id', message.recipient_id).maybeSingle(),
+    )
+    greetingName = firstNameOf(profile?.full_name)
+  }
 
   return sendEmail({
     to: recipient.email,
     subject: 'You have a new message',
     html: renderEmailHtml({
       heading: `${escapeHtml(senderName)} sent you a message`,
-      bodyText: `Hey ${escapeHtml(firstNameOf(recipientProfile?.full_name))},<br /><br />Don’t keep them waiting.`,
+      bodyText: `Hey ${escapeHtml(greetingName)},<br /><br />Don’t keep them waiting.`,
       ctaLabel: 'Reply now',
       ctaUrl: `${SITE_URL}${recipient.user_type === 'employer' ? '/employer/messages' : '/messages'}`,
       signOff: true,
