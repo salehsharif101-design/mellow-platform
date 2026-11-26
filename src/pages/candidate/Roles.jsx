@@ -967,7 +967,6 @@ export default function BrowseRoles() {
               }}
             >
               <div className="recommended-heading" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-                <SparkleIcon />
                 <h3 style={{ fontSize: 18 }}>Recommended for you</h3>
               </div>
               {viewMode === 'grid' ? (
@@ -1035,14 +1034,5 @@ export default function BrowseRoles() {
         </Modal>
       )}
     </div>
-  )
-}
-
-function SparkleIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--color-primary)" aria-hidden="true">
-      <path d="M12 2l1.8 5.6L19.4 9.4 13.8 11.2 12 17l-1.8-5.8L4.6 9.4l5.6-1.8L12 2z" />
-      <path d="M19 15l0.8 2.5 2.5 0.8-2.5 0.8-0.8 2.5-0.8-2.5-2.5-0.8 2.5-0.8z" />
-    </svg>
   )
 }
