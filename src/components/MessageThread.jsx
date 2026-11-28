@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNotifications } from '../context/NotificationContext.jsx'
@@ -6,6 +6,9 @@ import { supabase } from '../lib/supabase.js'
 import { notify } from '../lib/notify.js'
 import CandidateAvatar from './CandidateAvatar.jsx'
 import CompanyAvatar from './CompanyAvatar.jsx'
+
+// The composer grows with its text up to this height, then scrolls.
+const COMPOSER_MAX_HEIGHT = 160
 
 // `myIds` lets a shared company inbox (multiple team members) see and mark
 // read the same conversation regardless of which teammate a past message
@@ -43,6 +46,17 @@ export default function MessageThread({
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
+  const composerRef = useRef(null)
+
+  // Resize to fit the text, including shrinking back after a send. `loading`
+  // is a dependency because the textarea only mounts once loading finishes.
+  useLayoutEffect(() => {
+    const el = composerRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    const borders = el.offsetHeight - el.clientHeight
+    el.style.height = `${Math.min(el.scrollHeight + borders, COMPOSER_MAX_HEIGHT)}px`
+  }, [body, loading])
 
   const myIdList = myIds && myIds.length > 0 ? myIds : user ? [user.id] : []
   const myIdKey = myIdList.join(',')
@@ -88,7 +102,7 @@ export default function MessageThread({
 
   async function handleSend(e) {
     e.preventDefault()
-    if (!body.trim()) return
+    if (sending || !body.trim()) return
     // A message row needs exactly one recipient — otherUserId is that
     // fixed send target; otherIdList's first entry only covers a caller
     // that passed nothing else.
@@ -109,6 +123,12 @@ export default function MessageThread({
       notify('message-notification', { messageId: data.id })
     }
     setSending(false)
+  }
+
+  // Enter alone is left to the textarea (new line); Ctrl+Enter, or Cmd+Enter
+  // on a Mac, sends.
+  function handleComposerKeyDown(e) {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSend(e)
   }
 
   // Lighter than PageLoading — this sits inside an already-rendered panel
@@ -192,6 +212,8 @@ export default function MessageThread({
                     borderRadius: 12,
                     padding: '8px 14px',
                     fontSize: 14,
+                    whiteSpace: 'pre-wrap',
+                    overflowWrap: 'anywhere',
                   }}
                 >
                   {m.body}
@@ -202,14 +224,19 @@ export default function MessageThread({
         })}
       </div>
 
-      <form onSubmit={handleSend} style={{ display: 'flex', gap: 10 }}>
-        <input
+      <form onSubmit={handleSend} style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
+        <textarea
+          ref={composerRef}
           className="input"
+          rows={1}
           placeholder="Write a message…"
           value={body}
           onChange={(e) => setBody(e.target.value)}
+          onKeyDown={handleComposerKeyDown}
+          style={{ resize: 'none', lineHeight: '20px' }}
         />
-        <button className="btn btn-primary" type="submit" disabled={sending || !body.trim()}>
+        {/* Matches the one-line composer height, and stays at the bottom as it grows. */}
+        <button className="btn btn-primary" type="submit" disabled={sending || !body.trim()} style={{ minHeight: 47 }}>
           {sending ? 'Sending…' : 'Send'}
         </button>
       </form>
