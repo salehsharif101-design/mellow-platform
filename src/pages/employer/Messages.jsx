@@ -65,6 +65,16 @@ export default function EmployerMessages() {
         (candidates || []).map((c) => [c.user_id, { name: c.full_name, candidateId: c.username || c.id, avatarUrl: c.avatar_url }]),
       )
 
+      // Only live profiles are readable above. For anyone else in the inbox,
+      // fetch just their name (migration 0097); there's no profile to link to.
+      const hiddenIds = otherIds.filter((id) => !infoByUserId[id])
+      if (hiddenIds.length > 0) {
+        const { data: names } = await supabase.rpc('messaged_candidate_names', { uids: hiddenIds })
+        ;(names || []).forEach((n) => {
+          infoByUserId[n.candidate_user_id] = { name: n.full_name }
+        })
+      }
+
       const convos = otherIds.map((otherId) => {
         const lastMessage = messages.find((m) => m.sender_id === otherId || m.recipient_id === otherId)
         const info = infoByUserId[otherId]

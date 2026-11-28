@@ -267,6 +267,15 @@ export default function EmployerDashboard() {
       const shortlistTotal = shortlistResult.count || 0
       const views = companyViewsResult.data || []
       const namesBySenderId = Object.fromEntries((senderProfilesResult.data || []).map((p) => [p.user_id, p.full_name]))
+      // Only live profiles are readable above. For other senders, fetch just
+      // their name (migration 0097).
+      const hiddenSenderIds = senderIds.filter((id) => !namesBySenderId[id])
+      if (hiddenSenderIds.length > 0) {
+        const { data: names } = await supabase.rpc('messaged_candidate_names', { uids: hiddenSenderIds })
+        ;(names || []).forEach((n) => {
+          namesBySenderId[n.candidate_user_id] = n.full_name
+        })
+      }
       const teamEmailsByUserId = Object.fromEntries(
         (teamMembersResult.data || []).filter((m) => m.user_id).map((m) => [m.user_id, m.invited_email]),
       )
